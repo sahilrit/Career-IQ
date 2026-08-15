@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "careeros",
     "careeros-career-brain",
+    "careeros-career-brain-engine",
     "careeros-common",
     "careeros-event-bus",
     "careeros-job-agent",
@@ -75,6 +76,25 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-career-brain-engine"
+version = "0.1.0"
+source = { editable = "packages/careeros-career-brain-engine" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "careeros-memory" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "careeros-memory", editable = "packages/careeros-memory" },
 ]
 
 [[package]]
