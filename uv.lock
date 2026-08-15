@@ -8,6 +8,7 @@ members = [
     "careeros-application-engine",
     "careeros-application-intelligence",
     "careeros-application-runner",
+    "careeros-autonomy",
     "careeros-browser",
     "careeros-career-brain",
     "careeros-career-brain-engine",
@@ -123,6 +124,23 @@ requires-dist = [
     { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
     { name = "careeros-browser", editable = "packages/careeros-browser" },
     { name = "careeros-common", editable = "packages/careeros-common" },
+]
+
+[[package]]
+name = "careeros-autonomy"
+version = "0.1.0"
+source = { editable = "packages/careeros-autonomy" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]
