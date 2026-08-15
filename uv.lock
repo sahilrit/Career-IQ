@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "careeros",
+    "careeros-career-brain",
     "careeros-common",
 ]
 
@@ -38,6 +39,21 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
+name = "careeros-career-brain"
+version = "0.1.0"
+source = { editable = "packages/careeros-career-brain" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]

@@ -37,7 +37,7 @@ do not fork this plan into other documents.
 [phase-01-repository-foundation.md](phase-01-repository-foundation.md) for
 what actually shipped.
 
-## PHASE 2 — Career Brain Foundation
+## PHASE 2 — Career Brain Foundation ✅
 
 **Goal:** create the source of truth for professional identity.
 
