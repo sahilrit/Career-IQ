@@ -15,8 +15,8 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 44 of 60 — Analytics & Career ROI. The full autonomous apply
-loop works today, for both employment and freelance opportunities:
+🚧 Phase 46 of 60 — Zero-Cost Infrastructure Mode. The full autonomous
+apply loop works today, for both employment and freelance opportunities:
 postings are discovered (RemoteOK, Fiverr), normalized, and scored
 against a Career Brain profile; qualified opportunities get a real
 resume/cover-letter/answers/proposal package generated (nothing
@@ -43,11 +43,17 @@ platform event. The product itself now has a UI — a Streamlit
 dashboard with a main overview, an opportunity page, and a full Career
 Brain manager — and an analytics layer computing funnel/platform/
 industry/network metrics and a transparent Career ROI breakdown live
-from the same data. No arbitrary cap on how many qualified applications
-one run processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md)
-for the full plan and
-[`docs/architecture/overview.md`](docs/architecture/overview.md) for
-what's built so far.
+from the same data. A general-purpose audit log, consent management,
+data export/deletion, rate limiting, and a failure queue with recovery
+round out the security posture (tenancy, encryption, and agent
+authorization already existed from earlier phases); and the zero-cost
+constraint itself is now an explicit, tested guarantee — a provider
+cost registry and a real dependency scan across every workspace
+package, confirming zero paid SDKs anywhere in the platform. No
+arbitrary cap on how many qualified applications one run processes.
+See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full
+plan and [`docs/architecture/overview.md`](docs/architecture/overview.md)
+for what's built so far.
 
 ## Repository layout
 
@@ -97,7 +103,9 @@ careeros/
 │   ├── careeros-ceo-agent/                  # evidence-weighted effort allocation across divisions
 │   ├── careeros-workflow-builder/           # no-code WHEN/THEN rules over platform events
 │   ├── careeros-dashboard/                  # the product UI (Streamlit)
-│   └── careeros-analytics/                  # funnel metrics + Career ROI breakdown
+│   ├── careeros-analytics/                  # funnel metrics + Career ROI breakdown
+│   ├── careeros-trust-layer/                # audit log, consent, rate limiting, failure queue
+│   └── careeros-zero-cost-mode/             # provider cost registry + workspace dependency audit
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

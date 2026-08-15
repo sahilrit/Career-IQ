@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 44)
+## Current state (post Phase 46)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -236,11 +236,24 @@ careeros/                                  workspace root — virtual, not insta
     │                                       manager — reads the same
     │                                       local database the CLI
     │                                       writes to
-    └── careeros-analytics/                  funnel/platform/industry/
-                                            network metrics and a
-                                            transparent Career ROI
-                                            breakdown, computed live
-                                            from real platform data
+    ├── careeros-analytics/                  funnel/platform/industry/
+    │                                       network metrics and a
+    │                                       transparent Career ROI
+    │                                       breakdown, computed live
+    │                                       from real platform data
+    ├── careeros-trust-layer/                general-purpose audit log,
+    │                                       consent records, rate
+    │                                       limiting, a failure queue
+    │                                       with recovery, and an
+    │                                       extensible data export/
+    │                                       deletion registry
+    └── careeros-zero-cost-mode/             makes "no mandatory paid
+                                            API" explicit and tested: a
+                                            provider cost registry
+                                            (pre-seeded with the
+                                            platform's own real
+                                            providers) and a workspace
+                                            dependency audit
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -249,10 +262,9 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the security & trust layer (Phase 45), the zero-cost
-infrastructure audit (Phase 46), the local/self-hosted edition
-(Phase 47), the plugin/skill marketplaces (Phase 48-51), and everything
-from SaaS Billing (Phase 52) onward. See
+Still missing: the local/self-hosted edition (Phase 47), the plugin/
+skill marketplaces and developer SDK (Phase 48-51), and everything from
+SaaS Billing (Phase 52) onward. See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
 and current status markers.
 
