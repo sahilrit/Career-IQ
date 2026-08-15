@@ -630,29 +630,43 @@ name = "careeros-dashboard"
 version = "0.1.0"
 source = { editable = "packages/careeros-dashboard" }
 dependencies = [
+    { name = "careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider" },
     { name = "careeros-calendar-assistant" },
     { name = "careeros-career-brain" },
     { name = "careeros-client-acquisition" },
     { name = "careeros-common" },
     { name = "careeros-crm" },
     { name = "careeros-employment-division" },
+    { name = "careeros-event-bus" },
     { name = "careeros-financial-intelligence" },
+    { name = "careeros-job-agent" },
+    { name = "careeros-job-discovery" },
+    { name = "careeros-job-providers" },
     { name = "careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence" },
+    { name = "careeros-remoteok-provider" },
     { name = "streamlit" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider", editable = "packages/careeros-arbeitnow-provider" },
     { name = "careeros-calendar-assistant", editable = "packages/careeros-calendar-assistant" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-crm", editable = "packages/careeros-crm" },
     { name = "careeros-employment-division", editable = "packages/careeros-employment-division" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "careeros-financial-intelligence", editable = "packages/careeros-financial-intelligence" },
+    { name = "careeros-job-agent", editable = "packages/careeros-job-agent" },
+    { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
+    { name = "careeros-remoteok-provider", editable = "packages/careeros-remoteok-provider" },
     { name = "streamlit", specifier = ">=1.38" },
 ]
 

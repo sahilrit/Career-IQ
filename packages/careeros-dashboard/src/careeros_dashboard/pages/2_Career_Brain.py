@@ -18,9 +18,12 @@ from careeros_dashboard.career_brain_actions import (
 )
 from careeros_dashboard.data_access import primary_brain
 from careeros_dashboard.runtime import get_store
+from careeros_dashboard.theme import badge, inject_theme
 from careeros_employment_division import build_portfolio_summary, render_portfolio_summary
 
 st.set_page_config(page_title="Career Brain", page_icon="🧠", layout="wide")
+
+inject_theme()
 
 store = get_store()
 st.title("Career Brain")
@@ -112,8 +115,8 @@ with tab_projects:
 with tab_goals:
     st.subheader("Goals")
     for goal in brain.goals:
-        status_icon = "✅" if goal.achieved else "⬜"
-        st.write(f"{status_icon} {goal.description}")
+        tone, label = ("green", "achieved") if goal.achieved else ("mute", "in progress")
+        st.markdown(f"{badge(label, tone)} {goal.description}", unsafe_allow_html=True)
     with st.form("add_goal"):
         goal_description = st.text_input("Goal")
         if st.form_submit_button("Add goal") and goal_description:

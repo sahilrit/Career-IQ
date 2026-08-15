@@ -34,6 +34,25 @@ def test_opportunities_page_renders_with_no_data(data_dir):
     at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "1_Opportunities.py")).run()
     assert not at.exception
     assert "Opportunities" in at.title[0].value
+    assert any("Create your Career Brain first" in info.value for info in at.info)
+
+
+def test_opportunities_page_shows_search_form_with_a_brain(data_dir):
+    from careeros_career_brain import CareerBrain, CareerBrainRepository, Identity
+    from careeros_dashboard.data_access import open_store
+
+    store = open_store(data_dir)
+    CareerBrainRepository(store).save(
+        CareerBrain(identity=Identity(full_name="Ada Lovelace", email="ada@example.com"))
+    )
+    store.close()
+
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "1_Opportunities.py")).run()
+    assert not at.exception
+    assert len(at.text_input) == 1
+    assert len(at.checkbox) == 1
+    assert len(at.number_input) == 1
+    assert any("No applications yet" in info.value for info in at.info)
 
 
 def test_career_brain_page_renders_create_form_with_no_data(data_dir):

@@ -4,28 +4,42 @@ version = "0.1.0"
 description = "Dashboard / SaaS Control Center: the product UI over the platform — main dashboard, opportunity page, and Career Brain management."
 requires-python = ">=3.12"
 dependencies = [
+    "careeros-application-engine",
+    "careeros-arbeitnow-provider",
     "careeros-calendar-assistant",
     "careeros-career-brain",
     "careeros-client-acquisition",
     "careeros-common",
     "careeros-crm",
     "careeros-employment-division",
+    "careeros-event-bus",
     "careeros-financial-intelligence",
+    "careeros-job-agent",
+    "careeros-job-discovery",
+    "careeros-job-providers",
     "careeros-offer-negotiation",
     "careeros-opportunity-intelligence",
+    "careeros-remoteok-provider",
     "streamlit>=1.38",
 ]
 
 [tool.uv.sources]
+careeros-application-engine = { workspace = true }
+careeros-arbeitnow-provider = { workspace = true }
 careeros-calendar-assistant = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-client-acquisition = { workspace = true }
 careeros-common = { workspace = true }
 careeros-crm = { workspace = true }
 careeros-employment-division = { workspace = true }
+careeros-event-bus = { workspace = true }
 careeros-financial-intelligence = { workspace = true }
+careeros-job-agent = { workspace = true }
+careeros-job-discovery = { workspace = true }
+careeros-job-providers = { workspace = true }
 careeros-offer-negotiation = { workspace = true }
 careeros-opportunity-intelligence = { workspace = true }
+careeros-remoteok-provider = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

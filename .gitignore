@@ -30,3 +30,6 @@ config/local.yaml
 .env
 .env.*
 !.env.example
+
+# Reference-only clone (design tokens for the dashboard theme), not a submodule
+/awesome-design-md/

@@ -14,11 +14,13 @@ import streamlit as st
 
 from careeros_dashboard.data_access import build_dashboard_summary, primary_brain
 from careeros_dashboard.runtime import get_store
+from careeros_dashboard.theme import inject_theme
 
 st.set_page_config(page_title="CareerOS", page_icon="🧭", layout="wide")
 
 
 def main() -> None:
+    inject_theme()
     store = get_store()
     st.title("CareerOS")
 
