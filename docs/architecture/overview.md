@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 30)
+## Current state (post Phase 34)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -148,13 +148,41 @@ careeros/                                  workspace root — virtual, not insta
     │                                       fabrication), STAR question
     │                                       generation, briefing documents on
     │                                       a H48/H24/H2 schedule
-    └── careeros-employment-division/        completes the employment agency
-                                            pipeline end-to-end (Discovery ->
-                                            ... -> Negotiation), tracking
-                                            per-application progress purely
-                                            via event-type strings — zero new
-                                            dependencies on the packages whose
-                                            events it observes
+    ├── careeros-employment-division/        completes the employment agency
+    │                                       pipeline end-to-end (Discovery ->
+    │                                       ... -> Negotiation), tracking
+    │                                       per-application progress purely
+    │                                       via event-type strings — zero new
+    │                                       dependencies on the packages whose
+    │                                       events it observes
+    ├── careeros-client-acquisition/         the freelance-side mirror of
+    │                                       Employment Division: Company
+    │                                       Discovery -> Qualification ->
+    │                                       Problem Detection -> Score ->
+    │                                       Audit -> Outreach -> Follow-up
+    │                                       -> Proposal -> Call -> Contract
+    │                                       -> Client, with website
+    │                                       problem-signal detection via
+    │                                       careeros-browser
+    ├── careeros-audit-proposal-engine/      deep Shopify/Meta Ads audits,
+    │                                       heuristic ROI estimation, and
+    │                                       every pitch deliverable (Loom
+    │                                       script, real PDF via fpdf2,
+    │                                       email, LinkedIn message,
+    │                                       proposal) plugging into Client
+    │                                       Acquisition's AUDIT stage
+    ├── careeros-crm/                        relationship timeline (Viewed
+    │                                       -> ... -> Client/Employer) for
+    │                                       every contact across both
+    │                                       employment and freelance sides,
+    │                                       wired to company.qualified /
+    │                                       client.won / outcome.recorded
+    └── careeros-personal-brand/             turns a Project into a Case
+                                            Study, then a portfolio page,
+                                            LinkedIn post, X thread, blog
+                                            post, and candidate resume
+                                            achievement, plus a
+                                            user-supplied testimonials store
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -163,11 +191,12 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the Freelance Client Acquisition division (Phase 31),
-AI audit/proposal engine (Phase 32), personal brand (Phase 34), the
-dashboard/control center (Phase 43), and everything from SaaS Billing
-(Phase 52) onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md)
-for the full sequence and current status markers.
+Still missing: offer/negotiation intelligence (Phase 35), client
+success (Phase 36), financial intelligence (Phase 37), the CEO agent
+(Phase 41), the dashboard/control center (Phase 43), and everything
+from SaaS Billing (Phase 52) onward. See
+[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
+and current status markers.
 
 ## Core principle
 

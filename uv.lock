@@ -34,6 +34,7 @@ members = [
     "careeros-job-providers",
     "careeros-memory",
     "careeros-opportunity-intelligence",
+    "careeros-personal-brand",
     "careeros-plugin-sdk",
     "careeros-remoteok-provider",
     "careeros-runtime",
@@ -628,6 +629,23 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-freelance-providers", editable = "packages/careeros-freelance-providers" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+]
+
+[[package]]
+name = "careeros-personal-brand"
+version = "0.1.0"
+source = { editable = "packages/careeros-personal-brand" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-career-brain-engine" },
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
 ]
 
 [[package]]
