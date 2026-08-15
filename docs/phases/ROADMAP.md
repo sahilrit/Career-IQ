@@ -58,7 +58,7 @@ what actually shipped.
 **Principle:** AI does not invent the user's career. Career Brain is
 authoritative.
 
-## PHASE 3 — Plugin SDK
+## PHASE 3 — Plugin SDK ✅
 
 **Goal:** create the foundation for the future plugin ecosystem.
 
