@@ -5,6 +5,7 @@ description = "CareerOS command-line interface: Career Brain management, job sea
 requires-python = ">=3.12"
 dependencies = [
     "careeros-application-engine",
+    "careeros-arbeitnow-provider",
     "careeros-career-brain",
     "careeros-common",
     "careeros-event-bus",
@@ -17,6 +18,7 @@ dependencies = [
 
 [tool.uv.sources]
 careeros-application-engine = { workspace = true }
+careeros-arbeitnow-provider = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-common = { workspace = true }
 careeros-event-bus = { workspace = true }

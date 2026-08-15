@@ -17,6 +17,7 @@ members = [
     "careeros-application-engine",
     "careeros-application-intelligence",
     "careeros-application-runner",
+    "careeros-arbeitnow-provider",
     "careeros-audit-proposal-engine",
     "careeros-autonomous-execution",
     "careeros-autonomy",
@@ -228,6 +229,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "careeros-arbeitnow-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-arbeitnow-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
 name = "careeros-audit-proposal-engine"
 version = "0.1.0"
 source = { editable = "packages/careeros-audit-proposal-engine" }
@@ -431,6 +449,7 @@ version = "0.1.0"
 source = { editable = "packages/careeros-cli" }
 dependencies = [
     { name = "careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider" },
     { name = "careeros-career-brain" },
     { name = "careeros-common" },
     { name = "careeros-event-bus" },
@@ -444,6 +463,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider", editable = "packages/careeros-arbeitnow-provider" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },

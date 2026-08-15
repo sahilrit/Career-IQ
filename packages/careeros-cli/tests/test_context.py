@@ -18,7 +18,8 @@ def test_build_context_persists_across_separate_calls(tmp_path, fake_registry):
 
 
 def test_build_context_defaults_to_a_real_registry_without_network_calls(tmp_path):
-    # Constructing the context (and the RemoteOKProvider inside it) must
-    # never touch the network — only calling .search()/.health_check() does.
+    # Constructing the context (and its providers) must never touch the
+    # network — only calling .search()/.health_check() does.
     context = build_context(tmp_path)
     assert context.provider_registry.get("remoteok") is not None
+    assert context.provider_registry.get("arbeitnow") is not None

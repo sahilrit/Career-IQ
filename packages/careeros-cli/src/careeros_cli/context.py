@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
@@ -44,6 +45,7 @@ def build_context(
     if provider_registry is None:
         provider_registry = JobProviderRegistry()
         provider_registry.register(RemoteOKProvider())
+        provider_registry.register(ArbeitnowProvider())
 
     pipeline = JobDiscoveryPipeline(provider_registry, repository, event_bus)
     agent = JobAgent(pipeline, repository, event_bus)
