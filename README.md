@@ -15,18 +15,24 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 22 of 60 — Autonomous Application Execution. The full loop
-works today, for both employment and freelance opportunities: postings
-are discovered (RemoteOK, Fiverr), normalized, and scored against a
-Career Brain profile; qualified opportunities get a real resume/cover-
-letter/answers/proposal package generated (nothing fabricated); an
-authorization system decides whether to act (MANUAL/SUPERVISED/
-FULL_AUTONOMOUS, with financial/legal/identity actions always requiring
-a human, in every mode); and a Playwright-backed browser runner submits
-the package through an actual web form — with retries, screenshots,
-pacing, and a human-takeover path for captchas, unexpected pages, or
-failed submissions. No arbitrary cap on how many qualified applications
-one run processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md)
+🚧 Phase 30 of 60 — Employment Division 2.0. The full autonomous apply
+loop works today, for both employment and freelance opportunities:
+postings are discovered (RemoteOK, Fiverr), normalized, and scored
+against a Career Brain profile; qualified opportunities get a real
+resume/cover-letter/answers/proposal package generated (nothing
+fabricated); an authorization system decides whether to act
+(MANUAL/SUPERVISED/FULL_AUTONOMOUS, with financial/legal/identity
+actions always requiring a human, in every mode); and a
+Playwright-backed browser runner submits the package through an actual
+web form — with retries, screenshots, pacing, and a human-takeover path
+for captchas, unexpected pages, or failed submissions. On top of that,
+the platform is now multi-tenant (isolated Users/Organizations/
+Workspaces), has an encrypted credential vault, classifies inbound
+recruiter/interviewer email, turns interview emails into calendar
+events with an automated research/briefing schedule, and tracks
+end-to-end pipeline progress (Discovery through Negotiation) per
+application. No arbitrary cap on how many qualified applications one
+run processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md)
 for the full plan and [`docs/architecture/overview.md`](docs/architecture/overview.md)
 for what's built so far.
 
@@ -56,7 +62,15 @@ careeros/
 │   ├── careeros-fiverr-provider/            # a second FIND_GIGS provider (browser-driven)
 │   ├── careeros-opportunity-intelligence/   # unifies employment + freelance, CRM, proposals
 │   ├── careeros-autonomy/                   # risk-based authorization, decision memory, pacing
-│   └── careeros-autonomous-execution/       # the full autonomous apply loop
+│   ├── careeros-autonomous-execution/       # the full autonomous apply loop
+│   ├── careeros-core/                       # platform-wide contracts (registry, health, events)
+│   ├── careeros-capability-marketplace/     # ranked provider registration + fallback
+│   ├── careeros-tenancy/                    # multi-tenant identity + tenant-scoped storage
+│   ├── careeros-credentials/                # encrypted credential vault, audit log, OAuth
+│   ├── careeros-communication-intelligence/ # classifies inbound recruiter/interviewer email
+│   ├── careeros-calendar-assistant/         # email -> interview calendar events + workspace
+│   ├── careeros-interview-intelligence/     # company research, questions, briefing schedule
+│   └── careeros-employment-division/        # full pipeline orchestration + progress tracking
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

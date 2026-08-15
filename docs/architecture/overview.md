@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 22)
+## Current state (post Phase 30)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -115,11 +115,46 @@ careeros/                                  workspace root — virtual, not insta
     │                                       (MANUAL/SUPERVISED/FULL_AUTONOMOUS),
     │                                       decision memory, pacing, hard
     │                                       high-risk boundaries, strategy presets
-    └── careeros-autonomous-execution/       the capstone loop: qualified
-                                            application -> authorize -> build
-                                            package -> submit via real browser
-                                            -> verify -> record outcome, with
-                                            human handoff on any failure
+    ├── careeros-autonomous-execution/       the capstone loop: qualified
+    │                                       application -> authorize -> build
+    │                                       package -> submit via real browser
+    │                                       -> verify -> record outcome, with
+    │                                       human handoff on any failure
+    ├── careeros-core/                       platform-wide contracts: capability
+    │                                       registry interface, platform health,
+    │                                       execution context, event contracts
+    ├── careeros-capability-marketplace/     ranked provider registration with
+    │                                       automatic fallback and parallel
+    │                                       execution across any capability
+    ├── careeros-tenancy/                    multi-tenant identity (User /
+    │                                       Organization / Workspace /
+    │                                       Membership / Role), and
+    │                                       TenantScopedDocumentStore — gives
+    │                                       tenant isolation to any existing
+    │                                       DocumentStore-based repository
+    │                                       with zero changes to that repo
+    ├── careeros-credentials/                encrypted credential vault
+    │                                       (Fernet), permissioned access,
+    │                                       audit log, OAuth token lifecycle
+    ├── careeros-communication-intelligence/ classifies inbound email
+    │                                       (interview / offer / rejection /
+    │                                       other) and publishes
+    │                                       communication.*_detected events
+    ├── careeros-calendar-assistant/         extracts interview details from
+    │                                       email, builds calendar events,
+    │                                       tracks an EventWorkspace per
+    │                                       interview
+    ├── careeros-interview-intelligence/     company research (no
+    │                                       fabrication), STAR question
+    │                                       generation, briefing documents on
+    │                                       a H48/H24/H2 schedule
+    └── careeros-employment-division/        completes the employment agency
+                                            pipeline end-to-end (Discovery ->
+                                            ... -> Negotiation), tracking
+                                            per-application progress purely
+                                            via event-type strings — zero new
+                                            dependencies on the packages whose
+                                            events it observes
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -128,12 +163,11 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: multi-tenancy (Phase 25), the full Employment/Freelance
-Client Acquisition divisions (Phase 30-31), interview intelligence
-(Phase 29), personal brand (Phase 34), and everything from Platform Core
-Consolidation (Phase 23) onward. See
-[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
-and current status markers.
+Still missing: the Freelance Client Acquisition division (Phase 31),
+AI audit/proposal engine (Phase 32), personal brand (Phase 34), the
+dashboard/control center (Phase 43), and everything from SaaS Billing
+(Phase 52) onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md)
+for the full sequence and current status markers.
 
 ## Core principle
 
