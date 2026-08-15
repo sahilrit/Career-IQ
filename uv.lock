@@ -46,6 +46,7 @@ members = [
     "careeros-remoteok-provider",
     "careeros-runtime",
     "careeros-tenancy",
+    "careeros-workflow-builder",
 ]
 
 [[package]]
@@ -805,6 +806,21 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 test = [{ name = "careeros-career-brain", editable = "packages/careeros-career-brain" }]
+
+[[package]]
+name = "careeros-workflow-builder"
+version = "0.1.0"
+source = { editable = "packages/careeros-workflow-builder" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+]
 
 [[package]]
 name = "certifi"
