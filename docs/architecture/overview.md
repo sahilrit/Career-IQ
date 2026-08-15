@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 49)
+## Current state (post Phase 52)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -264,12 +264,29 @@ careeros/                                  workspace root — virtual, not insta
     │                                       — RemoteOK/Fiverr
     │                                       installable, everything
     │                                       else honestly catalog-only
-    └── careeros-skill-marketplace/          the second marketplace
-                                            section (AI Skills):
-                                            intelligence CareerOS's own
-                                            packages already provide,
-                                            plus a unified search over
-                                            both marketplace sections
+    ├── careeros-skill-marketplace/           the second marketplace
+    │                                       section (AI Skills):
+    │                                       intelligence CareerOS's own
+    │                                       packages already provide,
+    │                                       plus a unified search over
+    │                                       both marketplace sections
+    ├── careeros-developer-sdk/              a fluent PluginBuilder,
+    │                                       manifest validation, and a
+    │                                       package scaffold generator
+    │                                       — build a plugin without
+    │                                       touching CareerOS Core
+    ├── careeros-marketplace-governance/     the checks a plugin must
+    │                                       pass before distribution
+    │                                       (manifest/version/
+    │                                       permission/dependency/
+    │                                       security/compatibility),
+    │                                       plus version rollback
+    └── careeros-billing/                    the Free/Pro/Agency plan
+                                            model, feature gating, and
+                                            subscription state tracking
+                                            — a monetization layer, not
+                                            a core dependency; no real
+                                            payment processor integrated
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -278,8 +295,9 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the developer SDK (Phase 50), marketplace governance
-(Phase 51), and everything from SaaS Billing (Phase 52) onward. See
+Still missing: multi-user production hardening (Phase 53), observability
+(Phase 54), the compliance pass (Phase 55), and the beta/launch
+milestones (Phase 56-60). See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
 and current status markers.
 
