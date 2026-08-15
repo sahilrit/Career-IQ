@@ -15,7 +15,7 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 52 of 60 — SaaS Billing & Plans. The full autonomous apply loop
+🚧 Phase 55 of 60 — Security / Compliance / Data Portability. The full autonomous apply loop
 works today, for both employment and freelance opportunities: postings
 are discovered, scored against a Career Brain profile, turned into a
 real application package (nothing fabricated), authorized, and
@@ -28,16 +28,20 @@ predict demand; A/B experiments and a Career Intelligence Engine learn
 what works; a CEO Agent allocates effort across divisions; and users
 can build no-code automations. The product has a UI (Streamlit
 dashboard) and an analytics layer with a Career ROI breakdown. Security
-covers audit logging, consent, data export/deletion, and rate limiting.
-The zero-cost constraint is explicit and tested, the platform is
-packaged for local/Docker self-hosting, and a full plugin ecosystem now
-exists: an Integrations marketplace, an AI Skills marketplace, an
-official Developer SDK, and marketplace governance (manifest/version/
+covers audit logging, consent, data export/deletion, rate limiting,
+configurable retention and password/session policies, and whole-account
+deletion spanning both domain data and tenancy records. The zero-cost
+constraint is explicit and tested, the platform is packaged for
+local/Docker self-hosting, and a full plugin ecosystem now exists: an
+Integrations marketplace, an AI Skills marketplace, an official
+Developer SDK, and marketplace governance (manifest/version/
 permission/dependency/security checks plus rollback) — before
 third-party distribution. A Free/Pro/Agency billing model tracks plan
 and subscription state as a monetization layer, never a core
-dependency — no real payment processor is integrated. No arbitrary cap
-on how many qualified applications one run processes. See
+dependency — no real payment processor is integrated. Every new user
+gets a tracked onboarding journey, and metrics/tracing/threshold
+alerting/failure explanation give the platform real observability. No
+arbitrary cap on how many qualified applications one run processes. See
 [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full plan
 and [`docs/architecture/overview.md`](docs/architecture/overview.md)
 for what's built so far.

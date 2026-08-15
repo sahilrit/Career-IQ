@@ -69,3 +69,15 @@ class TenancyRepository:
             for data in self._store.list(_MEMBERSHIP_TYPE)
             if data.get("user_id") == user_id
         ]
+
+    def remove_membership(self, user_id: str, workspace_id: str) -> bool:
+        if self.membership_for(user_id, workspace_id) is None:
+            return False
+        self._store.delete(_MEMBERSHIP_TYPE, f"{user_id}:{workspace_id}")
+        return True
+
+    def delete_user(self, user_id: str) -> bool:
+        if self.load_user(user_id) is None:
+            return False
+        self._store.delete(_USER_TYPE, user_id)
+        return True

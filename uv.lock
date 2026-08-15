@@ -33,6 +33,7 @@ members = [
     "careeros-client-success",
     "careeros-common",
     "careeros-communication-intelligence",
+    "careeros-compliance",
     "careeros-core",
     "careeros-credentials",
     "careeros-crm",
@@ -506,6 +507,23 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-compliance"
+version = "0.1.0"
+source = { editable = "packages/careeros-compliance" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-tenancy" },
+    { name = "careeros-trust-layer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
+    { name = "careeros-trust-layer", editable = "packages/careeros-trust-layer" },
 ]
 
 [[package]]

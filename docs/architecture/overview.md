@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 52)
+## Current state (post Phase 55)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -281,12 +281,33 @@ careeros/                                  workspace root — virtual, not insta
     │                                       permission/dependency/
     │                                       security/compatibility),
     │                                       plus version rollback
-    └── careeros-billing/                    the Free/Pro/Agency plan
-                                            model, feature gating, and
-                                            subscription state tracking
-                                            — a monetization layer, not
-                                            a core dependency; no real
-                                            payment processor integrated
+    ├── careeros-billing/                    the Free/Pro/Agency plan
+    │                                       model, feature gating, and
+    │                                       subscription state tracking
+    │                                       — a monetization layer, not
+    │                                       a core dependency; no real
+    │                                       payment processor integrated
+    ├── careeros-onboarding/                 tracks each user's real
+    │                                       progress through Signup ->
+    │                                       Career Brain setup ->
+    │                                       Connect accounts -> Choose
+    │                                       capabilities -> Configure
+    │                                       autonomy -> Start CareerOS
+    ├── careeros-observability/              metrics (counters/gauges/
+    │                                       timers), clock-injectable
+    │                                       nested tracing spans,
+    │                                       threshold alerting, and
+    │                                       plain-language failure
+    │                                       explanation over Phase 45's
+    │                                       failure queue
+    └── careeros-compliance/                 retention policies,
+                                            configurable security
+                                            policies, whole-account
+                                            deletion spanning both
+                                            domain data (Phase 45) and
+                                            tenancy records (Phase 25),
+                                            and a compliance readiness
+                                            report
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -295,9 +316,9 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: multi-user production hardening (Phase 53), observability
-(Phase 54), the compliance pass (Phase 55), and the beta/launch
-milestones (Phase 56-60). See
+Still missing: the beta/launch milestones (Phase 56-60) — beta release,
+production launch, ecosystem expansion, the cross-tenant Intelligence
+Network, and the final autonomous-agency orchestration capstone. See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
 and current status markers.
 

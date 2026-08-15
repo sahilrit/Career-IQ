@@ -66,3 +66,27 @@ def test_workspaces_for_user_lists_every_membership(repository):
 
     workspace_ids = {m.workspace_id for m in repository.workspaces_for_user(user.id)}
     assert workspace_ids == {"ws-1", "ws-2"}
+
+
+def test_remove_membership_deletes_it(repository):
+    user = User(email="ada@example.com", full_name="Ada Lovelace")
+    repository.add_membership(Membership(user_id=user.id, workspace_id="ws-1"))
+
+    assert repository.remove_membership(user.id, "ws-1") is True
+    assert repository.membership_for(user.id, "ws-1") is None
+
+
+def test_remove_membership_missing_returns_false(repository):
+    assert repository.remove_membership("nobody", "ws-1") is False
+
+
+def test_delete_user_removes_it(repository):
+    user = User(email="ada@example.com", full_name="Ada Lovelace")
+    repository.save_user(user)
+
+    assert repository.delete_user(user.id) is True
+    assert repository.load_user(user.id) is None
+
+
+def test_delete_user_missing_returns_false(repository):
+    assert repository.delete_user("nobody") is False
