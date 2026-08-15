@@ -1,0 +1,18 @@
+[project]
+name = "careeros-self-hosted"
+version = "0.1.0"
+description = "Local / Self-Hosted Edition: platform info, a real health check (writable data dir, SQLite, browser automation, dashboard UI all working), and a canonical local data-directory bootstrap — the code half of running CareerOS on Mac, Windows, Linux, or Docker without mandatory cloud services."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-common",
+]
+
+[tool.uv.sources]
+careeros-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_self_hosted"]

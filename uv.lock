@@ -55,6 +55,7 @@ members = [
     "careeros-plugin-sdk",
     "careeros-remoteok-provider",
     "careeros-runtime",
+    "careeros-self-hosted",
     "careeros-tenancy",
     "careeros-trust-layer",
     "careeros-workflow-builder",
@@ -883,6 +884,17 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
+
+[[package]]
+name = "careeros-self-hosted"
+version = "0.1.0"
+source = { editable = "packages/careeros-self-hosted" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
 
 [[package]]
 name = "careeros-tenancy"

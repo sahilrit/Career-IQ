@@ -1,0 +1,40 @@
+# CareerOS local stack. The default profile is the whole platform:
+# zero external services, everything on local SQLite (Phase 46's
+# Zero-Cost Infrastructure Mode guarantee). Postgres/Redis/Qdrant are
+# optional scale-out services for Phase 53's multi-user production
+# path — start them explicitly with `docker compose --profile
+# scale-out up` if you want them; they are never required.
+
+services:
+  careeros:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - careeros-data:/data
+    environment:
+      - CAREEROS_DATA_DIR=/data
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["scale-out"]
+    environment:
+      - POSTGRES_PASSWORD=careeros
+      - POSTGRES_DB=careeros
+    volumes:
+      - careeros-postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["scale-out"]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    profiles: ["scale-out"]
+    volumes:
+      - careeros-qdrant:/qdrant/storage
+
+volumes:
+  careeros-data:
+  careeros-postgres:
+  careeros-qdrant:
