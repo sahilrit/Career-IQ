@@ -51,6 +51,7 @@ members = [
     "careeros-learning-lab",
     "careeros-marketplace-governance",
     "careeros-memory",
+    "careeros-observability",
     "careeros-offer-negotiation",
     "careeros-onboarding",
     "careeros-opportunity-intelligence",
@@ -825,6 +826,21 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-observability"
+version = "0.1.0"
+source = { editable = "packages/careeros-observability" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-trust-layer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-trust-layer", editable = "packages/careeros-trust-layer" },
 ]
 
 [[package]]
