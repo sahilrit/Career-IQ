@@ -16,6 +16,7 @@ members = [
     "careeros-capability-marketplace",
     "careeros-career-brain",
     "careeros-career-brain-engine",
+    "careeros-career-intelligence",
     "careeros-cli",
     "careeros-client-acquisition",
     "careeros-client-success",
@@ -297,6 +298,17 @@ requires-dist = [
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "careeros-memory", editable = "packages/careeros-memory" },
 ]
+
+[[package]]
+name = "careeros-career-intelligence"
+version = "0.1.0"
+source = { editable = "packages/careeros-career-intelligence" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
 
 [[package]]
 name = "careeros-cli"
