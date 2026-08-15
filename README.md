@@ -15,10 +15,15 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 10 of 60 — Autonomous Job Agent. End-to-end job discovery works
-today: RemoteOK postings are normalized, scored against a Career Brain
-profile, stored as Applications, auto-qualified above a score threshold,
-and run continuously via the runtime's scheduler. See
+🚧 Phase 17 of 60 — Live Browser + Human-in-the-Loop Execution. The full
+employment loop works today: RemoteOK postings are discovered,
+normalized, and scored against a Career Brain profile; qualified
+opportunities get a real resume/cover-letter/answers package generated
+(nothing fabricated); a Playwright-backed browser runner can submit that
+package through an actual web form, with retries, screenshots, rate
+limits/cooldowns, and a human-takeover path for captchas or unexpected
+page states; and a `careeros` CLI plus a scheduler-driven runtime tie it
+all together for continuous operation. See
 [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full plan and
 [`docs/architecture/overview.md`](docs/architecture/overview.md) for
 what's built so far.
@@ -27,17 +32,24 @@ what's built so far.
 
 ```
 careeros/
-├── packages/                       # uv workspace members
-│   ├── careeros-common/            # config, logging, exceptions, DocumentStore
-│   ├── careeros-career-brain/      # authoritative domain models + repository
-│   ├── careeros-plugin-sdk/        # plugin interface, manifest, registry
-│   ├── careeros-event-bus/         # in-process pub/sub
-│   ├── careeros-memory/            # working memory, history, analytics, semantic search
-│   ├── careeros-job-providers/     # FIND_JOBS provider SDK
-│   ├── careeros-remoteok-provider/ # the reference job provider (RemoteOK)
-│   ├── careeros-job-discovery/     # discover -> score -> store -> emit pipeline
-│   ├── careeros-runtime/           # worker pool, scheduler, lifecycle
-│   └── careeros-job-agent/         # autonomous discovery + qualification loop
+├── packages/                                # uv workspace members
+│   ├── careeros-common/                     # config, logging, exceptions, DocumentStore
+│   ├── careeros-career-brain/               # authoritative domain models + repository
+│   ├── careeros-plugin-sdk/                 # plugin interface, manifest, registry
+│   ├── careeros-event-bus/                  # in-process pub/sub
+│   ├── careeros-memory/                     # working memory, history, analytics, semantic search
+│   ├── careeros-job-providers/              # FIND_JOBS provider SDK
+│   ├── careeros-remoteok-provider/          # the reference job provider (RemoteOK)
+│   ├── careeros-job-discovery/              # discover -> score -> store -> emit pipeline
+│   ├── careeros-runtime/                    # worker pool, scheduler, lifecycle
+│   ├── careeros-job-agent/                  # autonomous discovery + qualification loop
+│   ├── careeros-career-brain-engine/        # profile matching, recommendations
+│   ├── careeros-application-engine/         # resume/cover letter/answers/ATS generation
+│   ├── careeros-browser/                    # BrowserSession abstraction (Playwright)
+│   ├── careeros-application-runner/         # submits an application via a real browser
+│   ├── careeros-cli/                        # the `careeros` command-line interface
+│   ├── careeros-application-intelligence/   # apply decisions, safeguards, outcomes
+│   └── careeros-human-in-the-loop/          # problem detection + AI/human handoff
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

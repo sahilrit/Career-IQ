@@ -54,33 +54,51 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 10)
+## Current state (post Phase 17)
 
 ```
-careeros/                          workspace root — virtual, not installed
+careeros/                              workspace root — virtual, not installed
 └── packages/
-    ├── careeros-common/           shared kernel: config, logging, exceptions,
-    │                              generic SQLite DocumentStore
-    ├── careeros-career-brain/     authoritative domain models (Identity,
-    │                              Experience, Skills, Applications, ...) +
-    │                              CareerBrainRepository
-    ├── careeros-plugin-sdk/       Plugin interface, manifest, versioning,
-    │                              PluginRegistry lifecycle
-    ├── careeros-event-bus/        in-process pub/sub EventBus
-    ├── careeros-memory/           working memory, HistoryLog (subscribes to
-    │                              the event bus), analytics, local TF-IDF
-    │                              semantic search
-    ├── careeros-job-providers/    FIND_JOBS provider SDK: JobPosting model,
-    │                              filtering, dedup, JobProviderRegistry
-    ├── careeros-remoteok-provider/ the reference FIND_JOBS provider, backed
-    │                              by RemoteOK's free public API
-    ├── careeros-job-discovery/    end-to-end pipeline: discover -> score
-    │                              -> store -> emit events
-    ├── careeros-runtime/          WorkerPool, Scheduler, Runtime lifecycle
-    │                              for continuous background operation
-    └── careeros-job-agent/        JobAgent: discovery + qualification
-                                   policy, wired onto Runtime as a
-                                   recurring job
+    ├── careeros-common/                shared kernel: config, logging, exceptions,
+    │                                   generic SQLite DocumentStore
+    ├── careeros-career-brain/          authoritative domain models (Identity,
+    │                                   Experience, Skills, Applications, ...) +
+    │                                   CareerBrainRepository + status state machine
+    ├── careeros-plugin-sdk/            Plugin interface, manifest, versioning,
+    │                                   PluginRegistry lifecycle
+    ├── careeros-event-bus/             in-process pub/sub EventBus
+    ├── careeros-memory/                working memory, HistoryLog (subscribes to
+    │                                   the event bus), analytics, local TF-IDF
+    │                                   semantic search
+    ├── careeros-job-providers/         FIND_JOBS provider SDK: JobPosting model,
+    │                                   filtering, dedup, JobProviderRegistry
+    ├── careeros-remoteok-provider/     the reference FIND_JOBS provider, backed
+    │                                   by RemoteOK's free public API
+    ├── careeros-job-discovery/         end-to-end pipeline: discover -> score
+    │                                   -> store -> emit events
+    ├── careeros-runtime/               WorkerPool, Scheduler, Runtime lifecycle
+    │                                   for continuous background operation
+    ├── careeros-job-agent/             JobAgent: discovery + qualification
+    │                                   policy, wired onto Runtime as a
+    │                                   recurring job
+    ├── careeros-career-brain-engine/   profile matching, skill/achievement
+    │                                   ranking, experience analysis,
+    │                                   rule-based recommendations
+    ├── careeros-application-engine/    resume/cover-letter/answers/ATS
+    │                                   generation from Career Brain — nothing
+    │                                   fabricated, no paid AI required
+    ├── careeros-browser/               BrowserSession abstraction
+    │                                   (Playwright-backed) + FakeBrowserSession
+    │                                   test double used across the platform
+    ├── careeros-application-runner/    turns an application package into a
+    │                                   real browser form submission, with
+    │                                   validation/retries/screenshots
+    ├── careeros-cli/                   the `careeros` command-line interface
+    ├── careeros-application-intelligence/ production apply decisions (score +
+    │                                   rate limits + cooldowns) and outcome
+    │                                   tracking
+    └── careeros-human-in-the-loop/     problem detection + AI/human handoff
+                                        state machine for live browser runs
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -89,11 +107,11 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: multi-tenancy (Phase 25), a resume/application-material
-generator (Phase 12), browser automation (Phase 13), freelance providers
-(Phase 18+), and everything from Platform Core Consolidation (Phase 23)
-onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full
-sequence and current status markers.
+Still missing: multi-tenancy (Phase 25), freelance providers (Phase
+18-20), the full autonomous decision/authorization engine (Phase 21-22),
+and everything from Platform Core Consolidation (Phase 23) onward. See
+[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
+and current status markers.
 
 ## Core principle
 
