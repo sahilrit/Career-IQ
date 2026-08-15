@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "careeros",
+    "careeros-application-engine",
     "careeros-career-brain",
     "careeros-career-brain-engine",
     "careeros-common",
@@ -61,6 +62,25 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
+name = "careeros-application-engine"
+version = "0.1.0"
+source = { editable = "packages/careeros-application-engine" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-career-brain-engine" },
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
 ]
 
 [[package]]
