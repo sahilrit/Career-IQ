@@ -18,6 +18,7 @@ members = [
     "careeros-career-brain-engine",
     "careeros-cli",
     "careeros-client-acquisition",
+    "careeros-client-success",
     "careeros-common",
     "careeros-communication-intelligence",
     "careeros-core",
@@ -345,6 +346,17 @@ requires-dist = [
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
 ]
+
+[[package]]
+name = "careeros-client-success"
+version = "0.1.0"
+source = { editable = "packages/careeros-client-success" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
 
 [[package]]
 name = "careeros-common"
