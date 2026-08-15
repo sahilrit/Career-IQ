@@ -6,10 +6,14 @@ from pydantic import BaseModel, Field
 
 from careeros_career_brain.models import (
     Application,
+    Award,
+    Certification,
     Company,
+    Education,
     Experience,
     Goal,
     Identity,
+    Language,
     Preferences,
     Project,
     Recruiter,
@@ -28,7 +32,11 @@ class CareerBrain(BaseModel):
     preferences: Preferences = Field(default_factory=Preferences)
     goals: list[Goal] = Field(default_factory=list)
     experiences: list[Experience] = Field(default_factory=list)
+    education: list[Education] = Field(default_factory=list)
+    certifications: list[Certification] = Field(default_factory=list)
     skills: list[Skill] = Field(default_factory=list)
+    languages: list[Language] = Field(default_factory=list)
+    awards: list[Award] = Field(default_factory=list)
     projects: list[Project] = Field(default_factory=list)
     companies: list[Company] = Field(default_factory=list)
     recruiters: list[Recruiter] = Field(default_factory=list)

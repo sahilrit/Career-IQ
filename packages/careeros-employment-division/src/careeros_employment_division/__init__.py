@@ -14,6 +14,8 @@ from careeros_employment_division.pipeline_stage import (
     PipelineStage,
 )
 from careeros_employment_division.portfolio import (
+    PortfolioCertification,
+    PortfolioEducation,
     PortfolioProject,
     PortfolioSummary,
     build_portfolio_summary,
@@ -29,6 +31,8 @@ __all__ = [
     "PipelineProgress",
     "PipelineProgressRepository",
     "PipelineStage",
+    "PortfolioCertification",
+    "PortfolioEducation",
     "PortfolioProject",
     "PortfolioSummary",
     "RecruiterOutreachGenerator",

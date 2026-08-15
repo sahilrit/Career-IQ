@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from careeros_career_brain import (
     Application,
     ApplicationStatus,
+    Certification,
+    Education,
     Experience,
     InvalidStatusTransitionError,
     Preferences,
@@ -80,3 +82,27 @@ def test_application_terminal_states_have_no_outgoing_transitions():
     app.transition_to(ApplicationStatus.REJECTED)
     with pytest.raises(InvalidStatusTransitionError):
         app.transition_to(ApplicationStatus.APPLIED)
+
+
+def test_education_rejects_end_date_before_start_date():
+    with pytest.raises(ValidationError):
+        Education(
+            institution="Axis College",
+            credential="BCA",
+            start_date=date(2023, 1, 1),
+            end_date=date(2020, 1, 1),
+        )
+
+
+def test_education_with_no_dates_is_valid():
+    education = Education(institution="Axis College", credential="BCA")
+    assert education.end_date is None
+
+
+def test_certification_rejects_expiration_before_issued_date():
+    with pytest.raises(ValidationError):
+        Certification(
+            name="Digital Marketing",
+            issued_date=date(2023, 1, 1),
+            expiration_date=date(2020, 1, 1),
+        )

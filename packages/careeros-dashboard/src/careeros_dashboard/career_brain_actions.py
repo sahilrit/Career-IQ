@@ -10,11 +10,15 @@ from datetime import date
 
 from careeros_career_brain import (
     Achievement,
+    Award,
     CareerBrain,
     CareerBrainRepository,
+    Certification,
+    Education,
     Experience,
     Goal,
     Identity,
+    Language,
     Project,
     Skill,
 )
@@ -103,5 +107,83 @@ def update_preferences(
 ) -> CareerBrain:
     brain.preferences.desired_titles = desired_titles
     brain.preferences.remote_only = remote_only
+    CareerBrainRepository(store).save(brain)
+    return brain
+
+
+def update_summary(store: DocumentStore, brain: CareerBrain, summary: str) -> CareerBrain:
+    brain.identity.summary = summary
+    CareerBrainRepository(store).save(brain)
+    return brain
+
+
+def add_education(
+    store: DocumentStore,
+    brain: CareerBrain,
+    *,
+    institution: str,
+    credential: str,
+    field_of_study: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    description: str = "",
+) -> CareerBrain:
+    brain.education.append(
+        Education(
+            institution=institution,
+            credential=credential,
+            field_of_study=field_of_study,
+            start_date=start_date,
+            end_date=end_date,
+            description=description,
+        )
+    )
+    CareerBrainRepository(store).save(brain)
+    return brain
+
+
+def add_certification(
+    store: DocumentStore,
+    brain: CareerBrain,
+    *,
+    name: str,
+    issuer: str | None = None,
+    issued_date: date | None = None,
+    expiration_date: date | None = None,
+    credential_url: str | None = None,
+) -> CareerBrain:
+    brain.certifications.append(
+        Certification(
+            name=name,
+            issuer=issuer,
+            issued_date=issued_date,
+            expiration_date=expiration_date,
+            credential_url=credential_url,
+        )
+    )
+    CareerBrainRepository(store).save(brain)
+    return brain
+
+
+def add_language(
+    store: DocumentStore, brain: CareerBrain, name: str, proficiency: str
+) -> CareerBrain:
+    brain.languages.append(Language(name=name, proficiency=proficiency))
+    CareerBrainRepository(store).save(brain)
+    return brain
+
+
+def add_award(
+    store: DocumentStore,
+    brain: CareerBrain,
+    *,
+    title: str,
+    issuer: str | None = None,
+    date_received: date | None = None,
+    description: str = "",
+) -> CareerBrain:
+    brain.awards.append(
+        Award(title=title, issuer=issuer, date_received=date_received, description=description)
+    )
     CareerBrainRepository(store).save(brain)
     return brain

@@ -48,3 +48,52 @@ def test_render_with_no_projects_omits_that_section(brain_factory):
     summary = build_portfolio_summary(brain)
     text = render_portfolio_summary(summary)
     assert "PROJECTS" not in text
+
+
+def test_includes_education_certifications_and_languages(brain_factory):
+    from careeros_career_brain import Certification, Education, Language
+
+    brain = brain_factory(
+        education=[Education(institution="Axis College", credential="BCA")],
+        certifications=[Certification(name="Digital Marketing", issuer="HubSpot Academy")],
+        languages=[Language(name="Spanish", proficiency="fluent")],
+    )
+    summary = build_portfolio_summary(brain)
+    text = render_portfolio_summary(summary)
+    assert "EDUCATION" in text
+    assert "BCA, Axis College" in text
+    assert "CERTIFICATIONS" in text
+    assert "Digital Marketing — HubSpot Academy" in text
+    assert "LANGUAGES" in text
+    assert "Spanish (fluent)" in text
+
+
+def test_render_with_no_education_omits_that_section(brain_factory):
+    brain = brain_factory(education=[])
+    summary = build_portfolio_summary(brain)
+    text = render_portfolio_summary(summary)
+    assert "EDUCATION" not in text
+
+
+def test_render_includes_summary_when_present(brain_factory):
+    from careeros_career_brain import Identity
+
+    brain = brain_factory(
+        identity=Identity(
+            full_name="Ada Lovelace",
+            email="ada@example.com",
+            headline="Engineer",
+            summary="Results-driven engineer.",
+        )
+    )
+    summary = build_portfolio_summary(brain)
+    text = render_portfolio_summary(summary)
+    assert "Results-driven engineer." in text
+
+
+def test_render_with_no_summary_omits_it(brain):
+    summary = build_portfolio_summary(brain)
+    text = render_portfolio_summary(summary)
+    lines = [line for line in text.splitlines() if line.strip()]
+    # name + headline are the only lines before PROJECTS when summary is empty
+    assert lines[2] == "PROJECTS"

@@ -28,6 +28,7 @@ class Identity(BaseModel):
     id: str = Field(default_factory=_new_id)
     full_name: str
     headline: str = ""
+    summary: str = ""
     email: str
     phone: str | None = None
     location: str | None = None
@@ -106,6 +107,53 @@ class Project(BaseModel):
     skills_used: list[str] = Field(default_factory=list)
     start_date: date | None = None
     end_date: date | None = None
+
+
+class Education(BaseModel):
+    id: str = Field(default_factory=_new_id)
+    institution: str
+    credential: str
+    field_of_study: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    description: str = ""
+
+    @model_validator(mode="after")
+    def _end_not_before_start(self) -> Education:
+        has_both_dates = self.start_date is not None and self.end_date is not None
+        if has_both_dates and self.end_date < self.start_date:
+            raise ValueError("end_date cannot be before start_date")
+        return self
+
+
+class Certification(BaseModel):
+    id: str = Field(default_factory=_new_id)
+    name: str
+    issuer: str | None = None
+    issued_date: date | None = None
+    expiration_date: date | None = None
+    credential_url: str | None = None
+
+    @model_validator(mode="after")
+    def _expiration_not_before_issued(self) -> Certification:
+        has_both_dates = self.issued_date is not None and self.expiration_date is not None
+        if has_both_dates and self.expiration_date < self.issued_date:
+            raise ValueError("expiration_date cannot be before issued_date")
+        return self
+
+
+class Language(BaseModel):
+    id: str = Field(default_factory=_new_id)
+    name: str
+    proficiency: str = "conversational"
+
+
+class Award(BaseModel):
+    id: str = Field(default_factory=_new_id)
+    title: str
+    issuer: str | None = None
+    date_received: date | None = None
+    description: str = ""
 
 
 class Company(BaseModel):

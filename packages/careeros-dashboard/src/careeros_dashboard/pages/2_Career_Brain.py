@@ -1,6 +1,7 @@
-"""Career Brain page: manage identity, skills, experience,
-achievements, projects, goals, preferences, and view the portfolio.
-Single Career Brain per install for now — see data_access.primary_brain.
+"""Career Brain page: manage identity, skills, experience, education,
+certifications, projects, languages, awards, goals, preferences, and
+view the portfolio. Single Career Brain per install for now — see
+data_access.primary_brain.
 """
 
 from __future__ import annotations
@@ -9,12 +10,17 @@ import streamlit as st
 
 from careeros_dashboard.career_brain_actions import (
     add_achievement,
+    add_award,
+    add_certification,
+    add_education,
     add_experience,
     add_goal,
+    add_language,
     add_project,
     add_skill,
     get_or_create_brain,
     update_preferences,
+    update_summary,
 )
 from careeros_dashboard.data_access import primary_brain
 from careeros_dashboard.runtime import get_store
@@ -43,8 +49,36 @@ if brain is None:
 
 st.caption(f"{brain.identity.full_name} — {brain.identity.email}")
 
-tab_skills, tab_experience, tab_projects, tab_goals, tab_preferences, tab_portfolio = st.tabs(
-    ["Skills", "Experience", "Projects", "Goals", "Preferences", "Portfolio"]
+with st.expander("Professional summary", expanded=not brain.identity.summary), st.form("summary"):
+    summary_text = st.text_area("Summary", value=brain.identity.summary, height=120)
+    if st.form_submit_button("Save summary"):
+        update_summary(store, brain, summary_text)
+        st.rerun()
+
+(
+    tab_skills,
+    tab_experience,
+    tab_education,
+    tab_certifications,
+    tab_projects,
+    tab_languages,
+    tab_awards,
+    tab_goals,
+    tab_preferences,
+    tab_portfolio,
+) = st.tabs(
+    [
+        "Skills",
+        "Experience",
+        "Education",
+        "Certifications",
+        "Projects",
+        "Languages",
+        "Awards",
+        "Goals",
+        "Preferences",
+        "Portfolio",
+    ]
 )
 
 with tab_skills:
@@ -91,6 +125,68 @@ with tab_experience:
             )
             st.rerun()
 
+with tab_education:
+    st.subheader("Education")
+    for education in brain.education:
+        span = " — ".join(
+            str(d) for d in (education.start_date, education.end_date) if d is not None
+        )
+        label = f"**{education.credential}**, {education.institution}"
+        if span:
+            label += f" ({span})"
+        st.write(f"- {label}")
+        if education.description:
+            st.caption(education.description)
+    with st.form("add_education"):
+        institution = st.text_input("Institution")
+        credential = st.text_input("Credential (e.g. Bachelor of Computer Applications)")
+        field_of_study = st.text_input("Field of study (optional)")
+        edu_start = st.date_input("Start date (optional)", value=None)
+        edu_end = st.date_input("End date (optional)", value=None)
+        edu_description = st.text_area("Description (optional)")
+        if st.form_submit_button("Add education") and institution and credential:
+            add_education(
+                store,
+                brain,
+                institution=institution,
+                credential=credential,
+                field_of_study=field_of_study or None,
+                start_date=edu_start,
+                end_date=edu_end,
+                description=edu_description,
+            )
+            st.rerun()
+
+with tab_certifications:
+    st.subheader("Certifications")
+    for certification in brain.certifications:
+        label = certification.name
+        if certification.issuer:
+            label += f" — {certification.issuer}"
+        if certification.issued_date:
+            label += f" ({certification.issued_date})"
+        if certification.credential_url:
+            st.write(f"- [{label}]({certification.credential_url})")
+        else:
+            st.write(f"- {label}")
+    with st.form("add_certification"):
+        cert_name = st.text_input("Certification name")
+        cert_issuer = st.text_input("Issuer (optional)")
+        cert_issued = st.date_input("Issued date (optional)", value=None)
+        cert_expiration = st.date_input("Expiration date (optional)", value=None)
+        cert_url = st.text_input("Credential URL (optional)")
+        if st.form_submit_button("Add certification") and cert_name:
+            add_certification(
+                store,
+                brain,
+                name=cert_name,
+                issuer=cert_issuer or None,
+                issued_date=cert_issued,
+                expiration_date=cert_expiration,
+                credential_url=cert_url or None,
+            )
+            st.rerun()
+
 with tab_projects:
     st.subheader("Projects")
     for project in brain.projects:
@@ -109,6 +205,46 @@ with tab_projects:
                 description=project_description,
                 url=project_url or None,
                 skills_used=skills_used,
+            )
+            st.rerun()
+
+with tab_languages:
+    st.subheader("Languages")
+    for language in brain.languages:
+        st.write(f"- {language.name} ({language.proficiency})")
+    with st.form("add_language"):
+        language_name = st.text_input("Language")
+        proficiency = st.selectbox(
+            "Proficiency", ["native", "fluent", "professional", "conversational", "basic"]
+        )
+        if st.form_submit_button("Add language") and language_name:
+            add_language(store, brain, language_name, proficiency)
+            st.rerun()
+
+with tab_awards:
+    st.subheader("Awards")
+    for award in brain.awards:
+        label = award.title
+        if award.issuer:
+            label += f" — {award.issuer}"
+        if award.date_received:
+            label += f" ({award.date_received})"
+        st.write(f"- {label}")
+        if award.description:
+            st.caption(award.description)
+    with st.form("add_award"):
+        award_title = st.text_input("Award title")
+        award_issuer = st.text_input("Issuer (optional)")
+        award_date = st.date_input("Date received (optional)", value=None)
+        award_description = st.text_area("Description (optional)")
+        if st.form_submit_button("Add award") and award_title:
+            add_award(
+                store,
+                brain,
+                title=award_title,
+                issuer=award_issuer or None,
+                date_received=award_date,
+                description=award_description,
             )
             st.rerun()
 

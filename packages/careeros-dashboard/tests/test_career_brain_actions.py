@@ -7,12 +7,17 @@ from datetime import date
 from careeros_career_brain import CareerBrainRepository
 from careeros_dashboard.career_brain_actions import (
     add_achievement,
+    add_award,
+    add_certification,
+    add_education,
     add_experience,
     add_goal,
+    add_language,
     add_project,
     add_skill,
     get_or_create_brain,
     update_preferences,
+    update_summary,
 )
 
 
@@ -77,3 +82,40 @@ def test_update_preferences_persists(store):
     reloaded = CareerBrainRepository(store).load(brain.identity.id)
     assert reloaded.preferences.desired_titles == ["Staff Engineer"]
     assert reloaded.preferences.remote_only is True
+
+
+def test_update_summary_persists(store):
+    brain = get_or_create_brain(store, full_name="Ada", email="ada@example.com")
+    brain = update_summary(store, brain, "Results-driven engineer.")
+    reloaded = CareerBrainRepository(store).load(brain.identity.id)
+    assert reloaded.identity.summary == "Results-driven engineer."
+
+
+def test_add_education_persists(store):
+    brain = get_or_create_brain(store, full_name="Ada", email="ada@example.com")
+    brain = add_education(store, brain, institution="Axis College", credential="BCA")
+    reloaded = CareerBrainRepository(store).load(brain.identity.id)
+    assert reloaded.education[0].institution == "Axis College"
+
+
+def test_add_certification_persists(store):
+    brain = get_or_create_brain(store, full_name="Ada", email="ada@example.com")
+    brain = add_certification(store, brain, name="Digital Marketing", issuer="HubSpot Academy")
+    reloaded = CareerBrainRepository(store).load(brain.identity.id)
+    assert reloaded.certifications[0].name == "Digital Marketing"
+    assert reloaded.certifications[0].issuer == "HubSpot Academy"
+
+
+def test_add_language_persists(store):
+    brain = get_or_create_brain(store, full_name="Ada", email="ada@example.com")
+    brain = add_language(store, brain, "Spanish", "fluent")
+    reloaded = CareerBrainRepository(store).load(brain.identity.id)
+    assert reloaded.languages[0].name == "Spanish"
+    assert reloaded.languages[0].proficiency == "fluent"
+
+
+def test_add_award_persists(store):
+    brain = get_or_create_brain(store, full_name="Ada", email="ada@example.com")
+    brain = add_award(store, brain, title="Employee of the Year", issuer="Acme")
+    reloaded = CareerBrainRepository(store).load(brain.identity.id)
+    assert reloaded.awards[0].title == "Employee of the Year"
