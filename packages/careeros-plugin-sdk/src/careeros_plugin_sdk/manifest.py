@@ -22,6 +22,13 @@ class PluginManifest(BaseModel):
     ``"FIND_JOBS"`` — see Phase 6/24). ``dependencies`` maps another
     plugin's id to a version constraint (e.g. ``{"careeros-remoteok":
     "^1.0.0"}``) that must be satisfied before this plugin can be enabled.
+    ``triggers`` are event types (Phase 4) this plugin reacts to.
+    ``actions`` are named actions it exposes — the same shape Phase 42's
+    WorkflowEngine dispatches a rule's THEN chain to. ``tools`` are tool
+    names exposed for agent/LLM tool-calling. ``workflows`` are IDs of
+    pre-built workflow templates (Phase 42 Rules) this plugin ships.
+    ``health_check_action``, if set, names which of ``actions`` serves
+    as this plugin's health check.
     """
 
     id: str
@@ -32,6 +39,11 @@ class PluginManifest(BaseModel):
     permissions: list[str] = Field(default_factory=list)
     dependencies: dict[str, str] = Field(default_factory=dict)
     settings_schema: dict[str, object] = Field(default_factory=dict)
+    triggers: list[str] = Field(default_factory=list)
+    actions: list[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
+    workflows: list[str] = Field(default_factory=list)
+    health_check_action: str | None = None
 
     @field_validator("id")
     @classmethod
