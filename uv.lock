@@ -11,6 +11,7 @@ members = [
     "careeros-autonomous-execution",
     "careeros-autonomy",
     "careeros-browser",
+    "careeros-capability-marketplace",
     "careeros-career-brain",
     "careeros-career-brain-engine",
     "careeros-cli",
@@ -28,6 +29,7 @@ members = [
     "careeros-plugin-sdk",
     "careeros-remoteok-provider",
     "careeros-runtime",
+    "careeros-tenancy",
 ]
 
 [[package]]
@@ -191,6 +193,21 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "playwright", specifier = ">=1.40" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-capability-marketplace"
+version = "0.1.0"
+source = { editable = "packages/careeros-capability-marketplace" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-plugin-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-plugin-sdk", editable = "packages/careeros-plugin-sdk" },
 ]
 
 [[package]]
@@ -497,6 +514,29 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
+
+[[package]]
+name = "careeros-tenancy"
+version = "0.1.0"
+source = { editable = "packages/careeros-tenancy" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "careeros-career-brain" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
+]
+
+[package.metadata.requires-dev]
+test = [{ name = "careeros-career-brain", editable = "packages/careeros-career-brain" }]
 
 [[package]]
 name = "certifi"

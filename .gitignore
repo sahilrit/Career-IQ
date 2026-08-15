@@ -20,6 +20,7 @@ coverage.xml
 .vscode/
 .idea/
 .DS_Store
+.obsidian/
 
 # CareerOS runtime data + local-only config
 .careeros/

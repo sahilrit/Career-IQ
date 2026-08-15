@@ -407,7 +407,7 @@ CareerOS Core
 
 This becomes the immutable foundation.
 
-## PHASE 24 — Capability Marketplace Architecture
+## PHASE 24 — Capability Marketplace Architecture ✅
 
 **Goal:** move from "which plugin should I call?" to "which capability do I
 need?"
