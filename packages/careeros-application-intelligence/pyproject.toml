@@ -1,0 +1,22 @@
+[project]
+name = "careeros-application-intelligence"
+version = "0.1.0"
+description = "Production application decisions: score + safeguards (rate limits, cooldowns) + outcome tracking."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-career-brain",
+    "careeros-common",
+    "careeros-event-bus",
+]
+
+[tool.uv.sources]
+careeros-career-brain = { workspace = true }
+careeros-common = { workspace = true }
+careeros-event-bus = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_application_intelligence"]

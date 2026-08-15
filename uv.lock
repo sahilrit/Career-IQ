@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "careeros",
     "careeros-application-engine",
+    "careeros-application-intelligence",
     "careeros-application-runner",
     "careeros-browser",
     "careeros-career-brain",
@@ -84,6 +85,23 @@ requires-dist = [
     { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+]
+
+[[package]]
+name = "careeros-application-intelligence"
+version = "0.1.0"
+source = { editable = "packages/careeros-application-intelligence" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
 ]
 
 [[package]]
