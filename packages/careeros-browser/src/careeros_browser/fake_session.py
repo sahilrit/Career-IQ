@@ -95,6 +95,10 @@ class FakeBrowserSession:
         if text is not None:
             self._text_content[selector] = text
 
+    def set_hidden(self, selector: str) -> None:
+        """Simulate an element disappearing from the page, for test setup."""
+        self._visible_selectors.discard(selector)
+
     def field_value(self, selector: str) -> str | None:
         return self._field_values.get(selector)
 

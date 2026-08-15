@@ -55,6 +55,19 @@ def test_upload_file_is_recorded():
     assert session.uploaded_files["#resume"] == "/tmp/resume.pdf"
 
 
+def test_set_hidden_undoes_set_visible():
+    session = FakeBrowserSession()
+    session.set_visible("#captcha")
+    session.set_hidden("#captcha")
+    assert session.is_visible("#captcha") is False
+
+
+def test_set_hidden_on_a_never_visible_selector_is_a_no_op():
+    session = FakeBrowserSession()
+    session.set_hidden("#never-shown")  # must not raise
+    assert session.is_visible("#never-shown") is False
+
+
 def test_wait_for_selector_raises_when_never_made_visible():
     session = FakeBrowserSession()
     with pytest.raises(SelectorTimeoutError):

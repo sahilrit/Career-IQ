@@ -1,0 +1,22 @@
+[project]
+name = "careeros-human-in-the-loop"
+version = "0.1.0"
+description = "Live browser execution with human takeover: detect a problem, hand off, let a human resolve it, resume — never auto-solve captchas or bypass obstacles."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-browser",
+    "careeros-common",
+    "careeros-event-bus",
+]
+
+[tool.uv.sources]
+careeros-browser = { workspace = true }
+careeros-common = { workspace = true }
+careeros-event-bus = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_human_in_the_loop"]
