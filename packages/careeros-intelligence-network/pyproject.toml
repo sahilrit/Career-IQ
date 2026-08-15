@@ -1,0 +1,20 @@
+[project]
+name = "careeros-intelligence-network"
+version = "0.1.0"
+description = "CareerOS Intelligence Network: aggregates anonymous, consented, non-personal performance signals across the platform into general strategy insights — never exposing one customer's private Career Brain to another."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-common",
+    "careeros-trust-layer",
+]
+
+[tool.uv.sources]
+careeros-common = { workspace = true }
+careeros-trust-layer = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_intelligence_network"]

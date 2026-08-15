@@ -47,3 +47,14 @@ def test_consent_is_scoped_per_user(store):
     repository = ConsentRepository(store)
     grant_consent(repository, "user-1", ConsentType.DATA_PROCESSING)
     assert has_active_consent(repository, "user-2", ConsentType.DATA_PROCESSING) is False
+
+
+def test_network_intelligence_sharing_consent_behaves_like_any_other_type(store):
+    repository = ConsentRepository(store)
+    assert (
+        has_active_consent(repository, "user-1", ConsentType.NETWORK_INTELLIGENCE_SHARING) is False
+    )
+    grant_consent(repository, "user-1", ConsentType.NETWORK_INTELLIGENCE_SHARING)
+    assert (
+        has_active_consent(repository, "user-1", ConsentType.NETWORK_INTELLIGENCE_SHARING) is True
+    )

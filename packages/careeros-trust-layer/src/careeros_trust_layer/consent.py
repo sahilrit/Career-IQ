@@ -21,6 +21,7 @@ class ConsentType(StrEnum):
     MARKETING_COMMUNICATIONS = "marketing_communications"
     THIRD_PARTY_SHARING = "third_party_sharing"
     AUTONOMOUS_ACTIONS = "autonomous_actions"
+    NETWORK_INTELLIGENCE_SHARING = "network_intelligence_sharing"
 
 
 class ConsentRecord(BaseModel):

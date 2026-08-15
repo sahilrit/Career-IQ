@@ -47,6 +47,7 @@ members = [
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
     "careeros-human-in-the-loop",
+    "careeros-intelligence-network",
     "careeros-interview-intelligence",
     "careeros-job-agent",
     "careeros-job-discovery",
@@ -752,6 +753,21 @@ requires-dist = [
     { name = "careeros-browser", editable = "packages/careeros-browser" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+]
+
+[[package]]
+name = "careeros-intelligence-network"
+version = "0.1.0"
+source = { editable = "packages/careeros-intelligence-network" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-trust-layer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-trust-layer", editable = "packages/careeros-trust-layer" },
 ]
 
 [[package]]
