@@ -19,6 +19,7 @@ members = [
     "careeros-application-runner",
     "careeros-arbeitnow-provider",
     "careeros-audit-proposal-engine",
+    "careeros-autonomous-agency",
     "careeros-autonomous-execution",
     "careeros-autonomy",
     "careeros-beta",
@@ -265,6 +266,21 @@ requires-dist = [
     { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "fpdf2", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-autonomous-agency"
+version = "0.1.0"
+source = { editable = "packages/careeros-autonomous-agency" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
 ]
 
 [[package]]

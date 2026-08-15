@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 57)
+## Current state (post Phase 60 — all 60 phases complete)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -314,13 +314,43 @@ careeros/                                  workspace root — virtual, not insta
     │                                       importlib presence, not a
     │                                       promise) plus a capacity-
     │                                       limited invite cohort
-    └── careeros-launch/                     production-launch
-                                            readiness gate over the
-                                            platform's architectural
-                                            properties, plus Phase 46's
-                                            own dependency audit run
-                                            live for the zero-paid-API
-                                            claim, and a launch record
+    ├── careeros-launch/                     production-launch
+    │                                       readiness gate over the
+    │                                       platform's architectural
+    │                                       properties, plus Phase 46's
+    │                                       own dependency audit run
+    │                                       live for the zero-paid-API
+    │                                       claim, and a launch record
+    ├── careeros-arbeitnow-provider/         a second FIND_JOBS
+    │                                       provider, backed by
+    │                                       Arbeitnow's free public
+    │                                       job board API, proving the
+    │                                       SDK generalizes beyond
+    │                                       RemoteOK
+    ├── careeros-intelligence-network/       aggregates anonymous,
+    │                                       consented, non-personal
+    │                                       signals across tenants —
+    │                                       SignalContribution has no
+    │                                       identity field in its
+    │                                       schema at all, so one
+    │                                       customer's Career Brain
+    │                                       structurally cannot leak
+    │                                       into another's view
+    └── careeros-autonomous-agency/          the final capstone: tracks
+                                            one continuous loop per
+                                            user (Employment/Freelance/
+                                            Personal Brand -> Networking
+                                            -> Client Success ->
+                                            Financial Intelligence ->
+                                            Career Intelligence -> CEO
+                                            Agent -> Learning -> loop
+                                            back), updated from real
+                                            events where they exist and
+                                            by explicit confirmation
+                                            where they don't — no new
+                                            domain logic, just the
+                                            loop view across every
+                                            division already built
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -329,11 +359,12 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: ecosystem expansion (Phase 58), the cross-tenant
-Intelligence Network (Phase 59), and the final autonomous-agency
-orchestration capstone (Phase 60). See
+All 60 roadmap phases are now built. Nothing on the original roadmap
+is missing; ecosystem expansion (more providers, more plugins, more AI
+skills, more marketplace developers) continues indefinitely on top of
+the same stable core rather than as a bounded phase. See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
-and current status markers.
+and status of every phase.
 
 ## Core principle
 
