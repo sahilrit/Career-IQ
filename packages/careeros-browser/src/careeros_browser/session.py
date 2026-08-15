@@ -37,6 +37,19 @@ class BrowserSession(Protocol):
     def is_visible(self, selector: str) -> bool: ...
     def wait_for_selector(self, selector: str, *, timeout_ms: int = 10_000) -> None: ...
 
+    def query_all(self, selector: str, *, extract: dict[str, str]) -> list[dict[str, str | None]]:
+        """Every element matching ``selector``, each rendered as a dict.
+
+        ``extract`` maps output keys to sub-selectors evaluated relative
+        to each matched element — the shape a search-results page (job
+        listings, gig cards, ...) needs that a single ``text_content()``
+        call can't give you. A sub-selector of the form
+        ``"selector@attribute"`` (e.g. ``"a@href"``) extracts that
+        attribute instead of the element's text; a bare ``"@attribute"``
+        reads the attribute off the matched element itself.
+        """
+        ...
+
     def download_triggered_by(self, action: Callable[[], None], *, save_to: str | Path) -> Path: ...
 
     def screenshot(self, path: str | Path) -> Path: ...

@@ -70,6 +70,24 @@ class PlaywrightBrowserSession:
                 f"Selector {selector!r} did not appear within {timeout_ms}ms"
             ) from exc
 
+    def query_all(self, selector: str, *, extract: dict[str, str]) -> list[dict[str, str | None]]:
+        results = []
+        for element in self._page.query_selector_all(selector):
+            row: dict[str, str | None] = {}
+            for field_name, spec in extract.items():
+                # "sub_selector@attribute" extracts an attribute (e.g. "a@href");
+                # a bare selector (or "@attribute" alone) extracts text_content.
+                sub_selector, _, attribute = spec.partition("@")
+                sub_element = element.query_selector(sub_selector) if sub_selector else element
+                if sub_element is None:
+                    row[field_name] = None
+                elif attribute:
+                    row[field_name] = sub_element.get_attribute(attribute)
+                else:
+                    row[field_name] = sub_element.text_content()
+            results.append(row)
+        return results
+
     def download_triggered_by(self, action, *, save_to: str | Path) -> Path:
         try:
             with self._page.expect_download() as download_info:

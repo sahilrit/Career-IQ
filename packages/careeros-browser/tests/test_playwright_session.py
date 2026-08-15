@@ -46,13 +46,41 @@ class _DownloadInfo:
         return None
 
 
+class _StubElement:
+    def __init__(
+        self,
+        text: str = "",
+        attributes: dict[str, str] | None = None,
+        children: dict[str, _StubElement] | None = None,
+    ) -> None:
+        self._text = text
+        self._attributes = attributes or {}
+        self._children = children or {}
+
+    def query_selector(self, selector: str) -> _StubElement | None:
+        return self._children.get(selector)
+
+    def text_content(self) -> str:
+        return self._text
+
+    def get_attribute(self, name: str) -> str | None:
+        return self._attributes.get(name)
+
+
 class _StubPage:
     def __init__(self) -> None:
         self.url = "about:blank"
         self.context = _StubContext()
         self.calls: list[tuple] = []
         self._download: _StubDownload | None = None
+        self._elements_by_selector: dict[str, list[_StubElement]] = {}
         self.closed = False
+
+    def set_query_selector_all(self, selector: str, elements: list[_StubElement]) -> None:
+        self._elements_by_selector[selector] = elements
+
+    def query_selector_all(self, selector: str) -> list[_StubElement]:
+        return self._elements_by_selector.get(selector, [])
 
     def goto(self, url: str) -> None:
         self.calls.append(("goto", url))
@@ -189,3 +217,52 @@ def test_close_delegates():
     session = PlaywrightBrowserSession(page)
     session.close()
     assert page.closed is True
+
+
+def test_query_all_extracts_text_and_href_per_element():
+    card = _StubElement(
+        children={
+            ".title": _StubElement(text="Senior Engineer"),
+            "a": _StubElement(attributes={"href": "https://example.com/1"}),
+        }
+    )
+    page = _StubPage()
+    page.set_query_selector_all(".gig-card", [card])
+    session = PlaywrightBrowserSession(page)
+
+    result = session.query_all(".gig-card", extract={"title": ".title", "url": "a@href"})
+
+    assert result == [{"title": "Senior Engineer", "url": "https://example.com/1"}]
+
+
+def test_query_all_returns_one_row_per_matched_element():
+    cards = [_StubElement(children={".title": _StubElement(text=f"Gig {i}")}) for i in range(3)]
+    page = _StubPage()
+    page.set_query_selector_all(".gig-card", cards)
+    session = PlaywrightBrowserSession(page)
+
+    result = session.query_all(".gig-card", extract={"title": ".title"})
+
+    assert [row["title"] for row in result] == ["Gig 0", "Gig 1", "Gig 2"]
+
+
+def test_query_all_returns_none_for_a_missing_sub_element():
+    card = _StubElement(children={})
+    page = _StubPage()
+    page.set_query_selector_all(".gig-card", [card])
+    session = PlaywrightBrowserSession(page)
+
+    result = session.query_all(".gig-card", extract={"title": ".title"})
+
+    assert result == [{"title": None}]
+
+
+def test_query_all_bare_attribute_reads_off_the_matched_element_itself():
+    card = _StubElement(attributes={"data-id": "42"})
+    page = _StubPage()
+    page.set_query_selector_all(".gig-card", [card])
+    session = PlaywrightBrowserSession(page)
+
+    result = session.query_all(".gig-card", extract={"id": "@data-id"})
+
+    assert result == [{"id": "42"}]

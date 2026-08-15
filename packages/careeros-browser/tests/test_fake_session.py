@@ -108,3 +108,27 @@ def test_close_marks_the_session_closed():
     session = FakeBrowserSession()
     session.close()
     assert session.closed is True
+
+
+def test_query_all_returns_empty_list_when_nothing_queued():
+    session = FakeBrowserSession()
+    assert session.query_all(".gig-card", extract={"title": ".title"}) == []
+
+
+def test_query_all_replays_the_queued_results():
+    session = FakeBrowserSession()
+    rows = [{"title": "First gig", "url": "https://x.example/1"}]
+    session.set_query_all_results(".gig-card", rows)
+
+    result = session.query_all(".gig-card", extract={"title": ".title", "url": "a@href"})
+
+    assert result == rows
+
+
+def test_query_all_results_are_isolated_by_selector():
+    session = FakeBrowserSession()
+    session.set_query_all_results(".gig-card", [{"title": "gig"}])
+    session.set_query_all_results(".job-card", [{"title": "job"}])
+
+    assert session.query_all(".gig-card", extract={}) == [{"title": "gig"}]
+    assert session.query_all(".job-card", extract={}) == [{"title": "job"}]

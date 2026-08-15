@@ -23,6 +23,7 @@ class FakeBrowserSession:
         self._visible_selectors: set[str] = set()
         self._text_content: dict[str, str] = {}
         self._pending_download: Path | None = None
+        self._query_all_results: dict[str, list[dict[str, str | None]]] = {}
         self.clicked_selectors: list[str] = []
         self.uploaded_files: dict[str, str] = {}
         self.screenshots_taken: list[Path] = []
@@ -73,6 +74,12 @@ class FakeBrowserSession:
                 f"Selector {selector!r} did not appear within {timeout_ms}ms"
             )
 
+    def query_all(self, selector: str, *, extract: dict[str, str]) -> list[dict[str, str | None]]:
+        # `extract` describes the real sub-selector mapping a live browser
+        # would use; the fake just replays whatever was queued for this
+        # top-level selector via set_query_all_results().
+        return list(self._query_all_results.get(selector, []))
+
     def download_triggered_by(self, action: Callable[[], None], *, save_to: str | Path) -> Path:
         action()
         if self._pending_download is None:
@@ -105,3 +112,7 @@ class FakeBrowserSession:
     def queue_download(self, path: str | Path) -> None:
         """Simulate the next action producing a download at ``path``."""
         self._pending_download = Path(path)
+
+    def set_query_all_results(self, selector: str, results: list[dict[str, str | None]]) -> None:
+        """Simulate ``selector`` matching a list of elements, for test setup."""
+        self._query_all_results[selector] = results
