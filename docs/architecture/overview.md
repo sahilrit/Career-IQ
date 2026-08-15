@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 55)
+## Current state (post Phase 57)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -300,14 +300,27 @@ careeros/                                  workspace root — virtual, not insta
     │                                       plain-language failure
     │                                       explanation over Phase 45's
     │                                       failure queue
-    └── careeros-compliance/                 retention policies,
-                                            configurable security
-                                            policies, whole-account
-                                            deletion spanning both
-                                            domain data (Phase 45) and
-                                            tenancy records (Phase 25),
-                                            and a compliance readiness
-                                            report
+    ├── careeros-compliance/                 retention policies,
+    │                                       configurable security
+    │                                       policies, whole-account
+    │                                       deletion spanning both
+    │                                       domain data (Phase 45) and
+    │                                       tenancy records (Phase 25),
+    │                                       and a compliance readiness
+    │                                       report
+    ├── careeros-beta/                       real readiness check
+    │                                       across the MVP's required
+    │                                       subsystems (real
+    │                                       importlib presence, not a
+    │                                       promise) plus a capacity-
+    │                                       limited invite cohort
+    └── careeros-launch/                     production-launch
+                                            readiness gate over the
+                                            platform's architectural
+                                            properties, plus Phase 46's
+                                            own dependency audit run
+                                            live for the zero-paid-API
+                                            claim, and a launch record
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -316,9 +329,9 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the beta/launch milestones (Phase 56-60) — beta release,
-production launch, ecosystem expansion, the cross-tenant Intelligence
-Network, and the final autonomous-agency orchestration capstone. See
+Still missing: ecosystem expansion (Phase 58), the cross-tenant
+Intelligence Network (Phase 59), and the final autonomous-agency
+orchestration capstone (Phase 60). See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
 and current status markers.
 

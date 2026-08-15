@@ -15,7 +15,7 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 55 of 60 — Security / Compliance / Data Portability. The full autonomous apply loop
+🚧 Phase 57 of 60 — Production Launch. The full autonomous apply loop
 works today, for both employment and freelance opportunities: postings
 are discovered, scored against a Career Brain profile, turned into a
 real application package (nothing fabricated), authorized, and
@@ -40,8 +40,14 @@ third-party distribution. A Free/Pro/Agency billing model tracks plan
 and subscription state as a monetization layer, never a core
 dependency — no real payment processor is integrated. Every new user
 gets a tracked onboarding journey, and metrics/tracing/threshold
-alerting/failure explanation give the platform real observability. No
-arbitrary cap on how many qualified applications one run processes. See
+alerting/failure explanation give the platform real observability. A
+beta readiness check and capacity-limited invite cohort back the beta
+release, and a production-launch readiness gate checks the platform's
+architectural properties (multi-tenant, plugin-based, event-driven,
+autonomous, memory-driven, AI-powered, browser-capable, SaaS-ready)
+plus the zero-paid-API claim, verified live against the real workspace
+rather than asserted. No arbitrary cap on how many qualified
+applications one run processes. See
 [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full plan
 and [`docs/architecture/overview.md`](docs/architecture/overview.md)
 for what's built so far.
