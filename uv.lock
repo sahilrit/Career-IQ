@@ -24,6 +24,7 @@ members = [
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
     "careeros-human-in-the-loop",
+    "careeros-interview-intelligence",
     "careeros-job-agent",
     "careeros-job-discovery",
     "careeros-job-providers",
@@ -423,6 +424,27 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "careeros-browser", editable = "packages/careeros-browser" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+]
+
+[[package]]
+name = "careeros-interview-intelligence"
+version = "0.1.0"
+source = { editable = "packages/careeros-interview-intelligence" }
+dependencies = [
+    { name = "careeros-calendar-assistant" },
+    { name = "careeros-career-brain" },
+    { name = "careeros-career-brain-engine" },
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-calendar-assistant", editable = "packages/careeros-calendar-assistant" },
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
 ]
