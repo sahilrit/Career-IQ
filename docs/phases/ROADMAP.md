@@ -247,7 +247,7 @@ Job → Career Brain → Match → Resume → Cover Letter → Answers
 **Important:** this provides the infrastructure for platforms that don't
 expose useful free APIs.
 
-## PHASE 14 — Application Runner
+## PHASE 14 — Application Runner ✅
 
 **Goal:** turn application packages into actual browser submissions.
 
