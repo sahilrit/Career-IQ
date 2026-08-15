@@ -36,6 +36,7 @@ members = [
     "careeros-credentials",
     "careeros-crm",
     "careeros-dashboard",
+    "careeros-developer-sdk",
     "careeros-employment-division",
     "careeros-event-bus",
     "careeros-financial-intelligence",
@@ -570,6 +571,21 @@ requires-dist = [
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
     { name = "streamlit", specifier = ">=1.38" },
+]
+
+[[package]]
+name = "careeros-developer-sdk"
+version = "0.1.0"
+source = { editable = "packages/careeros-developer-sdk" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-plugin-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-plugin-sdk", editable = "packages/careeros-plugin-sdk" },
 ]
 
 [[package]]

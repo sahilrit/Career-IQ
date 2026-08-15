@@ -739,7 +739,7 @@ strategy.
 
 This creates two marketplace categories: INTEGRATIONS + AI SKILLS.
 
-## PHASE 50 — Developer SDK
+## PHASE 50 — Developer SDK ✅
 
 Release the official CareerOS SDK. A developer should be able to build a
 `MyCareerPlugin` class and expose capabilities, actions, triggers, tools,
