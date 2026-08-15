@@ -14,6 +14,7 @@ members = [
     "careeros-cli",
     "careeros-common",
     "careeros-event-bus",
+    "careeros-freelance-providers",
     "careeros-human-in-the-loop",
     "careeros-job-agent",
     "careeros-job-discovery",
@@ -223,6 +224,21 @@ requires-dist = [
 name = "careeros-event-bus"
 version = "0.1.0"
 source = { editable = "packages/careeros-event-bus" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-freelance-providers"
+version = "0.1.0"
+source = { editable = "packages/careeros-freelance-providers" }
 dependencies = [
     { name = "careeros-common" },
     { name = "pydantic" },
