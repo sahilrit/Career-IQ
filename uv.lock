@@ -19,6 +19,7 @@ members = [
     "careeros-application-runner",
     "careeros-arbeitnow-provider",
     "careeros-audit-proposal-engine",
+    "careeros-auth",
     "careeros-autonomous-agency",
     "careeros-autonomous-execution",
     "careeros-autonomy",
@@ -270,6 +271,27 @@ requires-dist = [
     { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "fpdf2", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-auth"
+version = "0.1.0"
+source = { editable = "packages/careeros-auth" }
+dependencies = [
+    { name = "careeros-billing" },
+    { name = "careeros-common" },
+    { name = "careeros-compliance" },
+    { name = "careeros-tenancy" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-billing", editable = "packages/careeros-billing" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-compliance", editable = "packages/careeros-compliance" },
+    { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]
@@ -636,6 +658,8 @@ source = { editable = "packages/careeros-dashboard" }
 dependencies = [
     { name = "careeros-application-engine" },
     { name = "careeros-arbeitnow-provider" },
+    { name = "careeros-auth" },
+    { name = "careeros-billing" },
     { name = "careeros-calendar-assistant" },
     { name = "careeros-career-brain" },
     { name = "careeros-client-acquisition" },
@@ -650,6 +674,8 @@ dependencies = [
     { name = "careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence" },
     { name = "careeros-remoteok-provider" },
+    { name = "careeros-tenancy" },
+    { name = "careeros-trust-layer" },
     { name = "streamlit" },
 ]
 
@@ -657,6 +683,8 @@ dependencies = [
 requires-dist = [
     { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
     { name = "careeros-arbeitnow-provider", editable = "packages/careeros-arbeitnow-provider" },
+    { name = "careeros-auth", editable = "packages/careeros-auth" },
+    { name = "careeros-billing", editable = "packages/careeros-billing" },
     { name = "careeros-calendar-assistant", editable = "packages/careeros-calendar-assistant" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
@@ -671,6 +699,8 @@ requires-dist = [
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
     { name = "careeros-remoteok-provider", editable = "packages/careeros-remoteok-provider" },
+    { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
+    { name = "careeros-trust-layer", editable = "packages/careeros-trust-layer" },
     { name = "streamlit", specifier = ">=1.38" },
 ]
 

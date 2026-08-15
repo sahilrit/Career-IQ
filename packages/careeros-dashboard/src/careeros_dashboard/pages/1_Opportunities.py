@@ -7,14 +7,15 @@ from __future__ import annotations
 import streamlit as st
 
 from careeros_career_brain.models import ApplicationStatus
+from careeros_dashboard.auth_gate import require_account
 from careeros_dashboard.data_access import list_applications, primary_brain
-from careeros_dashboard.runtime import get_store
 from careeros_dashboard.search_actions import generate_application_for_job, search_for_jobs
 from careeros_dashboard.theme import badge, inject_theme
 
 st.set_page_config(page_title="Opportunities", page_icon="🎯", layout="wide")
 
 inject_theme()
+account = require_account()
 
 _STATUS_TONE = {
     ApplicationStatus.DISCOVERED: "mute",
@@ -28,7 +29,7 @@ _STATUS_TONE = {
     ApplicationStatus.WITHDRAWN: "red",
 }
 
-store = get_store()
+store = account.store
 st.title("Opportunities")
 
 brain = primary_brain(store)

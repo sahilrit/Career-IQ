@@ -13,6 +13,21 @@ browser automation, public web data, and user-provided credentials/OAuth
 where appropriate — paid providers are optional plugins, never a
 dependency of the core.
 
+## Sellable SaaS, out of the box
+
+The dashboard is a hosted product by default: visitors land on a
+marketing page with pricing, sign up (email + password), and get their
+own isolated workspace on the Free plan — every page reads and writes
+through `TenantScopedDocumentStore`, so customers can never see each
+other's data. Billing uses the Free/Pro/Agency plans with Stripe
+Payment Links for checkout (no SDK, no secret keys in the app), an
+Admin console shows accounts/MRR and activates paid plans, and each
+account gets password change, data export, and self-serve deletion.
+Prefer the original personal install? Set `CAREEROS_SINGLE_USER=1` and
+auth disappears. See
+[`docs/development/saas-operations.md`](docs/development/saas-operations.md)
+for the operator guide (env vars, Stripe setup, migration).
+
 ## Status
 
 ✅ Phase 60 of 60 — all roadmap phases complete. The full autonomous

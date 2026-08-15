@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from careeros_dashboard.auth_gate import require_account
 from careeros_dashboard.career_brain_actions import (
     add_achievement,
     add_award,
@@ -23,15 +24,15 @@ from careeros_dashboard.career_brain_actions import (
     update_summary,
 )
 from careeros_dashboard.data_access import primary_brain
-from careeros_dashboard.runtime import get_store
 from careeros_dashboard.theme import badge, inject_theme
 from careeros_employment_division import build_portfolio_summary, render_portfolio_summary
 
 st.set_page_config(page_title="Career Brain", page_icon="🧠", layout="wide")
 
 inject_theme()
+account = require_account()
 
-store = get_store()
+store = account.store
 st.title("Career Brain")
 
 brain = primary_brain(store)
@@ -39,8 +40,8 @@ brain = primary_brain(store)
 if brain is None:
     st.subheader("Create your Career Brain")
     with st.form("create_brain"):
-        full_name = st.text_input("Full name")
-        email = st.text_input("Email")
+        full_name = st.text_input("Full name", value=account.user.full_name if account.user else "")
+        email = st.text_input("Email", value=account.user.email if account.user else "")
         submitted = st.form_submit_button("Create")
     if submitted and full_name and email:
         get_or_create_brain(store, full_name=full_name, email=email)

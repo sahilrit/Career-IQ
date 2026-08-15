@@ -4,6 +4,12 @@
     # via careeros-dashboard
 -e ./packages/careeros-arbeitnow-provider
     # via careeros-dashboard
+-e ./packages/careeros-auth
+    # via careeros-dashboard
+-e ./packages/careeros-billing
+    # via
+    #   careeros-auth
+    #   careeros-dashboard
 -e ./packages/careeros-browser
     # via careeros-client-acquisition
 -e ./packages/careeros-calendar-assistant
@@ -19,6 +25,7 @@
     #   careeros-job-discovery
     #   careeros-memory
     #   careeros-opportunity-intelligence
+    #   careeros-trust-layer
 -e ./packages/careeros-career-brain-engine
     # via
     #   careeros-application-engine
@@ -31,12 +38,15 @@
     # via
     #   careeros-application-engine
     #   careeros-arbeitnow-provider
+    #   careeros-auth
+    #   careeros-billing
     #   careeros-browser
     #   careeros-calendar-assistant
     #   careeros-career-brain
     #   careeros-career-brain-engine
     #   careeros-client-acquisition
     #   careeros-communication-intelligence
+    #   careeros-compliance
     #   careeros-crm
     #   careeros-dashboard
     #   careeros-employment-division
@@ -51,8 +61,12 @@
     #   careeros-opportunity-intelligence
     #   careeros-remoteok-provider
     #   careeros-runtime
+    #   careeros-tenancy
+    #   careeros-trust-layer
 -e ./packages/careeros-communication-intelligence
     # via careeros-calendar-assistant
+-e ./packages/careeros-compliance
+    # via careeros-auth
 -e ./packages/careeros-crm
     # via careeros-dashboard
 -e ./packages/careeros-dashboard
@@ -103,6 +117,15 @@
     # via careeros-dashboard
 -e ./packages/careeros-runtime
     # via careeros-job-agent
+-e ./packages/careeros-tenancy
+    # via
+    #   careeros-auth
+    #   careeros-compliance
+    #   careeros-dashboard
+-e ./packages/careeros-trust-layer
+    # via
+    #   careeros-compliance
+    #   careeros-dashboard
 altair==6.2.2
     # via streamlit
 annotated-types==0.8.0
@@ -185,6 +208,7 @@ pyarrow==24.0.0
     # via streamlit
 pydantic==2.13.4
     # via
+    #   careeros-auth
     #   careeros-browser
     #   careeros-calendar-assistant
     #   careeros-career-brain
@@ -195,6 +219,7 @@ pydantic==2.13.4
     #   careeros-job-providers
     #   careeros-memory
     #   careeros-runtime
+    #   careeros-tenancy
     #   pydantic-settings
 pydantic-core==2.46.4
     # via pydantic

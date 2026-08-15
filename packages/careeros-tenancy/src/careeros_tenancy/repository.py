@@ -28,6 +28,9 @@ class TenancyRepository:
         data = self._store.get_or_none(_USER_TYPE, user_id)
         return User.model_validate(data) if data else None
 
+    def list_users(self) -> list[User]:
+        return [User.model_validate(data) for data in self._store.list(_USER_TYPE)]
+
     def find_user_by_email(self, email: str) -> User | None:
         for data in self._store.list(_USER_TYPE):
             if data.get("email") == email:

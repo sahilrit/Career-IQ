@@ -16,6 +16,9 @@ _PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "src" / "careeros_dashboar
 def data_dir(tmp_path, monkeypatch):
     path = tmp_path / "data"
     monkeypatch.setenv("CAREEROS_DATA_DIR", str(path))
+    # These tests cover page behavior, not the auth gate — run them in the
+    # self-hosted single-user mode (test_auth_flow.py covers SaaS mode).
+    monkeypatch.setenv("CAREEROS_SINGLE_USER", "1")
     yield path
 
 

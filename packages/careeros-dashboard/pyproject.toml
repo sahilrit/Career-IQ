@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "careeros-application-engine",
     "careeros-arbeitnow-provider",
+    "careeros-auth",
+    "careeros-billing",
     "careeros-calendar-assistant",
     "careeros-career-brain",
     "careeros-client-acquisition",
@@ -20,12 +22,16 @@ dependencies = [
     "careeros-offer-negotiation",
     "careeros-opportunity-intelligence",
     "careeros-remoteok-provider",
+    "careeros-tenancy",
+    "careeros-trust-layer",
     "streamlit>=1.38",
 ]
 
 [tool.uv.sources]
 careeros-application-engine = { workspace = true }
 careeros-arbeitnow-provider = { workspace = true }
+careeros-auth = { workspace = true }
+careeros-billing = { workspace = true }
 careeros-calendar-assistant = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-client-acquisition = { workspace = true }
@@ -40,6 +46,8 @@ careeros-job-providers = { workspace = true }
 careeros-offer-negotiation = { workspace = true }
 careeros-opportunity-intelligence = { workspace = true }
 careeros-remoteok-provider = { workspace = true }
+careeros-tenancy = { workspace = true }
+careeros-trust-layer = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
