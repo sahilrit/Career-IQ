@@ -1,0 +1,9 @@
+"""Analytics & Career ROI exceptions. All subclass CareerOSError."""
+
+from __future__ import annotations
+
+from careeros_common import CareerOSError
+
+
+class AnalyticsError(CareerOSError):
+    """Base class for all analytics errors."""

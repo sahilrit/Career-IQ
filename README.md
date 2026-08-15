@@ -15,7 +15,7 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 41 of 60 — Executive AI / CEO Agent. The full autonomous apply
+🚧 Phase 44 of 60 — Analytics & Career ROI. The full autonomous apply
 loop works today, for both employment and freelance opportunities:
 postings are discovered (RemoteOK, Fiverr), normalized, and scored
 against a Career Brain profile; qualified opportunities get a real
@@ -33,15 +33,19 @@ Value with negotiation talking points; won clients get tracked through
 contracts, invoices, and a computed lifecycle stage; real income gets
 tracked into effective hourly rate, trends, and a full-time vs.
 freelance vs. combined strategy comparison; company signals predict
-demand before an opportunity is ever posted; A/B experiments across
-resume/email/LinkedIn/proposal content measure real outcomes to learn
-what works; a Career Intelligence Engine combines every signal into
-ranked recommendations and a career direction summary; and a CEO Agent
+demand before an opportunity is ever posted; A/B experiments measure
+real outcomes to learn what works; a Career Intelligence Engine
+combines every signal into ranked recommendations; and a CEO Agent
 allocates effort across Employment/Freelance/Networking/Personal Brand
 as a transparent, evidence-weighted blend that shifts as real results
-come in. No arbitrary cap on how many qualified applications one run
-processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for
-the full plan and
+come in. Users can build no-code WHEN/THEN automations over any
+platform event. The product itself now has a UI — a Streamlit
+dashboard with a main overview, an opportunity page, and a full Career
+Brain manager — and an analytics layer computing funnel/platform/
+industry/network metrics and a transparent Career ROI breakdown live
+from the same data. No arbitrary cap on how many qualified applications
+one run processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md)
+for the full plan and
 [`docs/architecture/overview.md`](docs/architecture/overview.md) for
 what's built so far.
 
@@ -90,7 +94,10 @@ careeros/
 │   ├── careeros-opportunity-prediction/     # predicts demand from real company signals
 │   ├── careeros-learning-lab/               # A/B experiments across generated content
 │   ├── careeros-career-intelligence/        # combines signals into ranked recommendations
-│   └── careeros-ceo-agent/                  # evidence-weighted effort allocation across divisions
+│   ├── careeros-ceo-agent/                  # evidence-weighted effort allocation across divisions
+│   ├── careeros-workflow-builder/           # no-code WHEN/THEN rules over platform events
+│   ├── careeros-dashboard/                  # the product UI (Streamlit)
+│   └── careeros-analytics/                  # funnel metrics + Career ROI breakdown
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

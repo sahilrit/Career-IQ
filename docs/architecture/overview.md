@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 41)
+## Current state (post Phase 44)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -219,12 +219,28 @@ careeros/                                  workspace root — virtual, not insta
     │                                       ...) and a career direction
     │                                       summary — a pure combinator,
     │                                       not a new data source
-    └── careeros-ceo-agent/                  allocates effort across
-                                            Employment/Freelance/
-                                            Networking/Personal Brand as
-                                            a transparent, evidence-
-                                            weighted blend of a baseline
-                                            split and real performance
+    ├── careeros-ceo-agent/                  allocates effort across
+    │                                       Employment/Freelance/
+    │                                       Networking/Personal Brand as
+    │                                       a transparent, evidence-
+    │                                       weighted blend of a baseline
+    │                                       split and real performance
+    ├── careeros-workflow-builder/            no-code WHEN/THEN rules
+    │                                       over platform events,
+    │                                       dispatching named action
+    │                                       chains through a pluggable
+    │                                       executor
+    ├── careeros-dashboard/                  the product UI (Streamlit):
+    │                                       main dashboard, opportunity
+    │                                       page, full Career Brain
+    │                                       manager — reads the same
+    │                                       local database the CLI
+    │                                       writes to
+    └── careeros-analytics/                  funnel/platform/industry/
+                                            network metrics and a
+                                            transparent Career ROI
+                                            breakdown, computed live
+                                            from real platform data
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -233,11 +249,12 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the workflow builder (Phase 42), the dashboard/control
-center (Phase 43), analytics/Career ROI (Phase 44), the security
-hardening pass (Phase 45), and everything from SaaS Billing (Phase 52)
-onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the
-full sequence and current status markers.
+Still missing: the security & trust layer (Phase 45), the zero-cost
+infrastructure audit (Phase 46), the local/self-hosted edition
+(Phase 47), the plugin/skill marketplaces (Phase 48-51), and everything
+from SaaS Billing (Phase 52) onward. See
+[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
+and current status markers.
 
 ## Core principle
 

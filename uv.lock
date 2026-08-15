@@ -13,6 +13,7 @@ resolution-markers = [
 [manifest]
 members = [
     "careeros",
+    "careeros-analytics",
     "careeros-application-engine",
     "careeros-application-intelligence",
     "careeros-application-runner",
@@ -135,6 +136,29 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "ruff", specifier = ">=0.6" },
+]
+
+[[package]]
+name = "careeros-analytics"
+version = "0.1.0"
+source = { editable = "packages/careeros-analytics" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-client-acquisition" },
+    { name = "careeros-common" },
+    { name = "careeros-crm" },
+    { name = "careeros-financial-intelligence" },
+    { name = "careeros-offer-negotiation" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-crm", editable = "packages/careeros-crm" },
+    { name = "careeros-financial-intelligence", editable = "packages/careeros-financial-intelligence" },
+    { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
 ]
 
 [[package]]
