@@ -13,6 +13,7 @@ members = [
     "careeros-memory",
     "careeros-plugin-sdk",
     "careeros-remoteok-provider",
+    "careeros-runtime",
 ]
 
 [[package]]
@@ -190,6 +191,21 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
+name = "careeros-runtime"
+version = "0.1.0"
+source = { editable = "packages/careeros-runtime" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]
