@@ -54,21 +54,46 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 1)
+## Current state (post Phase 10)
 
 ```
-careeros/                      workspace root — virtual, not installed
+careeros/                          workspace root — virtual, not installed
 └── packages/
-    └── careeros-common/       shared kernel utilities
-        ├── config.py          layered YAML + env settings
-        ├── logging.py         stdlib logging setup
-        └── exceptions.py      CareerOSError base hierarchy
+    ├── careeros-common/           shared kernel: config, logging, exceptions,
+    │                              generic SQLite DocumentStore
+    ├── careeros-career-brain/     authoritative domain models (Identity,
+    │                              Experience, Skills, Applications, ...) +
+    │                              CareerBrainRepository
+    ├── careeros-plugin-sdk/       Plugin interface, manifest, versioning,
+    │                              PluginRegistry lifecycle
+    ├── careeros-event-bus/        in-process pub/sub EventBus
+    ├── careeros-memory/           working memory, HistoryLog (subscribes to
+    │                              the event bus), analytics, local TF-IDF
+    │                              semantic search
+    ├── careeros-job-providers/    FIND_JOBS provider SDK: JobPosting model,
+    │                              filtering, dedup, JobProviderRegistry
+    ├── careeros-remoteok-provider/ the reference FIND_JOBS provider, backed
+    │                              by RemoteOK's free public API
+    ├── careeros-job-discovery/    end-to-end pipeline: discover -> score
+    │                              -> store -> emit events
+    ├── careeros-runtime/          WorkerPool, Scheduler, Runtime lifecycle
+    │                              for continuous background operation
+    └── careeros-job-agent/        JobAgent: discovery + qualification
+                                   policy, wired onto Runtime as a
+                                   recurring job
 ```
 
-Nothing else exists yet: no Career Brain, no event bus, no plugin runtime,
-no providers, no browser automation, no persistence layer. Every package
-added from Phase 2 onward depends on `careeros-common` for config,
-logging, and its base exception type — it does not duplicate them.
+Every package depends on `careeros-common` for config, logging, and its
+base exception type rather than duplicating them. Career Brain
+(`careeros-career-brain`) is the only authoritative store of a user's
+professional identity — every other package reads or appends to it, none
+invents data about the user.
+
+Still missing: multi-tenancy (Phase 25), a resume/application-material
+generator (Phase 12), browser automation (Phase 13), freelance providers
+(Phase 18+), and everything from Platform Core Consolidation (Phase 23)
+onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full
+sequence and current status markers.
 
 ## Core principle
 

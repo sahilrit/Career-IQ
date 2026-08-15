@@ -15,23 +15,35 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 1 of 60 — Repository Foundation. See
+🚧 Phase 10 of 60 — Autonomous Job Agent. End-to-end job discovery works
+today: RemoteOK postings are normalized, scored against a Career Brain
+profile, stored as Applications, auto-qualified above a score threshold,
+and run continuously via the runtime's scheduler. See
 [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full plan and
-[`docs/phases/phase-01-repository-foundation.md`](docs/phases/phase-01-repository-foundation.md)
-for what's shipped so far.
+[`docs/architecture/overview.md`](docs/architecture/overview.md) for
+what's built so far.
 
 ## Repository layout
 
 ```
 careeros/
-├── packages/               # uv workspace members
-│   └── careeros-common/    # shared config, logging, base exceptions
-├── config/                 # layered YAML configuration (default/dev/test/prod/local)
+├── packages/                       # uv workspace members
+│   ├── careeros-common/            # config, logging, exceptions, DocumentStore
+│   ├── careeros-career-brain/      # authoritative domain models + repository
+│   ├── careeros-plugin-sdk/        # plugin interface, manifest, registry
+│   ├── careeros-event-bus/         # in-process pub/sub
+│   ├── careeros-memory/            # working memory, history, analytics, semantic search
+│   ├── careeros-job-providers/     # FIND_JOBS provider SDK
+│   ├── careeros-remoteok-provider/ # the reference job provider (RemoteOK)
+│   ├── careeros-job-discovery/     # discover -> score -> store -> emit pipeline
+│   ├── careeros-runtime/           # worker pool, scheduler, lifecycle
+│   └── careeros-job-agent/         # autonomous discovery + qualification loop
+├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
-│   ├── architecture/       # current-state architecture docs
-│   ├── development/        # setup + coding standards
-│   └── phases/             # the roadmap and per-phase notes
-└── pyproject.toml          # workspace root (virtual — not itself installed)
+│   ├── architecture/                # current-state architecture docs
+│   ├── development/                 # setup + coding standards
+│   └── phases/                      # the roadmap and per-phase notes
+└── pyproject.toml                  # workspace root (virtual — not itself installed)
 ```
 
 ## Getting started
