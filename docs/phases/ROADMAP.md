@@ -139,7 +139,7 @@ Capability: FIND_JOBS
 
 The rest of CareerOS doesn't care which provider supplied the job.
 
-## PHASE 7 — RemoteOK Provider
+## PHASE 7 — RemoteOK Provider ✅
 
 **Goal:** build the first real opportunity provider.
 
