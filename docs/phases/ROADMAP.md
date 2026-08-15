@@ -92,7 +92,7 @@ Actions
 **Principle:** plugins communicate through events rather than hard-coded
 agent-to-agent calls.
 
-## PHASE 5 — Memory Layer
+## PHASE 5 — Memory Layer ✅
 
 **Goal:** give CareerOS persistent memory.
 
