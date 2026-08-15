@@ -58,6 +58,7 @@ members = [
     "careeros-tenancy",
     "careeros-trust-layer",
     "careeros-workflow-builder",
+    "careeros-zero-cost-mode",
 ]
 
 [[package]]
@@ -935,6 +936,17 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
 ]
+
+[[package]]
+name = "careeros-zero-cost-mode"
+version = "0.1.0"
+source = { editable = "packages/careeros-zero-cost-mode" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
 
 [[package]]
 name = "certifi"
