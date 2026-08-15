@@ -25,6 +25,44 @@ hard dependency. See [`docs/architecture/overview.md`](../architecture/overview.
   layering (a domain package depending on `careeros-common`), not for
   peer coordination.
 
+## Dependency boundaries (Phase 23)
+
+Packages fall into four layers. A package may depend on packages in its
+own layer or below; never above. When two same-layer packages seem to
+need each other, that's a signal one of them belongs a layer down, or
+the interaction should go through the event bus instead.
+
+```
+4. Orchestration   careeros-cli, careeros-autonomous-execution,
+                    careeros-job-agent
+                        (wire multiple domain packages together into a
+                         workflow; nothing depends on these)
+
+3. Domain          careeros-career-brain, careeros-*-providers,
+                    careeros-application-engine, careeros-autonomy,
+                    careeros-opportunity-intelligence, ...
+                        (one bounded concept each; may depend on Kernel
+                         and on other Domain packages when the
+                         relationship is genuinely a dependency, e.g.
+                         career-brain-engine on career-brain — not a
+                         cycle)
+
+2. Kernel          careeros-core, careeros-plugin-sdk
+                        (cross-cutting mechanisms with no domain
+                         knowledge: capability registry, platform
+                         health, plugin lifecycle)
+
+1. Foundation       careeros-common, careeros-event-bus
+                        (config, logging, exceptions, storage, pub/sub —
+                         everything else is built on these)
+```
+
+`careeros-core` (Kernel) does not re-export or wrap Domain packages —
+Career Brain, Memory, and the providers already have clean independent
+boundaries; a "core" that depended on all of them would just be an
+indirection layer with no purpose. Kernel packages stay thin on purpose
+so they can be depended on by everything without becoming a bottleneck.
+
 ## Errors
 
 Every package-specific exception subclasses `careeros_common.CareerOSError`
