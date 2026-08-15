@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "careeros-dashboard",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "streamlit",
+        "run",
+        "packages/careeros-dashboard/src/careeros_dashboard/app.py",
+        "--server.headless=true"
+      ],
+      "port": 8501
+    }
+  ]
+}
