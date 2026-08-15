@@ -15,11 +15,11 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 34 of 60 — Personal Brand Division. The full autonomous apply
-loop works today, for both employment and freelance opportunities:
-postings are discovered (RemoteOK, Fiverr), normalized, and scored
-against a Career Brain profile; qualified opportunities get a real
-resume/cover-letter/answers/proposal package generated (nothing
+🚧 Phase 38 of 60 — Opportunity Prediction Engine. The full autonomous
+apply loop works today, for both employment and freelance
+opportunities: postings are discovered (RemoteOK, Fiverr), normalized,
+and scored against a Career Brain profile; qualified opportunities get
+a real resume/cover-letter/answers/proposal package generated (nothing
 fabricated); an authorization system decides whether to act
 (MANUAL/SUPERVISED/FULL_AUTONOMOUS, with financial/legal/identity
 actions always requiring a human, in every mode); and a
@@ -30,16 +30,23 @@ multi-tenant with an encrypted credential vault, classifies inbound
 recruiter/interviewer email, turns interview emails into calendar
 events with an automated research/briefing schedule, and tracks
 end-to-end pipeline progress (Discovery through Negotiation) per
-application. On the freelance side, it now discovers and audits
-prospective clients (website problem-signal detection, deep Shopify/
-Meta Ads audits, heuristic ROI estimates), generates every pitch
-deliverable (Loom script, real PDF, email, LinkedIn message, proposal),
-tracks every contact through a relationship timeline, and turns a
-project into a case study, portfolio page, LinkedIn post, X thread,
-blog post, and candidate resume achievement. No arbitrary cap on how
-many qualified applications one run processes. See
-[`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full plan
-and [`docs/architecture/overview.md`](docs/architecture/overview.md)
+application. On the freelance side, it discovers and audits prospective
+clients (website problem-signal detection, deep Shopify/Meta Ads
+audits, heuristic ROI estimates), generates every pitch deliverable
+(Loom script, real PDF, email, LinkedIn message, proposal), tracks
+every contact through a relationship timeline, and turns a project into
+a case study, portfolio page, LinkedIn post, X thread, blog post, and
+candidate resume achievement. Beyond landing the work: offers get
+analyzed beyond salary into one comparable Opportunity Value with
+negotiation talking points; won clients get tracked through contracts,
+deliverables, invoices, and a computed lifecycle stage; real income
+gets tracked into effective hourly rate, trends, and a full-time vs.
+freelance vs. combined strategy comparison; and company signals
+(funding, real hiring-velocity computed from job posting dates,
+executive hires) predict demand before an opportunity is ever posted.
+No arbitrary cap on how many qualified applications one run processes.
+See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full
+plan and [`docs/architecture/overview.md`](docs/architecture/overview.md)
 for what's built so far.
 
 ## Repository layout
@@ -80,7 +87,11 @@ careeros/
 │   ├── careeros-client-acquisition/         # freelance-side pipeline: discovery -> client
 │   ├── careeros-audit-proposal-engine/      # Shopify/Meta Ads audits, ROI, pitch deliverables
 │   ├── careeros-crm/                        # relationship timeline for every contact
-│   └── careeros-personal-brand/             # project -> case study -> social content -> resume
+│   ├── careeros-personal-brand/             # project -> case study -> social content -> resume
+│   ├── careeros-offer-negotiation/          # offer -> Opportunity Value -> negotiation script
+│   ├── careeros-client-success/             # post-contract lifecycle + computed client stage
+│   ├── careeros-financial-intelligence/     # income, hourly rate, trends, strategy comparison
+│   └── careeros-opportunity-prediction/     # predicts demand from real company signals
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

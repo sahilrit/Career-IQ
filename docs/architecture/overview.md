@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 34)
+## Current state (post Phase 38)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -177,12 +177,35 @@ careeros/                                  workspace root — virtual, not insta
     │                                       employment and freelance sides,
     │                                       wired to company.qualified /
     │                                       client.won / outcome.recorded
-    └── careeros-personal-brand/             turns a Project into a Case
-                                            Study, then a portfolio page,
-                                            LinkedIn post, X thread, blog
-                                            post, and candidate resume
-                                            achievement, plus a
-                                            user-supplied testimonials store
+    ├── careeros-personal-brand/             turns a Project into a Case
+    │                                       Study, then a portfolio page,
+    │                                       LinkedIn post, X thread, blog
+    │                                       post, and candidate resume
+    │                                       achievement, plus a
+    │                                       user-supplied testimonials store
+    ├── careeros-offer-negotiation/          analyzes an offer beyond
+    │                                       salary (bonus/equity/
+    │                                       benefits/PTO/stability/
+    │                                       growth/reputation) into one
+    │                                       comparable Opportunity Value,
+    │                                       plus negotiation talking
+    │                                       points and a call script
+    ├── careeros-client-success/             post-contract lifecycle:
+    │                                       contracts, deliverables,
+    │                                       invoices, referrals, and a
+    │                                       computed (never manually
+    │                                       assigned) lifecycle stage
+    ├── careeros-financial-intelligence/     real income tracking,
+    │                                       effective hourly rate,
+    │                                       income trends, and full-time
+    │                                       vs. freelance vs. combined
+    │                                       strategy comparison
+    └── careeros-opportunity-prediction/     predicts demand from real
+                                            company signals (funding,
+                                            hiring velocity computed
+                                            from real job posting dates,
+                                            executive hires, ...) before
+                                            an opportunity is posted
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -191,12 +214,11 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: offer/negotiation intelligence (Phase 35), client
-success (Phase 36), financial intelligence (Phase 37), the CEO agent
-(Phase 41), the dashboard/control center (Phase 43), and everything
-from SaaS Billing (Phase 52) onward. See
-[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
-and current status markers.
+Still missing: the AI Learning Lab (Phase 39), the Career Intelligence
+Engine (Phase 40), the CEO agent (Phase 41), the dashboard/control
+center (Phase 43), and everything from SaaS Billing (Phase 52) onward.
+See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full
+sequence and current status markers.
 
 ## Core principle
 
