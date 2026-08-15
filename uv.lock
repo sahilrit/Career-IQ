@@ -52,6 +52,7 @@ members = [
     "careeros-marketplace-governance",
     "careeros-memory",
     "careeros-offer-negotiation",
+    "careeros-onboarding",
     "careeros-opportunity-intelligence",
     "careeros-opportunity-prediction",
     "careeros-personal-brand",
@@ -830,6 +831,17 @@ requires-dist = [
 name = "careeros-offer-negotiation"
 version = "0.1.0"
 source = { editable = "packages/careeros-offer-negotiation" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
+
+[[package]]
+name = "careeros-onboarding"
+version = "0.1.0"
+source = { editable = "packages/careeros-onboarding" }
 dependencies = [
     { name = "careeros-common" },
 ]
