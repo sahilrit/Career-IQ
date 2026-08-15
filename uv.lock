@@ -20,6 +20,7 @@ members = [
     "careeros-audit-proposal-engine",
     "careeros-autonomous-execution",
     "careeros-autonomy",
+    "careeros-beta",
     "careeros-billing",
     "careeros-browser",
     "careeros-calendar-assistant",
@@ -293,6 +294,17 @@ requires-dist = [
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
+
+[[package]]
+name = "careeros-beta"
+version = "0.1.0"
+source = { editable = "packages/careeros-beta" }
+dependencies = [
+    { name = "careeros-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
 
 [[package]]
 name = "careeros-billing"
