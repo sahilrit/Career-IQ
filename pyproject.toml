@@ -3,9 +3,20 @@ name = "careeros"
 version = "0.1.0"
 description = "CareerOS — AI Career Operating System (workspace root, not published)"
 requires-python = ">=3.12"
+# Deliberately declared (not just a workspace member): hosts like Streamlit
+# Community Cloud run a plain `uv sync` with no flags, which by default only
+# installs the root project's own dependencies, not every workspace member.
+# Naming the dashboard here makes plain `uv sync` pull in its full transitive
+# tree — see docs/development/deploy-streamlit-cloud.md.
+dependencies = [
+    "careeros-dashboard",
+]
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+careeros-dashboard = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]
