@@ -26,6 +26,7 @@ members = [
     "careeros-crm",
     "careeros-employment-division",
     "careeros-event-bus",
+    "careeros-financial-intelligence",
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
     "careeros-human-in-the-loop",
@@ -475,6 +476,21 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-financial-intelligence"
+version = "0.1.0"
+source = { editable = "packages/careeros-financial-intelligence" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-offer-negotiation" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
 ]
 
 [[package]]
