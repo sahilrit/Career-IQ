@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 38)
+## Current state (post Phase 41)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -200,12 +200,31 @@ careeros/                                  workspace root — virtual, not insta
     │                                       income trends, and full-time
     │                                       vs. freelance vs. combined
     │                                       strategy comparison
-    └── careeros-opportunity-prediction/     predicts demand from real
-                                            company signals (funding,
-                                            hiring velocity computed
-                                            from real job posting dates,
-                                            executive hires, ...) before
-                                            an opportunity is posted
+    ├── careeros-opportunity-prediction/     predicts demand from real
+    │                                       company signals (funding,
+    │                                       hiring velocity computed
+    │                                       from real job posting dates,
+    │                                       executive hires, ...) before
+    │                                       an opportunity is posted
+    ├── careeros-learning-lab/               A/B experiments across
+    │                                       content generated elsewhere
+    │                                       (resume, email, LinkedIn,
+    │                                       portfolio, proposal, subject
+    │                                       line), tracking real
+    │                                       outcomes to find a winner
+    ├── careeros-career-intelligence/        combines signals already
+    │                                       computed elsewhere into
+    │                                       ranked recommendations
+    │                                       (roles, companies, skills,
+    │                                       ...) and a career direction
+    │                                       summary — a pure combinator,
+    │                                       not a new data source
+    └── careeros-ceo-agent/                  allocates effort across
+                                            Employment/Freelance/
+                                            Networking/Personal Brand as
+                                            a transparent, evidence-
+                                            weighted blend of a baseline
+                                            split and real performance
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -214,11 +233,11 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the AI Learning Lab (Phase 39), the Career Intelligence
-Engine (Phase 40), the CEO agent (Phase 41), the dashboard/control
-center (Phase 43), and everything from SaaS Billing (Phase 52) onward.
-See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full
-sequence and current status markers.
+Still missing: the workflow builder (Phase 42), the dashboard/control
+center (Phase 43), analytics/Career ROI (Phase 44), the security
+hardening pass (Phase 45), and everything from SaaS Billing (Phase 52)
+onward. See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the
+full sequence and current status markers.
 
 ## Core principle
 

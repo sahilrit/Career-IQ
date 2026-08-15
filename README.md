@@ -15,39 +15,35 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 38 of 60 — Opportunity Prediction Engine. The full autonomous
-apply loop works today, for both employment and freelance
-opportunities: postings are discovered (RemoteOK, Fiverr), normalized,
-and scored against a Career Brain profile; qualified opportunities get
-a real resume/cover-letter/answers/proposal package generated (nothing
+🚧 Phase 41 of 60 — Executive AI / CEO Agent. The full autonomous apply
+loop works today, for both employment and freelance opportunities:
+postings are discovered (RemoteOK, Fiverr), normalized, and scored
+against a Career Brain profile; qualified opportunities get a real
+resume/cover-letter/answers/proposal package generated (nothing
 fabricated); an authorization system decides whether to act
 (MANUAL/SUPERVISED/FULL_AUTONOMOUS, with financial/legal/identity
 actions always requiring a human, in every mode); and a
 Playwright-backed browser runner submits the package through an actual
-web form — with retries, screenshots, pacing, and a human-takeover path
-for captchas, unexpected pages, or failed submissions. The platform is
-multi-tenant with an encrypted credential vault, classifies inbound
-recruiter/interviewer email, turns interview emails into calendar
-events with an automated research/briefing schedule, and tracks
-end-to-end pipeline progress (Discovery through Negotiation) per
-application. On the freelance side, it discovers and audits prospective
-clients (website problem-signal detection, deep Shopify/Meta Ads
-audits, heuristic ROI estimates), generates every pitch deliverable
-(Loom script, real PDF, email, LinkedIn message, proposal), tracks
-every contact through a relationship timeline, and turns a project into
-a case study, portfolio page, LinkedIn post, X thread, blog post, and
-candidate resume achievement. Beyond landing the work: offers get
-analyzed beyond salary into one comparable Opportunity Value with
-negotiation talking points; won clients get tracked through contracts,
-deliverables, invoices, and a computed lifecycle stage; real income
-gets tracked into effective hourly rate, trends, and a full-time vs.
-freelance vs. combined strategy comparison; and company signals
-(funding, real hiring-velocity computed from job posting dates,
-executive hires) predict demand before an opportunity is ever posted.
-No arbitrary cap on how many qualified applications one run processes.
-See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full
-plan and [`docs/architecture/overview.md`](docs/architecture/overview.md)
-for what's built so far.
+web form. On the freelance side, it discovers and audits prospective
+clients, generates every pitch deliverable, tracks every contact
+through a relationship timeline, and turns a project into a case
+study, portfolio page, and social content. Beyond landing the work:
+offers get analyzed beyond salary into one comparable Opportunity
+Value with negotiation talking points; won clients get tracked through
+contracts, invoices, and a computed lifecycle stage; real income gets
+tracked into effective hourly rate, trends, and a full-time vs.
+freelance vs. combined strategy comparison; company signals predict
+demand before an opportunity is ever posted; A/B experiments across
+resume/email/LinkedIn/proposal content measure real outcomes to learn
+what works; a Career Intelligence Engine combines every signal into
+ranked recommendations and a career direction summary; and a CEO Agent
+allocates effort across Employment/Freelance/Networking/Personal Brand
+as a transparent, evidence-weighted blend that shifts as real results
+come in. No arbitrary cap on how many qualified applications one run
+processes. See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for
+the full plan and
+[`docs/architecture/overview.md`](docs/architecture/overview.md) for
+what's built so far.
 
 ## Repository layout
 
@@ -91,7 +87,10 @@ careeros/
 │   ├── careeros-offer-negotiation/          # offer -> Opportunity Value -> negotiation script
 │   ├── careeros-client-success/             # post-contract lifecycle + computed client stage
 │   ├── careeros-financial-intelligence/     # income, hourly rate, trends, strategy comparison
-│   └── careeros-opportunity-prediction/     # predicts demand from real company signals
+│   ├── careeros-opportunity-prediction/     # predicts demand from real company signals
+│   ├── careeros-learning-lab/               # A/B experiments across generated content
+│   ├── careeros-career-intelligence/        # combines signals into ranked recommendations
+│   └── careeros-ceo-agent/                  # evidence-weighted effort allocation across divisions
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs
