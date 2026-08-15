@@ -1,0 +1,26 @@
+[project]
+name = "careeros-employment-division"
+version = "0.1.0"
+description = "Completes the employment agency pipeline: Discovery -> Scoring -> Research -> Resume -> Portfolio -> Cover Letter -> Recruiter Outreach -> Application -> Follow-up -> Interview -> Offer -> Negotiation."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-career-brain",
+    "careeros-career-brain-engine",
+    "careeros-common",
+    "careeros-event-bus",
+    "careeros-job-providers",
+]
+
+[tool.uv.sources]
+careeros-career-brain = { workspace = true }
+careeros-career-brain-engine = { workspace = true }
+careeros-common = { workspace = true }
+careeros-event-bus = { workspace = true }
+careeros-job-providers = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_employment_division"]

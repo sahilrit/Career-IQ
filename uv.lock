@@ -20,6 +20,7 @@ members = [
     "careeros-communication-intelligence",
     "careeros-core",
     "careeros-credentials",
+    "careeros-employment-division",
     "careeros-event-bus",
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
@@ -362,6 +363,27 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "cryptography", specifier = ">=42" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-employment-division"
+version = "0.1.0"
+source = { editable = "packages/careeros-employment-division" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-career-brain-engine" },
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+    { name = "careeros-job-providers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
 ]
 
 [[package]]
