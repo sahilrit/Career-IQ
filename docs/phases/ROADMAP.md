@@ -75,7 +75,7 @@ authoritative.
 **Future requirement:** a plugin must be independently installable and
 removable.
 
-## PHASE 4 — Event Bus
+## PHASE 4 — Event Bus ✅
 
 **Goal:** stop agents/plugins from directly depending on each other.
 

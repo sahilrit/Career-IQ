@@ -7,6 +7,7 @@ members = [
     "careeros",
     "careeros-career-brain",
     "careeros-common",
+    "careeros-event-bus",
     "careeros-plugin-sdk",
 ]
 
@@ -72,6 +73,21 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-settings", specifier = ">=2.3" },
     { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
+name = "careeros-event-bus"
+version = "0.1.0"
+source = { editable = "packages/careeros-event-bus" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]
