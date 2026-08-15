@@ -437,7 +437,7 @@ Credentials, Plugins, Settings, Analytics.
 
 **Security requirement:** customer A must never access customer B's data.
 
-## PHASE 26 — Credential & Secret Management
+## PHASE 26 — Credential & Secret Management ✅
 
 **Goal:** allow users to connect services without exposing credentials to
 agents.
