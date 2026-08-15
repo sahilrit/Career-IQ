@@ -1,0 +1,8 @@
+# Base configuration, applied in every environment.
+# Environment-specific files (development.yaml, production.yaml, test.yaml)
+# and an optional local.yaml (gitignored) layer on top of this one.
+# "environment" itself is not set here — it's always the value that was
+# requested/resolved (see careeros_common.config.load_layered_yaml).
+debug: false
+log_level: INFO
+data_dir: .careeros/data

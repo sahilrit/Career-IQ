@@ -1,0 +1,10 @@
+# Copy this file to local.yaml (gitignored) for developer-local overrides.
+# local.yaml is the last layer merged before environment variables, so it
+# beats default.yaml and {environment}.yaml but not CAREEROS_* env vars.
+#
+# Typical uses: pointing data_dir somewhere outside the repo, raising log
+# verbosity for one machine, or — later, once optional provider plugins
+# exist — supplying an optional paid API key without committing it.
+#
+# debug: true
+# log_level: DEBUG

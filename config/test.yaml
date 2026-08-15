@@ -1,0 +1,3 @@
+debug: false
+log_level: WARNING
+data_dir: .careeros/data-test
