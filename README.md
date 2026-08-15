@@ -15,41 +15,31 @@ dependency of the core.
 
 ## Status
 
-🚧 Phase 46 of 60 — Zero-Cost Infrastructure Mode. The full autonomous
-apply loop works today, for both employment and freelance opportunities:
-postings are discovered (RemoteOK, Fiverr), normalized, and scored
-against a Career Brain profile; qualified opportunities get a real
-resume/cover-letter/answers/proposal package generated (nothing
-fabricated); an authorization system decides whether to act
-(MANUAL/SUPERVISED/FULL_AUTONOMOUS, with financial/legal/identity
-actions always requiring a human, in every mode); and a
-Playwright-backed browser runner submits the package through an actual
-web form. On the freelance side, it discovers and audits prospective
-clients, generates every pitch deliverable, tracks every contact
-through a relationship timeline, and turns a project into a case
-study, portfolio page, and social content. Beyond landing the work:
-offers get analyzed beyond salary into one comparable Opportunity
-Value with negotiation talking points; won clients get tracked through
-contracts, invoices, and a computed lifecycle stage; real income gets
-tracked into effective hourly rate, trends, and a full-time vs.
-freelance vs. combined strategy comparison; company signals predict
-demand before an opportunity is ever posted; A/B experiments measure
-real outcomes to learn what works; a Career Intelligence Engine
-combines every signal into ranked recommendations; and a CEO Agent
-allocates effort across Employment/Freelance/Networking/Personal Brand
-as a transparent, evidence-weighted blend that shifts as real results
-come in. Users can build no-code WHEN/THEN automations over any
-platform event. The product itself now has a UI — a Streamlit
-dashboard with a main overview, an opportunity page, and a full Career
-Brain manager — and an analytics layer computing funnel/platform/
-industry/network metrics and a transparent Career ROI breakdown live
-from the same data. A general-purpose audit log, consent management,
+🚧 Phase 49 of 60 — AI Skill Marketplace. The full autonomous apply loop
+works today, for both employment and freelance opportunities: postings
+are discovered (RemoteOK, Fiverr), scored against a Career Brain
+profile, turned into a real application package (nothing fabricated),
+authorized (MANUAL/SUPERVISED/FULL_AUTONOMOUS, with financial/legal/
+identity actions always requiring a human), and submitted through an
+actual web form via Playwright. On the freelance side it discovers and
+audits prospective clients, generates every pitch deliverable, tracks
+contacts through a relationship timeline, and turns projects into
+public content. Beyond landing the work: offers get evaluated into one
+comparable Opportunity Value; clients get tracked through a computed
+lifecycle stage; income feeds a full-time-vs-freelance strategy
+comparison; company signals predict demand before a posting exists;
+A/B experiments and a Career Intelligence Engine learn what works; and
+a CEO Agent allocates effort across the four divisions as real results
+come in. Users can build no-code WHEN/THEN automations. The product has
+a UI (Streamlit dashboard: overview, opportunities, Career Brain
+manager) and an analytics layer with a transparent Career ROI
+breakdown. Security: a general-purpose audit log, consent management,
 data export/deletion, rate limiting, and a failure queue with recovery
-round out the security posture (tenancy, encryption, and agent
-authorization already existed from earlier phases); and the zero-cost
-constraint itself is now an explicit, tested guarantee — a provider
-cost registry and a real dependency scan across every workspace
-package, confirming zero paid SDKs anywhere in the platform. No
+(tenancy, encryption, and agent authorization already existed). The
+zero-cost constraint is now an explicit, tested guarantee, the platform
+is packaged for local/Docker self-hosting, and a Plugin Marketplace
+(Integrations) plus AI Skill Marketplace now exist — both honestly
+distinguishing what's actually built from what's roadmap-only. No
 arbitrary cap on how many qualified applications one run processes.
 See [`docs/phases/ROADMAP.md`](docs/phases/ROADMAP.md) for the full
 plan and [`docs/architecture/overview.md`](docs/architecture/overview.md)
@@ -105,7 +95,10 @@ careeros/
 │   ├── careeros-dashboard/                  # the product UI (Streamlit)
 │   ├── careeros-analytics/                  # funnel metrics + Career ROI breakdown
 │   ├── careeros-trust-layer/                # audit log, consent, rate limiting, failure queue
-│   └── careeros-zero-cost-mode/             # provider cost registry + workspace dependency audit
+│   ├── careeros-zero-cost-mode/             # provider cost registry + workspace dependency audit
+│   ├── careeros-self-hosted/                # platform health check + local data dir bootstrap
+│   ├── careeros-plugin-marketplace/         # Integrations catalog on top of Phase 3's registry
+│   └── careeros-skill-marketplace/          # AI Skills catalog + unified marketplace search
 ├── config/                         # layered YAML configuration (default/dev/test/prod/local)
 ├── docs/
 │   ├── architecture/                # current-state architecture docs

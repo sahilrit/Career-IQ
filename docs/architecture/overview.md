@@ -54,7 +54,7 @@ gets there phase by phase. This document describes only what exists
 **today**; update it as each phase lands instead of describing the target
 state as if it were current.
 
-## Current state (post Phase 46)
+## Current state (post Phase 49)
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -247,13 +247,29 @@ careeros/                                  workspace root — virtual, not insta
     │                                       with recovery, and an
     │                                       extensible data export/
     │                                       deletion registry
-    └── careeros-zero-cost-mode/             makes "no mandatory paid
-                                            API" explicit and tested: a
-                                            provider cost registry
-                                            (pre-seeded with the
-                                            platform's own real
-                                            providers) and a workspace
-                                            dependency audit
+    ├── careeros-zero-cost-mode/              makes "no mandatory paid
+    │                                       API" explicit and tested: a
+    │                                       provider cost registry
+    │                                       (pre-seeded with the
+    │                                       platform's own real
+    │                                       providers) and a workspace
+    │                                       dependency audit
+    ├── careeros-self-hosted/                real platform health
+    │                                       checks and a canonical
+    │                                       local data directory — the
+    │                                       code half of "runnable on
+    │                                       Mac/Windows/Linux/Docker"
+    ├── careeros-plugin-marketplace/         a browsable catalog on top
+    │                                       of Phase 3's PluginRegistry
+    │                                       — RemoteOK/Fiverr
+    │                                       installable, everything
+    │                                       else honestly catalog-only
+    └── careeros-skill-marketplace/          the second marketplace
+                                            section (AI Skills):
+                                            intelligence CareerOS's own
+                                            packages already provide,
+                                            plus a unified search over
+                                            both marketplace sections
 ```
 
 Every package depends on `careeros-common` for config, logging, and its
@@ -262,9 +278,8 @@ base exception type rather than duplicating them. Career Brain
 professional identity — every other package reads or appends to it, none
 invents data about the user.
 
-Still missing: the local/self-hosted edition (Phase 47), the plugin/
-skill marketplaces and developer SDK (Phase 48-51), and everything from
-SaaS Billing (Phase 52) onward. See
+Still missing: the developer SDK (Phase 50), marketplace governance
+(Phase 51), and everything from SaaS Billing (Phase 52) onward. See
 [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
 and current status markers.
 

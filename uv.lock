@@ -57,6 +57,7 @@ members = [
     "careeros-remoteok-provider",
     "careeros-runtime",
     "careeros-self-hosted",
+    "careeros-skill-marketplace",
     "careeros-tenancy",
     "careeros-trust-layer",
     "careeros-workflow-builder",
@@ -913,6 +914,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "careeros-common", editable = "packages/careeros-common" }]
+
+[[package]]
+name = "careeros-skill-marketplace"
+version = "0.1.0"
+source = { editable = "packages/careeros-skill-marketplace" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-plugin-marketplace" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-plugin-marketplace", editable = "packages/careeros-plugin-marketplace" },
+]
 
 [[package]]
 name = "careeros-tenancy"

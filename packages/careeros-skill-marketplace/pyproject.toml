@@ -1,0 +1,20 @@
+[project]
+name = "careeros-skill-marketplace"
+version = "0.1.0"
+description = "AI Skill Marketplace: a second marketplace section (alongside Phase 48's Integrations) for intelligence CareerOS's own packages already provide — resume optimization, company intelligence, audits, interview prep, salary analysis, and more."
+requires-python = ">=3.12"
+dependencies = [
+    "careeros-common",
+    "careeros-plugin-marketplace",
+]
+
+[tool.uv.sources]
+careeros-common = { workspace = true }
+careeros-plugin-marketplace = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/careeros_skill_marketplace"]
