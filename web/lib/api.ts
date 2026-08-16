@@ -74,4 +74,14 @@ export const api = {
   me: (token: string) => request<Account>("/auth/me", { token }),
   brain: (token: string) => request<CareerBrain>("/brain", { token }),
   applications: (token: string) => request<Application[]>("/applications", { token }),
+  createBrain: (token: string, body: { full_name: string; email: string }) =>
+    request<CareerBrain>("/brain", { token, method: "POST", body }),
+  updateSummary: (token: string, summary: string) =>
+    request<CareerBrain>("/brain/summary", { token, method: "PATCH", body: { summary } }),
+  addSkill: (token: string, body: { name: string; proficiency?: number }) =>
+    request<CareerBrain>("/brain/skills", { token, method: "POST", body }),
+  addExperience: (
+    token: string,
+    body: { company_name: string; title: string; start_date: string; description?: string },
+  ) => request<CareerBrain>("/brain/experience", { token, method: "POST", body }),
 };

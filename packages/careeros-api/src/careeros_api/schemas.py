@@ -42,3 +42,25 @@ class MeResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class BrainCreateRequest(BaseModel):
+    full_name: str = Field(min_length=1)
+    email: str = Field(min_length=1)
+
+
+class SummaryUpdateRequest(BaseModel):
+    summary: str = ""
+
+
+class SkillCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    proficiency: int = Field(default=3, ge=1, le=5)
+
+
+class ExperienceCreateRequest(BaseModel):
+    company_name: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    start_date: str = Field(min_length=1, description="ISO date, e.g. 2024-05-01")
+    end_date: str | None = None
+    description: str = ""
