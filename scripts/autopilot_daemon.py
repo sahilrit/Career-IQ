@@ -16,6 +16,7 @@ import argparse
 import time
 
 from careeros_arbeitnow_provider import ArbeitnowProvider
+from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore
 from careeros_greenhouse_provider import GreenhouseProvider
@@ -41,8 +42,9 @@ def build_registry() -> JobProviderRegistry:
     registry.register(HimalayasProvider(HttpxHimalayasTransport(max_entries=1000)))
     registry.register(JobicyProvider())
     registry.register(WorkingNomadsProvider())
-    # Greenhouse: open hosted application forms the autopilot can submit to.
+    # Greenhouse + Ashby: open hosted application forms the autopilot can submit to.
     registry.register(GreenhouseProvider())
+    registry.register(AshbyProvider())
     return registry
 
 

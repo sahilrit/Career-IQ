@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from careeros_application_engine import ApplicationPackage, build_application_package
 from careeros_arbeitnow_provider import ArbeitnowProvider
+from careeros_ashby_provider import AshbyProvider
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
@@ -29,9 +30,10 @@ def default_provider_registry() -> JobProviderRegistry:
     registry.register(HimalayasProvider())
     registry.register(JobicyProvider())
     registry.register(WorkingNomadsProvider())
-    # Greenhouse last: its postings link to open application forms (no
-    # login/captcha), so they are the ones the autopilot can actually submit.
+    # Greenhouse + Ashby last: their postings link to open application
+    # forms (no login/captcha) — the ones the autopilot can actually submit.
     registry.register(GreenhouseProvider())
+    registry.register(AshbyProvider())
     return registry
 
 

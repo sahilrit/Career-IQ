@@ -18,6 +18,7 @@ members = [
     "careeros-application-intelligence",
     "careeros-application-runner",
     "careeros-arbeitnow-provider",
+    "careeros-ashby-provider",
     "careeros-audit-proposal-engine",
     "careeros-auth",
     "careeros-autonomous-agency",
@@ -244,6 +245,23 @@ requires-dist = [
 name = "careeros-arbeitnow-provider"
 version = "0.1.0"
 source = { editable = "packages/careeros-arbeitnow-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
+name = "careeros-ashby-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-ashby-provider" }
 dependencies = [
     { name = "careeros-common" },
     { name = "careeros-job-providers" },
@@ -698,6 +716,7 @@ source = { editable = "packages/careeros-dashboard" }
 dependencies = [
     { name = "careeros-application-engine" },
     { name = "careeros-arbeitnow-provider" },
+    { name = "careeros-ashby-provider" },
     { name = "careeros-auth" },
     { name = "careeros-autopilot" },
     { name = "careeros-billing" },
@@ -728,6 +747,7 @@ dependencies = [
 requires-dist = [
     { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
     { name = "careeros-arbeitnow-provider", editable = "packages/careeros-arbeitnow-provider" },
+    { name = "careeros-ashby-provider", editable = "packages/careeros-ashby-provider" },
     { name = "careeros-auth", editable = "packages/careeros-auth" },
     { name = "careeros-autopilot", editable = "packages/careeros-autopilot" },
     { name = "careeros-billing", editable = "packages/careeros-billing" },

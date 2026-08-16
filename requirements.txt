@@ -14,6 +14,8 @@
     #   careeros-autopilot
 -e ./packages/careeros-arbeitnow-provider
     # via careeros-dashboard
+-e ./packages/careeros-ashby-provider
+    # via careeros-dashboard
 -e ./packages/careeros-auth
     # via careeros-dashboard
 -e ./packages/careeros-autonomous-execution
@@ -66,6 +68,7 @@
     #   careeros-application-intelligence
     #   careeros-application-runner
     #   careeros-arbeitnow-provider
+    #   careeros-ashby-provider
     #   careeros-auth
     #   careeros-autonomous-execution
     #   careeros-autonomy
@@ -147,6 +150,7 @@
     # via
     #   careeros-application-engine
     #   careeros-arbeitnow-provider
+    #   careeros-ashby-provider
     #   careeros-autonomous-execution
     #   careeros-autopilot
     #   careeros-career-brain-engine
@@ -234,6 +238,7 @@ httptools==0.8.0
 httpx==0.28.1
     # via
     #   careeros-arbeitnow-provider
+    #   careeros-ashby-provider
     #   careeros-greenhouse-provider
     #   careeros-himalayas-provider
     #   careeros-jobicy-provider
