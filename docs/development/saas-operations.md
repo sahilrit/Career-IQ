@@ -17,6 +17,24 @@ else changes between them — same code, same database schema.
 | `CAREEROS_ADMIN_EMAILS` | Comma-separated emails that can open the Admin page |
 | `CAREEROS_STRIPE_LINK_PRO` | Stripe Payment Link URL for the Pro tier |
 | `CAREEROS_STRIPE_LINK_AGENCY` | Stripe Payment Link URL for the Agency tier |
+| `CAREEROS_COMPANY_NAME` | Your company name on the Legal page |
+| `CAREEROS_SUPPORT_EMAIL` | Support/contact email on the Legal page |
+| `CAREEROS_SMTP_HOST` | SMTP server for password-reset emails |
+| `CAREEROS_SMTP_PORT` | SMTP port (default 587) |
+| `CAREEROS_SMTP_USER` / `CAREEROS_SMTP_PASSWORD` | SMTP credentials |
+| `CAREEROS_EMAIL_FROM` | From address for outgoing email |
+
+## Password reset
+
+Users who forget their password use the **Forgot password** tab on the
+landing page. A single-use token (valid 1 hour) is created:
+
+- With SMTP configured, the reset link is emailed.
+- Without SMTP (a self-serve / single-node install), the link is shown
+  on screen so nobody is ever locked out.
+
+The link is `https://your-app/?reset_token=…`; opening it shows the
+set-new-password form. Reset revokes all of that user's sessions.
 
 ## How accounts work
 

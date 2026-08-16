@@ -32,6 +32,17 @@ class Session(BaseModel):
     expires_at: datetime
 
 
+class PasswordResetToken(BaseModel):
+    """A short-lived, single-use password-reset grant. Only the SHA-256
+    hash of the raw token is stored, same as sessions."""
+
+    token_hash: str
+    user_id: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    expires_at: datetime
+    used: bool = False
+
+
 class AuthenticatedAccount(BaseModel):
     """What a validated session resolves to: the user plus the workspace
     (tenant) and role every request should be scoped by."""

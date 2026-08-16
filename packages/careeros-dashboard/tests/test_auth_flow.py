@@ -129,3 +129,23 @@ def test_billing_page_shows_current_plan(data_dir):
     at = run_page("pages/3_Billing.py", token=token)
     assert not at.exception
     assert any("Current plan" in markdown.value for markdown in at.markdown)
+
+
+def test_forgot_password_tab_is_present(data_dir):
+    at = run_page("app.py")
+    assert not at.exception
+    assert len(at.tabs) >= 3
+
+
+def test_reset_token_url_shows_reset_form(data_dir):
+    _, _ = sign_up(data_dir)
+    store = open_store(data_dir)
+    try:
+        reset_token = AuthService(store).request_password_reset("ada@example.com")
+    finally:
+        store.close()
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "app.py"))
+    at.query_params["reset_token"] = reset_token
+    at.run()
+    assert not at.exception
+    assert any("new password" in title.value.lower() for title in at.title)

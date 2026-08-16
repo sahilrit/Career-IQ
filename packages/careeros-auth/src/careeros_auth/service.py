@@ -23,7 +23,12 @@ from careeros_auth.exceptions import (
     InvalidCredentialsError,
     PasswordPolicyError,
 )
-from careeros_auth.models import AuthenticatedAccount, Credential, Session
+from careeros_auth.models import (
+    AuthenticatedAccount,
+    Credential,
+    PasswordResetToken,
+    Session,
+)
 from careeros_auth.password import hash_password, verify_password
 from careeros_billing import Subscription, SubscriptionRepository
 from careeros_billing.plan import PlanTier
@@ -33,10 +38,12 @@ from careeros_tenancy import Membership, Organization, Role, TenancyRepository, 
 
 _CREDENTIAL_TYPE = "auth_credential"
 _SESSION_TYPE = "auth_session"
+_RESET_TYPE = "auth_reset"
 
 _MAX_FAILED_ATTEMPTS = 5
 _LOCKOUT = timedelta(minutes=15)
 _DEFAULT_SESSION_LIFETIME = timedelta(days=7)
+_RESET_LIFETIME = timedelta(hours=1)
 
 
 def _token_hash(token: str) -> str:
@@ -160,6 +167,47 @@ class AuthService:
         credential.password_hash = hash_password(new_password)
         self._save_credential(credential)
         self.log_out_everywhere(user_id)
+
+    # -- password reset ---------------------------------------------------
+
+    def request_password_reset(self, email: str) -> str | None:
+        """Issue a single-use reset token for the email, or None if no such
+        account exists. The caller emails the raw token to the user; only
+        its hash is stored. Callers should show the same message whether or
+        not an account was found, so this never reveals which emails exist.
+        """
+        user = self._tenancy.find_user_by_email(email.strip().lower())
+        if user is None:
+            return None
+        token = secrets.token_urlsafe(32)
+        record = PasswordResetToken(
+            token_hash=_token_hash(token),
+            user_id=user.id,
+            expires_at=self._now() + _RESET_LIFETIME,
+        )
+        self._store.put(_RESET_TYPE, record.token_hash, record.model_dump(mode="json"))
+        return token
+
+    def reset_password(self, token: str, new_password: str) -> None:
+        """Consume a reset token and set a new password. Raises
+        InvalidCredentialsError if the token is unknown, expired, or used."""
+        data = self._store.get_or_none(_RESET_TYPE, _token_hash(token))
+        record = PasswordResetToken.model_validate(data) if data else None
+        if record is None or record.used or record.expires_at <= self._now():
+            raise InvalidCredentialsError("this reset link is invalid or has expired")
+        violations = check_password(new_password, self._policy)
+        if violations:
+            raise PasswordPolicyError(violations)
+        credential = self._load_credential(record.user_id)
+        if credential is None:
+            raise InvalidCredentialsError("this reset link is invalid or has expired")
+        credential.password_hash = hash_password(new_password)
+        credential.failed_attempts = 0
+        credential.locked_until = None
+        self._save_credential(credential)
+        record.used = True
+        self._store.put(_RESET_TYPE, record.token_hash, record.model_dump(mode="json"))
+        self.log_out_everywhere(record.user_id)
 
     def delete_account(self, user_id: str) -> None:
         """Remove credential, sessions, memberships, and the user record.

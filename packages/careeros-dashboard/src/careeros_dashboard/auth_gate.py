@@ -73,6 +73,13 @@ def require_account() -> AccountContext:
         )
 
     auth = get_auth_service()
+
+    reset_token = st.query_params.get("reset_token")
+    if reset_token:
+        _render_password_reset_form(auth, reset_token)
+        st.stop()
+        raise RuntimeError("unreachable")
+
     token = st.session_state.get(_TOKEN_KEY)
     account = auth.validate_session(token) if token else None
     if account is None:
@@ -141,11 +148,13 @@ def _render_landing(auth: AuthService) -> None:
                 st.markdown(f"- {feature.replace('_', ' ').capitalize()}")
 
     st.divider()
-    login_tab, signup_tab = st.tabs(["Log in", "Create account"])
+    login_tab, signup_tab, reset_tab = st.tabs(["Log in", "Create account", "Forgot password"])
     with login_tab:
         _render_login(auth)
     with signup_tab:
         _render_signup(auth)
+    with reset_tab:
+        _render_password_reset_request(auth)
 
 
 def _render_login(auth: AuthService) -> None:
@@ -160,6 +169,48 @@ def _render_login(auth: AuthService) -> None:
                 st.error("Too many failed attempts — this account is locked for 15 minutes.")
             except InvalidCredentialsError:
                 st.error("Email or password is incorrect.")
+
+
+def _render_password_reset_form(auth: AuthService, reset_token: str) -> None:
+    st.title("Set a new password")
+    with st.form("reset_password"):
+        new_password = st.text_input("New password", type="password", help=PASSWORD_REQUIREMENTS)
+        st.caption(PASSWORD_REQUIREMENTS)
+        if st.form_submit_button("Reset password", width="stretch"):
+            try:
+                auth.reset_password(reset_token, new_password)
+                st.query_params.clear()
+                st.success("Password reset. Log in with your new password.")
+            except PasswordPolicyError as error:
+                st.error("Password " + "; ".join(error.violations) + ".")
+            except InvalidCredentialsError:
+                st.error("This reset link is invalid or has expired — request a new one.")
+
+
+def _render_password_reset_request(auth: AuthService) -> None:
+    from careeros_dashboard.email_sender import send_email, smtp_configured
+
+    st.caption("Enter your email and we'll send a reset link (valid for 1 hour).")
+    with st.form("reset_request"):
+        email = st.text_input("Email", key="reset_email")
+        if st.form_submit_button("Send reset link", width="stretch"):
+            token = auth.request_password_reset(email)
+            if token and not smtp_configured():
+                # Self-serve / single-node install with no mail server: show
+                # the link directly so the user is never locked out.
+                st.info("Use this one-time reset link (no email server configured):")
+                st.code(f"?reset_token={token}")
+            elif token:
+                send_email(
+                    to=email.strip(),
+                    subject="Reset your CareerOS password",
+                    body=(
+                        "Open this link to reset your password (valid 1 hour):\n\n"
+                        f"?reset_token={token}\n\nIf you didn't request this, ignore this email."
+                    ),
+                )
+            # Same message regardless, so we never reveal which emails exist.
+            st.success("If that email has an account, a reset link is on its way.")
 
 
 def _render_signup(auth: AuthService) -> None:

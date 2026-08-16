@@ -7,7 +7,12 @@ from careeros_auth.exceptions import (
     InvalidCredentialsError,
     PasswordPolicyError,
 )
-from careeros_auth.models import AuthenticatedAccount, Credential, Session
+from careeros_auth.models import (
+    AuthenticatedAccount,
+    Credential,
+    PasswordResetToken,
+    Session,
+)
 from careeros_auth.password import hash_password, verify_password
 from careeros_auth.service import AuthService
 
@@ -20,6 +25,7 @@ __all__ = [
     "EmailAlreadyRegisteredError",
     "InvalidCredentialsError",
     "PasswordPolicyError",
+    "PasswordResetToken",
     "Session",
     "hash_password",
     "verify_password",

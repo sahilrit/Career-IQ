@@ -151,3 +151,46 @@ def test_delete_account_removes_identity_and_sessions(service, store):
     assert TenancyRepository(store).find_user_by_email("ada@example.com") is None
     with pytest.raises(InvalidCredentialsError):
         service.log_in(email="ada@example.com", password=PASSWORD)
+
+
+def test_password_reset_flow_sets_new_password(service, clock):
+    sign_up(service)
+    token = service.request_password_reset("ada@example.com")
+    assert token
+    service.reset_password(token, "Reset-Password-99!")
+    assert service.log_in(email="ada@example.com", password="Reset-Password-99!")
+    with pytest.raises(InvalidCredentialsError):
+        service.log_in(email="ada@example.com", password=PASSWORD)
+
+
+def test_reset_token_is_single_use(service):
+    sign_up(service)
+    token = service.request_password_reset("ada@example.com")
+    service.reset_password(token, "Reset-Password-99!")
+    with pytest.raises(InvalidCredentialsError):
+        service.reset_password(token, "Another-Password-11!")
+
+
+def test_reset_token_expires(service, clock):
+    sign_up(service)
+    token = service.request_password_reset("ada@example.com")
+    clock.advance(timedelta(hours=2))
+    with pytest.raises(InvalidCredentialsError):
+        service.reset_password(token, "Reset-Password-99!")
+
+
+def test_request_reset_for_unknown_email_returns_none(service):
+    assert service.request_password_reset("nobody@example.com") is None
+
+
+def test_reset_with_garbage_token_is_rejected(service):
+    sign_up(service)
+    with pytest.raises(InvalidCredentialsError):
+        service.reset_password("not-a-real-token", "Reset-Password-99!")
+
+
+def test_reset_revokes_existing_sessions(service):
+    _, token = sign_up(service)
+    reset_token = service.request_password_reset("ada@example.com")
+    service.reset_password(reset_token, "Reset-Password-99!")
+    assert service.validate_session(token) is None
