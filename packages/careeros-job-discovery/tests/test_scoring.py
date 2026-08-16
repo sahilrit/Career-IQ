@@ -72,3 +72,24 @@ def test_score_is_always_between_zero_and_one(brain_factory, posting_factory):
     posting = posting_factory(remote=False, tags=[], title="Completely Unrelated Role")
     score = score_posting(posting, brain)
     assert 0.0 <= score <= 1.0
+
+
+def test_multi_word_skill_matches_posting_text(brain_factory, posting_factory):
+    from careeros_career_brain import Skill
+
+    brain = brain_factory(skills=[Skill(name="Meta Ads")])
+    posting = posting_factory(
+        title="Meta Ads Specialist", tags=[], description="Run Meta ads campaigns."
+    )
+    without_skill = posting_factory(title="Backend Engineer", tags=[], description="Rust services.")
+    assert score_posting(posting, brain) > score_posting(without_skill, brain)
+
+
+def test_parenthesized_alias_matches_on_its_own(brain_factory, posting_factory):
+    from careeros_career_brain import Skill
+
+    brain = brain_factory(skills=[Skill(name="Meta Ads (Facebook/Instagram)")])
+    posting = posting_factory(
+        title="Paid Social Manager", tags=["facebook"], description="Own Facebook campaigns."
+    )
+    assert score_posting(posting, brain) > 0.3

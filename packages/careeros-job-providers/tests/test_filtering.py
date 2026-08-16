@@ -57,3 +57,25 @@ def test_location_filter_excludes_postings_with_no_location(posting_factory):
 def test_empty_query_matches_everything(posting_factory):
     posting = posting_factory()
     assert matches_query(posting, JobSearchQuery())
+
+
+def test_keyword_matches_whole_words_only(posting_factory):
+    posting = posting_factory(
+        title="Field Technician", description="Work across teams on site equipment."
+    )
+    assert not matches_query(posting, JobSearchQuery(keywords=["cro"]))
+
+
+def test_keyword_matches_word_regardless_of_case(posting_factory):
+    posting = posting_factory(title="CRO Specialist", description="")
+    assert matches_query(posting, JobSearchQuery(keywords=["cro"]))
+
+
+def test_multi_word_keyword_matches_phrase(posting_factory):
+    posting = posting_factory(title="Meta Ads Specialist", description="")
+    assert matches_query(posting, JobSearchQuery(keywords=["meta ads"]))
+
+
+def test_keyword_found_in_tags(posting_factory):
+    posting = posting_factory(title="Growth Role", description="", tags=["ppc", "marketing"])
+    assert matches_query(posting, JobSearchQuery(keywords=["ppc"]))

@@ -14,6 +14,7 @@ from careeros_career_brain import CareerBrain
 from careeros_job_providers import JobPosting
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+_PAREN_RE = re.compile(r"\(([^)]*)\)")
 
 _SKILL_WEIGHT = 0.5
 _TITLE_WEIGHT = 0.2
@@ -25,15 +26,28 @@ def _tokenize(text: str) -> set[str]:
     return set(_TOKEN_RE.findall(text.lower()))
 
 
+def _skill_phrases(skill_name: str) -> list[set[str]]:
+    """A skill name as matchable token sets: the main phrase plus any
+    parenthesized aliases, split on "/" — so "Meta Ads (Facebook/Instagram)"
+    can match a posting that only says "facebook"."""
+    aliases = [alias for group in _PAREN_RE.findall(skill_name) for alias in group.split("/")]
+    main_phrase = _PAREN_RE.sub(" ", skill_name)
+    token_sets = [_tokenize(phrase) for phrase in [main_phrase, *aliases]]
+    return [tokens for tokens in token_sets if tokens]
+
+
 def _skill_score(posting: JobPosting, brain: CareerBrain) -> float:
-    brain_skills = brain.skill_names()
-    if not brain_skills:
+    if not brain.skills:
         return 0.0
-    posting_terms = {tag.lower() for tag in posting.tags}
-    posting_terms |= _tokenize(posting.title)
-    posting_terms |= _tokenize(posting.description)
-    overlap = brain_skills & posting_terms
-    return min(len(overlap) / len(brain_skills), 1.0)
+    posting_terms = _tokenize(posting.title) | _tokenize(posting.description)
+    for tag in posting.tags:
+        posting_terms |= _tokenize(tag)
+    matched = sum(
+        1
+        for skill in brain.skills
+        if any(tokens <= posting_terms for tokens in _skill_phrases(skill.name))
+    )
+    return min(matched / len(brain.skills), 1.0)
 
 
 def _title_score(posting: JobPosting, brain: CareerBrain) -> float:

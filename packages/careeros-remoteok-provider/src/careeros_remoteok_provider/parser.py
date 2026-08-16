@@ -9,10 +9,18 @@ from careeros_job_providers import EmploymentType, JobPosting, Salary
 
 PROVIDER_ID = "remoteok"
 
+# Real RemoteOK postings carry a handful of tags. Spam postings stuff the
+# tag list with dozens of unrelated terms ("companies can search these
+# words...") so they match every keyword search — treat those as non-jobs.
+_MAX_PLAUSIBLE_TAGS = 12
+
 
 def is_job_entry(entry: dict[str, Any]) -> bool:
-    """RemoteOK's feed starts with a non-job legal/metadata object; skip it."""
-    return "id" in entry and "position" in entry
+    """RemoteOK's feed starts with a non-job legal/metadata object; skip it.
+    Keyword-stuffed spam entries are also excluded."""
+    if "id" not in entry or "position" not in entry:
+        return False
+    return len(entry.get("tags") or []) <= _MAX_PLAUSIBLE_TAGS
 
 
 def _parse_salary(entry: dict[str, Any]) -> Salary | None:

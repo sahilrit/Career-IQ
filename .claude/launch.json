@@ -3,8 +3,10 @@
   "configurations": [
     {
       "name": "dashboard",
-      "runtimeExecutable": "uv",
+      "runtimeExecutable": "env",
       "runtimeArgs": [
+        "CAREEROS_ADMIN_EMAILS=sahilrit09@gmail.com,harshitjerry10@gmail.com",
+        "uv",
         "run",
         "streamlit",
         "run",

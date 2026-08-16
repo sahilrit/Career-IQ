@@ -48,6 +48,7 @@ members = [
     "careeros-financial-intelligence",
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
+    "careeros-himalayas-provider",
     "careeros-human-in-the-loop",
     "careeros-intelligence-network",
     "careeros-interview-intelligence",
@@ -668,6 +669,7 @@ dependencies = [
     { name = "careeros-employment-division" },
     { name = "careeros-event-bus" },
     { name = "careeros-financial-intelligence" },
+    { name = "careeros-himalayas-provider" },
     { name = "careeros-job-agent" },
     { name = "careeros-job-discovery" },
     { name = "careeros-job-providers" },
@@ -693,6 +695,7 @@ requires-dist = [
     { name = "careeros-employment-division", editable = "packages/careeros-employment-division" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "careeros-financial-intelligence", editable = "packages/careeros-financial-intelligence" },
+    { name = "careeros-himalayas-provider", editable = "packages/careeros-himalayas-provider" },
     { name = "careeros-job-agent", editable = "packages/careeros-job-agent" },
     { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
@@ -800,6 +803,23 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-himalayas-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-himalayas-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]

@@ -53,6 +53,7 @@
     #   careeros-event-bus
     #   careeros-financial-intelligence
     #   careeros-freelance-providers
+    #   careeros-himalayas-provider
     #   careeros-job-agent
     #   careeros-job-discovery
     #   careeros-job-providers
@@ -86,6 +87,8 @@
     # via careeros-dashboard
 -e ./packages/careeros-freelance-providers
     # via careeros-opportunity-intelligence
+-e ./packages/careeros-himalayas-provider
+    # via careeros-dashboard
 -e ./packages/careeros-job-agent
     # via careeros-dashboard
 -e ./packages/careeros-job-discovery
@@ -99,6 +102,7 @@
     #   careeros-career-brain-engine
     #   careeros-dashboard
     #   careeros-employment-division
+    #   careeros-himalayas-provider
     #   careeros-job-agent
     #   careeros-job-discovery
     #   careeros-opportunity-intelligence
@@ -167,6 +171,7 @@ httptools==0.8.0
 httpx==0.28.1
     # via
     #   careeros-arbeitnow-provider
+    #   careeros-himalayas-provider
     #   careeros-remoteok-provider
 idna==3.18
     # via

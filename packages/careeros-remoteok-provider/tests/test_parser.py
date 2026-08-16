@@ -58,3 +58,17 @@ def test_falls_back_to_apply_url_when_url_missing():
         {"id": "1", "position": "Engineer", "company": "Acme", "apply_url": "https://x.example"}
     )
     assert posting.url == "https://x.example"
+
+
+def test_keyword_stuffed_spam_entry_is_not_a_job():
+    entry = {
+        "id": 99,
+        "position": "barber",
+        "tags": [f"tag{i}" for i in range(30)],
+    }
+    assert not is_job_entry(entry)
+
+
+def test_normal_tag_count_is_a_job():
+    entry = {"id": 100, "position": "Marketing Manager", "tags": ["marketing", "ads"]}
+    assert is_job_entry(entry)

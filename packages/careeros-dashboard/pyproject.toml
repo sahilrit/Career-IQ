@@ -16,6 +16,7 @@ dependencies = [
     "careeros-employment-division",
     "careeros-event-bus",
     "careeros-financial-intelligence",
+    "careeros-himalayas-provider",
     "careeros-job-agent",
     "careeros-job-discovery",
     "careeros-job-providers",
@@ -40,6 +41,7 @@ careeros-crm = { workspace = true }
 careeros-employment-division = { workspace = true }
 careeros-event-bus = { workspace = true }
 careeros-financial-intelligence = { workspace = true }
+careeros-himalayas-provider = { workspace = true }
 careeros-job-agent = { workspace = true }
 careeros-job-discovery = { workspace = true }
 careeros-job-providers = { workspace = true }

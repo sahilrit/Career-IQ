@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import re
+
 from careeros_job_providers.models import JobPosting, JobSearchQuery
+
+
+def _keyword_in_text(keyword: str, text: str) -> bool:
+    """Whole-word keyword match: "cro" must not match "across"."""
+    return re.search(rf"\b{re.escape(keyword.lower())}\b", text) is not None
 
 
 def matches_query(posting: JobPosting, query: JobSearchQuery) -> bool:
@@ -18,8 +25,8 @@ def matches_query(posting: JobPosting, query: JobSearchQuery) -> bool:
         return False
 
     if query.keywords:
-        haystack = f"{posting.title} {posting.description}".lower()
-        if not any(keyword.lower() in haystack for keyword in query.keywords):
+        haystack = f"{posting.title} {posting.description} {' '.join(posting.tags)}".lower()
+        if not any(_keyword_in_text(keyword, haystack) for keyword in query.keywords):
             return False
 
     if query.locations:
