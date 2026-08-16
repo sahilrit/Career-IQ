@@ -5,7 +5,7 @@ description = "Browser automation abstraction (Playwright-backed, free and open-
 requires-python = ">=3.12"
 dependencies = [
     "careeros-common",
-    "playwright>=1.40",
+    "playwright>=1.40,<1.59",
     "pydantic>=2.7",
 ]
 

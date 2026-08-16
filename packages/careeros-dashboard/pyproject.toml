@@ -7,6 +7,7 @@ dependencies = [
     "careeros-application-engine",
     "careeros-arbeitnow-provider",
     "careeros-auth",
+    "careeros-autopilot",
     "careeros-billing",
     "careeros-calendar-assistant",
     "careeros-career-brain",
@@ -32,6 +33,7 @@ dependencies = [
 careeros-application-engine = { workspace = true }
 careeros-arbeitnow-provider = { workspace = true }
 careeros-auth = { workspace = true }
+careeros-autopilot = { workspace = true }
 careeros-billing = { workspace = true }
 careeros-calendar-assistant = { workspace = true }
 careeros-career-brain = { workspace = true }

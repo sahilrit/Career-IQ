@@ -13,6 +13,10 @@ from pydantic import BaseModel
 
 class FormFieldMapping(BaseModel):
     full_name_selector: str | None = None
+    # Some ATS forms (e.g. Greenhouse) split the name into two inputs;
+    # when these are set they take precedence over full_name_selector.
+    first_name_selector: str | None = None
+    last_name_selector: str | None = None
     email_selector: str | None = None
     phone_selector: str | None = None
     resume_upload_selector: str | None = None

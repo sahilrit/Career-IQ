@@ -37,6 +37,11 @@ from careeros_job_providers import JobPosting
 
 PostingResolver = Callable[[Application], JobPosting | None]
 FormMappingResolver = Callable[[Application], FormFieldMapping | None]
+# Navigates the session to the posting's live application form; returns an
+# error reason, or None when the form page is loaded and ready.
+PagePreparer = Callable[[BrowserSession, JobPosting], str | None]
+# Inspects the live page (post-navigation) to build a mapping on the fly.
+LiveFormMappingResolver = Callable[[BrowserSession, Application], FormFieldMapping | None]
 
 
 @dataclass
@@ -66,6 +71,8 @@ class AutonomousApplicationExecutor:
         event_bus: EventBus,
         resolve_posting: PostingResolver,
         resolve_form_mapping: FormMappingResolver,
+        prepare_page: PagePreparer | None = None,
+        resolve_form_mapping_live: LiveFormMappingResolver | None = None,
     ) -> None:
         self._repository = repository
         self._autonomy = autonomy_policy
@@ -73,6 +80,8 @@ class AutonomousApplicationExecutor:
         self._bus = event_bus
         self._resolve_posting = resolve_posting
         self._resolve_form_mapping = resolve_form_mapping
+        self._prepare_page = prepare_page
+        self._resolve_form_mapping_live = resolve_form_mapping_live
 
     def run_for_identity(
         self,
@@ -80,6 +89,7 @@ class AutonomousApplicationExecutor:
         session: BrowserSession,
         *,
         detectors: list[ProblemDetector] | None = None,
+        resume_file_path: str | None = None,
     ) -> ExecutionRun:
         """Process every QUALIFIED application for this identity.
 
@@ -92,7 +102,9 @@ class AutonomousApplicationExecutor:
         detectors = detectors or []
 
         outcomes = [
-            self._process_one(brain, application, session, handoff, detectors)
+            self._process_one(
+                brain, application, session, handoff, detectors, resume_file_path=resume_file_path
+            )
             for application in qualified
         ]
         return ExecutionRun(identity_id=identity_id, outcomes=outcomes)
@@ -104,6 +116,8 @@ class AutonomousApplicationExecutor:
         session: BrowserSession,
         handoff: HandoffSession,
         detectors: list[ProblemDetector],
+        *,
+        resume_file_path: str | None = None,
     ) -> ExecutionOutcome:
         decision = self._autonomy.evaluate(
             ActionRequest(
@@ -123,13 +137,14 @@ class AutonomousApplicationExecutor:
                 reason="No original posting found for this application.",
             )
 
-        mapping = self._resolve_form_mapping(application)
-        if mapping is None:
-            return ExecutionOutcome(
-                application.id,
-                submitted=False,
-                reason="No form mapping known for this posting's site.",
-            )
+        if self._prepare_page is not None:
+            preparation_error = self._prepare_page(session, posting)
+            if preparation_error is not None:
+                return ExecutionOutcome(
+                    application.id,
+                    submitted=False,
+                    reason=f"Could not reach an application form: {preparation_error}",
+                )
 
         problem = run_detectors(session, detectors)
         if problem is not None:
@@ -140,8 +155,26 @@ class AutonomousApplicationExecutor:
                 reason=f"Handed off to a human: {problem.description}",
             )
 
+        mapping = None
+        if self._resolve_form_mapping_live is not None:
+            mapping = self._resolve_form_mapping_live(session, application)
+        if mapping is None:
+            mapping = self._resolve_form_mapping(application)
+        if mapping is None:
+            return ExecutionOutcome(
+                application.id,
+                submitted=False,
+                reason="No form mapping known for this posting's site.",
+            )
+
         package = build_application_package(brain, posting)
-        result = self._runner.submit(session, package, mapping, application_id=application.id)
+        result = self._runner.submit(
+            session,
+            package,
+            mapping,
+            application_id=application.id,
+            resume_file_path=resume_file_path,
+        )
 
         if not result.success:
             handoff.request_takeover(

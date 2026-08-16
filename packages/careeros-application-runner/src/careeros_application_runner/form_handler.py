@@ -17,7 +17,13 @@ def fill_application_form(
     resume_file_path: str | None = None,
 ) -> None:
     content = package.resume_content
-    if mapping.full_name_selector:
+    if mapping.first_name_selector or mapping.last_name_selector:
+        first_name, _, last_name = content.full_name.partition(" ")
+        if mapping.first_name_selector:
+            session.fill(mapping.first_name_selector, first_name)
+        if mapping.last_name_selector and last_name:
+            session.fill(mapping.last_name_selector, last_name)
+    elif mapping.full_name_selector:
         session.fill(mapping.full_name_selector, content.full_name)
     if mapping.email_selector:
         session.fill(mapping.email_selector, content.email)
