@@ -131,3 +131,25 @@ def test_career_brain_page_shows_resume_upload_with_no_data(data_dir):
     at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "2_Career_Brain.py")).run()
     assert not at.exception
     assert any("resume" in caption.value.lower() for caption in at.caption)
+
+
+def test_personal_brand_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "13_Personal_Brand.py")).run()
+    assert not at.exception
+
+
+def test_client_success_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "14_Client_Success.py")).run()
+    assert not at.exception
+
+
+def test_ceo_agent_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "15_CEO_Agent.py")).run()
+    assert not at.exception
+    assert "CEO Agent" in at.title[0].value
+
+
+def test_learning_lab_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "16_Learning_Lab.py")).run()
+    assert not at.exception
+    assert "Learning Lab" in at.title[0].value

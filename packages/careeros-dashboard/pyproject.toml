@@ -17,6 +17,10 @@ dependencies = [
     "careeros-calendar-assistant",
     "careeros-career-brain",
     "careeros-client-acquisition",
+    "careeros-ceo-agent",
+    "careeros-client-success",
+    "careeros-learning-lab",
+    "careeros-personal-brand",
     "careeros-common",
     "careeros-crm",
     "careeros-employment-division",
@@ -55,6 +59,10 @@ careeros-browser = { workspace = true }
 careeros-calendar-assistant = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-client-acquisition = { workspace = true }
+careeros-ceo-agent = { workspace = true }
+careeros-client-success = { workspace = true }
+careeros-learning-lab = { workspace = true }
+careeros-personal-brand = { workspace = true }
 careeros-common = { workspace = true }
 careeros-crm = { workspace = true }
 careeros-employment-division = { workspace = true }

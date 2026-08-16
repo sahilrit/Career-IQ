@@ -64,6 +64,7 @@
     #   careeros-job-discovery
     #   careeros-memory
     #   careeros-opportunity-intelligence
+    #   careeros-personal-brand
     #   careeros-trust-layer
 -e ./packages/careeros-career-brain-engine
     # via
@@ -72,11 +73,16 @@
     #   careeros-employment-division
     #   careeros-interview-intelligence
     #   careeros-opportunity-intelligence
+    #   careeros-personal-brand
+-e ./packages/careeros-ceo-agent
+    # via careeros-dashboard
 -e ./packages/careeros-client-acquisition
     # via
     #   careeros-analytics
     #   careeros-audit-proposal-engine
     #   careeros-dashboard
+-e ./packages/careeros-client-success
+    # via careeros-dashboard
 -e ./packages/careeros-common
     # via
     #   careeros-analytics
@@ -95,7 +101,9 @@
     #   careeros-calendar-assistant
     #   careeros-career-brain
     #   careeros-career-brain-engine
+    #   careeros-ceo-agent
     #   careeros-client-acquisition
+    #   careeros-client-success
     #   careeros-communication-intelligence
     #   careeros-compliance
     #   careeros-crm
@@ -112,10 +120,12 @@
     #   careeros-job-discovery
     #   careeros-job-providers
     #   careeros-jobicy-provider
+    #   careeros-learning-lab
     #   careeros-lever-provider
     #   careeros-memory
     #   careeros-offer-negotiation
     #   careeros-opportunity-intelligence
+    #   careeros-personal-brand
     #   careeros-remoteok-provider
     #   careeros-runtime
     #   careeros-tenancy
@@ -197,6 +207,8 @@
     #   careeros-workingnomads-provider
 -e ./packages/careeros-jobicy-provider
     # via careeros-dashboard
+-e ./packages/careeros-learning-lab
+    # via careeros-dashboard
 -e ./packages/careeros-lever-provider
     # via careeros-dashboard
 -e ./packages/careeros-memory
@@ -210,6 +222,8 @@
     # via
     #   careeros-client-acquisition
     #   careeros-dashboard
+-e ./packages/careeros-personal-brand
+    # via careeros-dashboard
 -e ./packages/careeros-remoteok-provider
     # via careeros-dashboard
 -e ./packages/careeros-runtime
