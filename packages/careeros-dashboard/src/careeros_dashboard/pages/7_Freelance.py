@@ -18,6 +18,7 @@ from careeros_dashboard.freelance_actions import (
     generate_deep_deliverables,
     list_companies,
     mark_outreach_sent,
+    parse_ad_lines,
     promote_to_client,
     record_client_income,
 )
@@ -128,6 +129,18 @@ with tab_prospects:
                     step=5.0,
                     key=f"aov_{company.id}",
                 )
+                ads_text = st.text_area(
+                    "Their Meta ads (optional) — one per line: "
+                    "headline | body | CTA | landing page URL",
+                    height=110,
+                    key=f"ads_{company.id}",
+                    help=(
+                        "Copy their live ads from Meta's public Ad Library "
+                        "(facebook.com/ads/library). Each ad you paste is audited for "
+                        "creative, messaging, offer, and landing-page problems and folded "
+                        "into the pitch."
+                    ),
+                )
                 if st.form_submit_button("Generate full pitch kit"):
                     with st.spinner(f"Auditing {company.website} and building the pitch kit …"):
                         try:
@@ -138,12 +151,18 @@ with tab_prospects:
                                 monthly_visitors=int(monthly_visitors),
                                 conversion_rate=conversion_rate / 100.0,
                                 average_order_value=aov,
+                                ads=parse_ad_lines(ads_text),
                             )
                         except Exception as error:
                             st.error(f"Could not build the pitch kit: {error}")
 
             kit = st.session_state.get(f"kit_{company.id}")
             if kit is not None:
+                st.write(f"**{len(kit.findings)} findings** folded into the pitch:")
+                for finding in kit.findings:
+                    st.write(
+                        f"- _{finding.category}_ — {finding.detail} → *{finding.recommendation}*"
+                    )
                 if kit.roi_estimate is not None:
                     roi = kit.roi_estimate
                     rcols = st.columns(2)

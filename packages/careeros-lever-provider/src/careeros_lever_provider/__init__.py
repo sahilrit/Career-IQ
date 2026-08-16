@@ -29,14 +29,11 @@ PROVIDER_ID = "lever"
 DEFAULT_COMPANY_BOARDS: tuple[str, ...] = (
     "spotify",
     "kpmg",
-    "eventbrite",
-    "quora",
     "nielsen",
     "plaid",
-    "brex",
-    "attentive",
-    "ramp",
     "voleon",
+    "swordhealth",
+    "matillion",
 )
 
 _TYPES = {

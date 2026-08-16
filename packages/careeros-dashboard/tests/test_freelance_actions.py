@@ -111,3 +111,47 @@ def test_generate_deep_deliverables_builds_full_pitch_kit(store, brain, tmp_path
     assert "Acme DTC" in kit.email
     assert kit.linkedin_message and kit.loom_script and kit.proposal
     assert kit.pdf_path.exists()
+
+
+def test_parse_ad_lines_builds_ad_creatives():
+    from careeros_dashboard.freelance_actions import parse_ad_lines
+
+    ads = parse_ad_lines(
+        "Big Sale | 20% off everything | Shop Now | https://acme.com/sale\n  \nVague headline"
+    )
+    assert len(ads) == 2
+    assert ads[0].headline == "Big Sale"
+    assert ads[0].landing_page_url == "https://acme.com/sale"
+    assert ads[0].destination_is_dedicated_landing_page is True
+    # No landing page -> flagged as not a dedicated landing page.
+    assert ads[1].headline == "Vague headline"
+    assert ads[1].destination_is_dedicated_landing_page is False
+
+
+def test_deep_deliverables_include_meta_ads_findings(store, brain, tmp_path):
+    from careeros_dashboard.freelance_actions import generate_deep_deliverables, parse_ad_lines
+
+    company = add_company(store, name="Acme DTC", website="https://acme.com")
+    ads = parse_ad_lines("Buy | short | | ")  # weak ad -> meta findings
+    without = generate_deep_deliverables(
+        store,
+        brain,
+        company,
+        monthly_visitors=10000,
+        conversion_rate=0.02,
+        average_order_value=50.0,
+        output_dir=tmp_path,
+        session=FakeBrowserSession(),
+    )
+    with_ads = generate_deep_deliverables(
+        store,
+        brain,
+        company,
+        monthly_visitors=10000,
+        conversion_rate=0.02,
+        average_order_value=50.0,
+        ads=ads,
+        output_dir=tmp_path,
+        session=FakeBrowserSession(),
+    )
+    assert len(with_ads.findings) > len(without.findings)

@@ -15,8 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from careeros_audit_proposal_engine import (
+    AdCreative,
     AuditDeliverables,
     AuditProposalEngine,
+    ManualMetaAdsAuditProvider,
     ROIInputs,
     ShopifyAuditor,
 )
@@ -112,6 +114,35 @@ def audit_company(
         return run(active_session)
 
 
+def parse_ad_lines(text: str) -> list[AdCreative]:
+    """Parse pasted Meta ad creatives, one per line, pipe-delimited:
+    ``headline | body | CTA | landing page URL``. Only the headline is
+    required; the rest are optional. A blank landing page URL marks the
+    ad as not sending to a dedicated landing page (a common finding).
+    """
+    ads: list[AdCreative] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        parts = [part.strip() for part in line.split("|")]
+        headline = parts[0] if parts else ""
+        if not headline:
+            continue
+        body = parts[1] if len(parts) > 1 else ""
+        cta = parts[2] if len(parts) > 2 else ""
+        landing = parts[3] if len(parts) > 3 else ""
+        ads.append(
+            AdCreative(
+                headline=headline,
+                body_text=body,
+                cta=cta,
+                landing_page_url=landing,
+                destination_is_dedicated_landing_page=bool(landing),
+            )
+        )
+    return ads
+
+
 def generate_deep_deliverables(
     store: DocumentStore,
     brain: CareerBrain,
@@ -120,20 +151,26 @@ def generate_deep_deliverables(
     monthly_visitors: int,
     conversion_rate: float,
     average_order_value: float,
+    ads: list[AdCreative] | None = None,
     output_dir: str | Path = ".careeros/proposals",
     session: BrowserSession | None = None,
 ) -> AuditDeliverables:
-    """Run the deep Shopify storefront audit, estimate ROI from the
-    prospect's traffic/economics, and generate every pitch deliverable
+    """Run the deep Shopify storefront audit (and, if their Meta ad
+    creatives are supplied, a Meta Ads creative audit), estimate ROI from
+    the prospect's traffic/economics, and generate every pitch deliverable
     (Loom script, email, LinkedIn message, written proposal, and a PDF).
 
     ROI is a transparent projection with a disclaimer, not a promise.
     Records the PROPOSAL stage.
     """
     output_path = Path(output_dir) / f"proposal-{company.id}.pdf"
+    meta_ads_provider = ManualMetaAdsAuditProvider(ads) if ads else None
 
     def run(active_session: BrowserSession) -> AuditDeliverables:
-        engine = AuditProposalEngine(shopify_auditor=ShopifyAuditor(active_session))
+        engine = AuditProposalEngine(
+            shopify_auditor=ShopifyAuditor(active_session),
+            meta_ads_provider=meta_ads_provider,
+        )
         # Fold the free website signals in as baseline findings so the deep
         # audit builds on them. collect_findings expects AuditFindings (which
         # carry a recommendation), so convert the raw signals via the report.

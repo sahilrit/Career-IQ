@@ -47,6 +47,13 @@ DEFAULT_COMPANY_BOARDS: tuple[str, ...] = (
     "suno",
     "elevenlabs",
     "harvey",
+    "crusoe",
+    "cursor",
+    "modal",
+    "pika",
+    "sierra",
+    "warp",
+    "writer",
 )
 
 _TYPES = {
