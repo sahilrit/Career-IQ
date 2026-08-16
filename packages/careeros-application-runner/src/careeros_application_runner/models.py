@@ -11,6 +11,16 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class QuestionField(BaseModel):
+    """One additional application question on the form: the selector to
+    fill/select and the human-readable question label the answerer uses."""
+
+    selector: str
+    question: str
+    # "text" fills the value; "select" chooses an option by value/label.
+    kind: str = "text"
+
+
 class FormFieldMapping(BaseModel):
     full_name_selector: str | None = None
     # Some ATS forms (e.g. Greenhouse) split the name into two inputs;
@@ -21,5 +31,7 @@ class FormFieldMapping(BaseModel):
     phone_selector: str | None = None
     resume_upload_selector: str | None = None
     cover_letter_selector: str | None = None
+    # Additional free-form/screening questions, answered from the Career Brain.
+    question_fields: list[QuestionField] = []
     submit_selector: str
     success_selector: str

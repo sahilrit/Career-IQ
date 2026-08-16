@@ -18,11 +18,14 @@ import time
 from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore
+from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
 from careeros_job_providers import JobProviderRegistry
+from careeros_jobicy_provider import JobicyProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_tenancy import TenantScopedDocumentStore
+from careeros_workingnomads_provider import WorkingNomadsProvider
 
 DEFAULT_KEYWORDS = (
     "performance marketing,media buyer,paid social,paid media,paid search,ppc,"
@@ -36,6 +39,10 @@ def build_registry() -> JobProviderRegistry:
     registry.register(RemoteOKProvider())
     registry.register(ArbeitnowProvider())
     registry.register(HimalayasProvider(HttpxHimalayasTransport(max_entries=1000)))
+    registry.register(JobicyProvider())
+    registry.register(WorkingNomadsProvider())
+    # Greenhouse: open hosted application forms the autopilot can submit to.
+    registry.register(GreenhouseProvider())
     return registry
 
 

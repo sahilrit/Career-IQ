@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from careeros_application_engine import build_application_package
+from careeros_application_engine import QuestionAnswerer, build_application_package
 from careeros_application_intelligence import record_outcome
 from careeros_application_runner import ApplicationRunner, FormFieldMapping
 from careeros_autonomy import ActionRequest, AutonomyPolicy
@@ -168,12 +168,24 @@ class AutonomousApplicationExecutor:
             )
 
         package = build_application_package(brain, posting)
+
+        # Answer any additional questions on the form, truthfully from the
+        # Career Brain; unanswerable ones are left blank for a human.
+        question_answers: dict[str, str] = {}
+        if mapping.question_fields:
+            answerer = QuestionAnswerer(brain, posting)
+            for field in mapping.question_fields:
+                answer = answerer.answer(field.question)
+                if answer.answerable and answer.text:
+                    question_answers[field.selector] = answer.text
+
         result = self._runner.submit(
             session,
             package,
             mapping,
             application_id=application.id,
             resume_file_path=resume_file_path,
+            question_answers=question_answers,
         )
 
         if not result.success:

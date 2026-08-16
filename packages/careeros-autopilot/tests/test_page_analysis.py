@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from careeros_autopilot import detect_form_mapping, find_apply_url, prepare_application_page
+from careeros_autopilot.page_analysis import detect_question_fields
 from careeros_browser import FakeBrowserSession
 from careeros_job_providers import JobPosting
 
@@ -97,3 +98,24 @@ def test_bot_protection_challenge_is_reported_not_bypassed():
     reason = prepare_application_page(session, make_posting())
     assert reason is not None
     assert "bot-protection" in reason
+
+
+def test_detect_question_fields_from_labels():
+    session = FakeBrowserSession()
+    session.set_query_all_results(
+        "textarea",
+        [{"id": "q_why", "label": "Why do you want to work here?", "placeholder": None}],
+    )
+    session.set_query_all_results(
+        "input[type='text']",
+        [
+            {"id": "q_emp", "label": "Current employer", "placeholder": None},
+            {"id": "first_name", "label": "First Name", "placeholder": None},
+        ],
+    )
+    fields = detect_question_fields(session)
+    questions = {f.question for f in fields}
+    assert "Why do you want to work here?" in questions
+    assert "Current employer" in questions
+    # Standard name/email/phone fields are excluded from questions.
+    assert "First Name" not in questions

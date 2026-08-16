@@ -15,6 +15,7 @@ def fill_application_form(
     mapping: FormFieldMapping,
     *,
     resume_file_path: str | None = None,
+    question_answers: dict[str, str] | None = None,
 ) -> None:
     content = package.resume_content
     if mapping.first_name_selector or mapping.last_name_selector:
@@ -33,6 +34,17 @@ def fill_application_form(
         session.upload_file(mapping.resume_upload_selector, resume_file_path)
     if mapping.cover_letter_selector:
         session.fill(mapping.cover_letter_selector, package.cover_letter)
+
+    # Additional application questions, answered from the Career Brain.
+    answers = question_answers or {}
+    for field in mapping.question_fields:
+        answer = answers.get(field.selector)
+        if not answer:
+            continue
+        if field.kind == "select":
+            session.select_option(field.selector, answer)
+        else:
+            session.fill(field.selector, answer)
 
 
 def submit_application_form(session: BrowserSession, mapping: FormFieldMapping) -> None:

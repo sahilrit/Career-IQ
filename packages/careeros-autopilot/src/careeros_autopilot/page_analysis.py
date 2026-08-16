@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 
-from careeros_application_runner import FormFieldMapping
+from careeros_application_runner import FormFieldMapping, QuestionField
 from careeros_browser import BrowserSession
 from careeros_human_in_the_loop import SelectorAppearsDetector
 from careeros_job_providers import JobPosting
@@ -94,6 +94,44 @@ def find_apply_url(session: BrowserSession) -> str | None:
     return None
 
 
+def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
+    """Find extra application questions on the page: inputs/textareas that
+    carry a readable label (aria-label / placeholder), keyed by a stable
+    id selector, excluding the standard name/email/phone fields.
+
+    Uses whatever the live browser exposes via query_all; the fake session
+    in tests returns queued results, so this stays fully testable.
+    """
+    fields: list[QuestionField] = []
+    seen: set[str] = set()
+    for selector, kind in (("textarea", "text"), ("input[type='text']", "text")):
+        try:
+            elements = session.query_all(
+                selector,
+                extract={
+                    "id": f"{selector}@id",
+                    "label": f"{selector}@aria-label",
+                    "placeholder": f"{selector}@placeholder",
+                },
+            )
+        except Exception:
+            continue
+        for element in elements:
+            element_id = element.get("id")
+            question = element.get("label") or element.get("placeholder")
+            if not element_id or not question:
+                continue
+            lowered = question.lower()
+            if any(word in lowered for word in ("first name", "last name", "email", "phone")):
+                continue
+            css = f"#{element_id}"
+            if css in seen:
+                continue
+            seen.add(css)
+            fields.append(QuestionField(selector=css, question=question, kind=kind))
+    return fields
+
+
 def detect_form_mapping(session: BrowserSession) -> FormFieldMapping | None:
     """Build a mapping from what's visibly on the page, or None."""
     email = _first_visible(session, _EMAIL_SELECTORS)
@@ -113,6 +151,7 @@ def detect_form_mapping(session: BrowserSession) -> FormFieldMapping | None:
         phone_selector=_first_visible(session, _PHONE_SELECTORS),
         resume_upload_selector=_first_visible(session, _RESUME_SELECTORS),
         cover_letter_selector=_first_visible(session, _COVER_LETTER_SELECTORS),
+        question_fields=detect_question_fields(session),
         submit_selector=submit,
         success_selector=GENERIC_SUCCESS_SELECTOR,
     )

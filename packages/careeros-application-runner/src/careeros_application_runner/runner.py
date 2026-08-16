@@ -43,6 +43,7 @@ class ApplicationRunner:
         mapping: FormFieldMapping,
         *,
         resume_file_path: str | None = None,
+        question_answers: dict[str, str] | None = None,
         application_id: str = "application",
     ) -> SubmissionResult:
         validation = validate_submission(
@@ -57,7 +58,13 @@ class ApplicationRunner:
         def attempt() -> None:
             nonlocal attempts
             attempts += 1
-            fill_application_form(session, package, mapping, resume_file_path=resume_file_path)
+            fill_application_form(
+                session,
+                package,
+                mapping,
+                resume_file_path=resume_file_path,
+                question_answers=question_answers,
+            )
             screenshots.append(
                 self._screenshot(session, f"{application_id}-before-submit-{attempts}")
             )

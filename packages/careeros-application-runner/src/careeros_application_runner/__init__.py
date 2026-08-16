@@ -8,7 +8,7 @@ from careeros_application_runner.form_handler import (
     fill_application_form,
     submit_application_form,
 )
-from careeros_application_runner.models import FormFieldMapping
+from careeros_application_runner.models import FormFieldMapping, QuestionField
 from careeros_application_runner.retry import retry
 from careeros_application_runner.runner import ApplicationRunner, SubmissionResult
 from careeros_application_runner.validator import ValidationResult, validate_submission
@@ -16,6 +16,7 @@ from careeros_application_runner.validator import ValidationResult, validate_sub
 __all__ = [
     "ApplicationRunner",
     "FormFieldMapping",
+    "QuestionField",
     "SubmissionResult",
     "ValidationResult",
     "fill_application_form",

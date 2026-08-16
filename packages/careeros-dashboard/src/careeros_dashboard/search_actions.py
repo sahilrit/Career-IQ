@@ -12,11 +12,14 @@ from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
+from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_job_agent import JobAgent
 from careeros_job_discovery import JobDiscoveryPipeline
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
+from careeros_jobicy_provider import JobicyProvider
 from careeros_remoteok_provider import RemoteOKProvider
+from careeros_workingnomads_provider import WorkingNomadsProvider
 
 
 def default_provider_registry() -> JobProviderRegistry:
@@ -24,6 +27,11 @@ def default_provider_registry() -> JobProviderRegistry:
     registry.register(RemoteOKProvider())
     registry.register(ArbeitnowProvider())
     registry.register(HimalayasProvider())
+    registry.register(JobicyProvider())
+    registry.register(WorkingNomadsProvider())
+    # Greenhouse last: its postings link to open application forms (no
+    # login/captcha), so they are the ones the autopilot can actually submit.
+    registry.register(GreenhouseProvider())
     return registry
 
 

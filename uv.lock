@@ -49,6 +49,7 @@ members = [
     "careeros-financial-intelligence",
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
+    "careeros-greenhouse-provider",
     "careeros-himalayas-provider",
     "careeros-human-in-the-loop",
     "careeros-intelligence-network",
@@ -56,6 +57,7 @@ members = [
     "careeros-job-agent",
     "careeros-job-discovery",
     "careeros-job-providers",
+    "careeros-jobicy-provider",
     "careeros-launch",
     "careeros-learning-lab",
     "careeros-marketplace-governance",
@@ -75,6 +77,7 @@ members = [
     "careeros-tenancy",
     "careeros-trust-layer",
     "careeros-workflow-builder",
+    "careeros-workingnomads-provider",
     "careeros-zero-cost-mode",
 ]
 
@@ -706,15 +709,18 @@ dependencies = [
     { name = "careeros-employment-division" },
     { name = "careeros-event-bus" },
     { name = "careeros-financial-intelligence" },
+    { name = "careeros-greenhouse-provider" },
     { name = "careeros-himalayas-provider" },
     { name = "careeros-job-agent" },
     { name = "careeros-job-discovery" },
     { name = "careeros-job-providers" },
+    { name = "careeros-jobicy-provider" },
     { name = "careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence" },
     { name = "careeros-remoteok-provider" },
     { name = "careeros-tenancy" },
     { name = "careeros-trust-layer" },
+    { name = "careeros-workingnomads-provider" },
     { name = "streamlit" },
 ]
 
@@ -733,15 +739,18 @@ requires-dist = [
     { name = "careeros-employment-division", editable = "packages/careeros-employment-division" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "careeros-financial-intelligence", editable = "packages/careeros-financial-intelligence" },
+    { name = "careeros-greenhouse-provider", editable = "packages/careeros-greenhouse-provider" },
     { name = "careeros-himalayas-provider", editable = "packages/careeros-himalayas-provider" },
     { name = "careeros-job-agent", editable = "packages/careeros-job-agent" },
     { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "careeros-jobicy-provider", editable = "packages/careeros-jobicy-provider" },
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
     { name = "careeros-remoteok-provider", editable = "packages/careeros-remoteok-provider" },
     { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
     { name = "careeros-trust-layer", editable = "packages/careeros-trust-layer" },
+    { name = "careeros-workingnomads-provider", editable = "packages/careeros-workingnomads-provider" },
     { name = "streamlit", specifier = ">=1.38" },
 ]
 
@@ -841,6 +850,23 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-greenhouse-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-greenhouse-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]
@@ -968,6 +994,23 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-jobicy-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-jobicy-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]
@@ -1259,6 +1302,23 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+]
+
+[[package]]
+name = "careeros-workingnomads-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-workingnomads-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]

@@ -16,6 +16,7 @@ from careeros_application_engine.cover_letter import (
     TemplateCoverLetterGenerator,
 )
 from careeros_application_engine.package import ApplicationPackage, build_application_package
+from careeros_application_engine.question_answering import Answer, QuestionAnswerer
 from careeros_application_engine.resume import (
     ResumeContent,
     build_resume_content,
@@ -27,8 +28,10 @@ from careeros_application_engine.resume import (
 __all__ = [
     "ANSWER_GENERATORS",
     "ATSReport",
+    "Answer",
     "ApplicationPackage",
     "CoverLetterGenerator",
+    "QuestionAnswerer",
     "ResumeContent",
     "TemplateCoverLetterGenerator",
     "answer_greatest_achievement",

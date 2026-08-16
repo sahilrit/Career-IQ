@@ -84,11 +84,13 @@
     #   careeros-event-bus
     #   careeros-financial-intelligence
     #   careeros-freelance-providers
+    #   careeros-greenhouse-provider
     #   careeros-himalayas-provider
     #   careeros-human-in-the-loop
     #   careeros-job-agent
     #   careeros-job-discovery
     #   careeros-job-providers
+    #   careeros-jobicy-provider
     #   careeros-memory
     #   careeros-offer-negotiation
     #   careeros-opportunity-intelligence
@@ -96,6 +98,7 @@
     #   careeros-runtime
     #   careeros-tenancy
     #   careeros-trust-layer
+    #   careeros-workingnomads-provider
 -e ./packages/careeros-communication-intelligence
     # via careeros-calendar-assistant
 -e ./packages/careeros-compliance
@@ -124,6 +127,8 @@
     # via careeros-dashboard
 -e ./packages/careeros-freelance-providers
     # via careeros-opportunity-intelligence
+-e ./packages/careeros-greenhouse-provider
+    # via careeros-dashboard
 -e ./packages/careeros-himalayas-provider
     # via careeros-dashboard
 -e ./packages/careeros-human-in-the-loop
@@ -147,11 +152,16 @@
     #   careeros-career-brain-engine
     #   careeros-dashboard
     #   careeros-employment-division
+    #   careeros-greenhouse-provider
     #   careeros-himalayas-provider
     #   careeros-job-agent
     #   careeros-job-discovery
+    #   careeros-jobicy-provider
     #   careeros-opportunity-intelligence
     #   careeros-remoteok-provider
+    #   careeros-workingnomads-provider
+-e ./packages/careeros-jobicy-provider
+    # via careeros-dashboard
 -e ./packages/careeros-memory
     # via careeros-career-brain-engine
 -e ./packages/careeros-offer-negotiation
@@ -175,6 +185,8 @@
     # via
     #   careeros-compliance
     #   careeros-dashboard
+-e ./packages/careeros-workingnomads-provider
+    # via careeros-dashboard
 altair==6.2.2
     # via streamlit
 annotated-types==0.8.0
@@ -222,8 +234,11 @@ httptools==0.8.0
 httpx==0.28.1
     # via
     #   careeros-arbeitnow-provider
+    #   careeros-greenhouse-provider
     #   careeros-himalayas-provider
+    #   careeros-jobicy-provider
     #   careeros-remoteok-provider
+    #   careeros-workingnomads-provider
 idna==3.18
     # via
     #   anyio
