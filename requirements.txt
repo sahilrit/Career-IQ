@@ -36,6 +36,7 @@
     #   careeros-autonomous-execution
     #   careeros-autopilot
     #   careeros-client-acquisition
+    #   careeros-dashboard
     #   careeros-human-in-the-loop
 -e ./packages/careeros-calendar-assistant
     # via careeros-dashboard

@@ -10,6 +10,7 @@ dependencies = [
     "careeros-auth",
     "careeros-autopilot",
     "careeros-billing",
+    "careeros-browser",
     "careeros-calendar-assistant",
     "careeros-career-brain",
     "careeros-client-acquisition",
@@ -43,6 +44,7 @@ careeros-ashby-provider = { workspace = true }
 careeros-auth = { workspace = true }
 careeros-autopilot = { workspace = true }
 careeros-billing = { workspace = true }
+careeros-browser = { workspace = true }
 careeros-calendar-assistant = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-client-acquisition = { workspace = true }

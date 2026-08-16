@@ -90,3 +90,9 @@ def test_dashboard_reflects_data_written_by_other_packages(data_dir):
     assert not at.exception
     metric_values = {metric.label: metric.value for metric in at.metric}
     assert metric_values["Applications"] == "1"
+
+
+def test_freelance_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "7_Freelance.py")).run()
+    assert not at.exception
+    assert "Freelance" in at.title[0].value
