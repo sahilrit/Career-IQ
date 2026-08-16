@@ -15,6 +15,7 @@ from careeros_dashboard.data_access import primary_brain
 from careeros_dashboard.freelance_actions import (
     add_company,
     audit_company,
+    generate_deep_deliverables,
     list_companies,
     mark_outreach_sent,
     promote_to_client,
@@ -106,6 +107,82 @@ with tab_prospects:
                 if cols[1].button("Promote to client", key=f"promote_{company.id}"):
                     promote_to_client(store, company)
                     st.success(f"{company.name} added to Clients.")
+
+            st.divider()
+            st.markdown(
+                "**Full pitch kit** — deep Shopify audit, ROI projection, and a PDF proposal."
+            )
+            with st.form(f"deep_{company.id}"):
+                st.caption("Their rough numbers (estimates are fine) power the ROI projection:")
+                dcols = st.columns(3)
+                monthly_visitors = dcols[0].number_input(
+                    "Monthly visitors", min_value=0, value=10000, step=1000, key=f"mv_{company.id}"
+                )
+                conversion_rate = dcols[1].number_input(
+                    "Conversion rate %", min_value=0.0, value=2.0, step=0.1, key=f"cr_{company.id}"
+                )
+                aov = dcols[2].number_input(
+                    "Avg order value ($)",
+                    min_value=0.0,
+                    value=50.0,
+                    step=5.0,
+                    key=f"aov_{company.id}",
+                )
+                if st.form_submit_button("Generate full pitch kit"):
+                    with st.spinner(f"Auditing {company.website} and building the pitch kit …"):
+                        try:
+                            st.session_state[f"kit_{company.id}"] = generate_deep_deliverables(
+                                store,
+                                brain,
+                                company,
+                                monthly_visitors=int(monthly_visitors),
+                                conversion_rate=conversion_rate / 100.0,
+                                average_order_value=aov,
+                            )
+                        except Exception as error:
+                            st.error(f"Could not build the pitch kit: {error}")
+
+            kit = st.session_state.get(f"kit_{company.id}")
+            if kit is not None:
+                if kit.roi_estimate is not None:
+                    roi = kit.roi_estimate
+                    rcols = st.columns(2)
+                    rcols[0].metric(
+                        "Projected extra monthly revenue",
+                        f"${roi.projected_additional_monthly_revenue:,.0f}",
+                    )
+                    rcols[1].metric(
+                        "Projected extra annual revenue",
+                        f"${roi.projected_additional_annual_revenue:,.0f}",
+                    )
+                    st.caption(roi.disclaimer)
+                kit_email, kit_li, kit_loom, kit_proposal = st.tabs(
+                    ["Email", "LinkedIn DM", "Loom script", "Proposal"]
+                )
+                kit_email.text_area("Audit email", kit.email, height=220, key=f"ke_{company.id}")
+                kit_li.text_area(
+                    "LinkedIn message", kit.linkedin_message, height=160, key=f"kl_{company.id}"
+                )
+                kit_loom.text_area(
+                    "Loom walkthrough script",
+                    kit.loom_script,
+                    height=220,
+                    key=f"kloom_{company.id}",
+                )
+                kit_proposal.text_area(
+                    "Written proposal", kit.proposal, height=260, key=f"kp_{company.id}"
+                )
+                try:
+                    pdf_bytes = kit.pdf_path.read_bytes()
+                    st.download_button(
+                        "Download PDF proposal",
+                        pdf_bytes,
+                        file_name=f"{company.name}-proposal.pdf",
+                        mime="application/pdf",
+                        key=f"kpdf_{company.id}",
+                    )
+                except OSError:
+                    st.caption("PDF was generated but could not be read back for download.")
 
 with tab_clients:
     clients = ClientRepository(store).list_all()

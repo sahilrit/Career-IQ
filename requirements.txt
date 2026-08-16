@@ -16,6 +16,8 @@
     # via careeros-dashboard
 -e ./packages/careeros-ashby-provider
     # via careeros-dashboard
+-e ./packages/careeros-audit-proposal-engine
+    # via careeros-dashboard
 -e ./packages/careeros-auth
     # via careeros-dashboard
 -e ./packages/careeros-autonomous-execution
@@ -33,6 +35,7 @@
 -e ./packages/careeros-browser
     # via
     #   careeros-application-runner
+    #   careeros-audit-proposal-engine
     #   careeros-autonomous-execution
     #   careeros-autopilot
     #   careeros-client-acquisition
@@ -44,6 +47,7 @@
     # via
     #   careeros-application-engine
     #   careeros-application-intelligence
+    #   careeros-audit-proposal-engine
     #   careeros-autonomous-execution
     #   careeros-autopilot
     #   careeros-career-brain-engine
@@ -62,7 +66,9 @@
     #   careeros-employment-division
     #   careeros-opportunity-intelligence
 -e ./packages/careeros-client-acquisition
-    # via careeros-dashboard
+    # via
+    #   careeros-audit-proposal-engine
+    #   careeros-dashboard
 -e ./packages/careeros-common
     # via
     #   careeros-application-engine
@@ -70,6 +76,7 @@
     #   careeros-application-runner
     #   careeros-arbeitnow-provider
     #   careeros-ashby-provider
+    #   careeros-audit-proposal-engine
     #   careeros-auth
     #   careeros-autonomous-execution
     #   careeros-autonomy
@@ -237,7 +244,9 @@ defusedxml==0.7.1
 fonttools==4.63.0
     # via fpdf2
 fpdf2==2.8.8
-    # via careeros-autopilot
+    # via
+    #   careeros-audit-proposal-engine
+    #   careeros-autopilot
 greenlet==3.5.5
     # via playwright
 h11==0.16.0

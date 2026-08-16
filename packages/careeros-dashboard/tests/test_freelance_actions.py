@@ -86,3 +86,28 @@ def test_record_client_income_is_tagged_freelance(store):
     assert len(records) == 1
     assert records[0].amount == 2500.0
     assert records[0].source_name == "Acme"
+
+
+def test_generate_deep_deliverables_builds_full_pitch_kit(store, brain, tmp_path):
+    from careeros_dashboard.freelance_actions import generate_deep_deliverables
+
+    company = add_company(store, name="Acme DTC", website="https://acme.com")
+    session = FakeBrowserSession()  # bare storefront -> findings across categories
+
+    kit = generate_deep_deliverables(
+        store,
+        brain,
+        company,
+        monthly_visitors=10000,
+        conversion_rate=0.02,
+        average_order_value=50.0,
+        output_dir=tmp_path,
+        session=session,
+    )
+
+    assert kit.findings  # deep audit surfaced problems
+    assert kit.roi_estimate is not None
+    assert kit.roi_estimate.projected_additional_monthly_revenue > 0
+    assert "Acme DTC" in kit.email
+    assert kit.linkedin_message and kit.loom_script and kit.proposal
+    assert kit.pdf_path.exists()

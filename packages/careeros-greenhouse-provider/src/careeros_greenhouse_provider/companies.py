@@ -1,68 +1,58 @@
-"""Seed list of company Greenhouse boards.
+"""Seed list of company Greenhouse boards (public board tokens).
 
-These are public board tokens for companies known to use Greenhouse and
-hire remote roles across functions (marketing, growth, ops, sales,
-engineering). Over-inclusion is safe: the transport skips any board that
-404s or errors, so a stale token just drops out silently. Pass your own
-tuple to ``GreenhouseProvider`` / ``HttpxGreenhouseTransport`` to narrow
-or extend it.
+Every token here was verified live to return jobs. Over-inclusion is
+still safe: the transport skips any board that later 404s or errors, so
+a stale token just drops out silently. Pass your own tuple to
+``GreenhouseProvider`` / ``HttpxGreenhouseTransport`` to narrow or extend.
 """
 
 from __future__ import annotations
 
 DEFAULT_COMPANY_BOARDS: tuple[str, ...] = (
-    # fintech / payments
-    "stripe",
-    "brex",
-    "mercury",
     "affirm",
-    "marqeta",
-    "upstart",
-    "sofi",
-    "wealthfront",
+    "airbnb",
+    "airtable",
     "betterment",
+    "bitpanda",
+    "blend",
+    "brave",
+    "brex",
+    "cameo",
     "carta",
+    "checkr",
     "chime",
-    "plaid",
-    "coinbase",
-    "robinhood",
-    "nerdwallet",
-    # data / infra / dev tools
-    "databricks",
-    "mongodb",
-    "datadog",
     "cloudflare",
+    "coinbase",
+    "collectivehealth",
+    "coreweave",
+    "databricks",
+    "datadog",
+    "discord",
+    "dropbox",
+    "duolingo",
     "elastic",
-    "confluent",
-    "hashicorp",
-    "snowflakecomputing",
-    "sourcegraph",
-    "retool",
-    "webflow",
-    "gitlab",
-    "grammarly",
-    # marketplaces / consumer / commerce
     "faire",
+    "figma",
+    "flexport",
+    "gemini",
+    "gitlab",
+    "gusto",
     "instacart",
     "lyft",
-    "doordash",
+    "marqeta",
+    "mercury",
+    "mongodb",
     "pinterest",
+    "postman",
     "reddit",
-    "discord",
-    "twitch",
-    "dropbox",
-    "airtable",
+    "ripple",
+    "robinhood",
     "roblox",
-    "thumbtack",
-    "whatnot",
-    "cameo",
-    "flexport",
     "samsara",
-    # ops / hr / trust
-    "gusto",
-    "checkr",
-    "lattice",
-    "gong",
-    "brave",
-    "figma",
+    "scaleai",
+    "sofi",
+    "stripe",
+    "twitch",
+    "upstart",
+    "webflow",
 )

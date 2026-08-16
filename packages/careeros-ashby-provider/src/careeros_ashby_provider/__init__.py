@@ -35,19 +35,18 @@ DEFAULT_COMPANY_BOARDS: tuple[str, ...] = (
     "cohere",
     "replit",
     "hex",
-    "clay",
     "watershed",
-    "gem",
-    "census",
     "runway",
     "openai",
     "vanta",
-    "modernhealth",
     "eightsleep",
     "ashby",
     "found",
     "airbyte",
-    "dbtlabs",
+    "perplexity",
+    "suno",
+    "elevenlabs",
+    "harvey",
 )
 
 _TYPES = {
