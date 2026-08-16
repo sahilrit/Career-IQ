@@ -94,13 +94,16 @@
     #   careeros-job-discovery
     #   careeros-job-providers
     #   careeros-jobicy-provider
+    #   careeros-lever-provider
     #   careeros-memory
     #   careeros-offer-negotiation
     #   careeros-opportunity-intelligence
     #   careeros-remoteok-provider
     #   careeros-runtime
     #   careeros-tenancy
+    #   careeros-themuse-provider
     #   careeros-trust-layer
+    #   careeros-weworkremotely-provider
     #   careeros-workingnomads-provider
 -e ./packages/careeros-communication-intelligence
     # via careeros-calendar-assistant
@@ -161,10 +164,15 @@
     #   careeros-job-agent
     #   careeros-job-discovery
     #   careeros-jobicy-provider
+    #   careeros-lever-provider
     #   careeros-opportunity-intelligence
     #   careeros-remoteok-provider
+    #   careeros-themuse-provider
+    #   careeros-weworkremotely-provider
     #   careeros-workingnomads-provider
 -e ./packages/careeros-jobicy-provider
+    # via careeros-dashboard
+-e ./packages/careeros-lever-provider
     # via careeros-dashboard
 -e ./packages/careeros-memory
     # via careeros-career-brain-engine
@@ -185,10 +193,14 @@
     #   careeros-auth
     #   careeros-compliance
     #   careeros-dashboard
+-e ./packages/careeros-themuse-provider
+    # via careeros-dashboard
 -e ./packages/careeros-trust-layer
     # via
     #   careeros-compliance
     #   careeros-dashboard
+-e ./packages/careeros-weworkremotely-provider
+    # via careeros-dashboard
 -e ./packages/careeros-workingnomads-provider
     # via careeros-dashboard
 altair==6.2.2
@@ -242,7 +254,10 @@ httpx==0.28.1
     #   careeros-greenhouse-provider
     #   careeros-himalayas-provider
     #   careeros-jobicy-provider
+    #   careeros-lever-provider
     #   careeros-remoteok-provider
+    #   careeros-themuse-provider
+    #   careeros-weworkremotely-provider
     #   careeros-workingnomads-provider
 idna==3.18
     # via

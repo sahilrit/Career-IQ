@@ -24,8 +24,11 @@ from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
 from careeros_job_providers import JobProviderRegistry
 from careeros_jobicy_provider import JobicyProvider
+from careeros_lever_provider import LeverProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_tenancy import TenantScopedDocumentStore
+from careeros_themuse_provider import TheMuseProvider
+from careeros_weworkremotely_provider import WeWorkRemotelyProvider
 from careeros_workingnomads_provider import WorkingNomadsProvider
 
 DEFAULT_KEYWORDS = (
@@ -42,9 +45,12 @@ def build_registry() -> JobProviderRegistry:
     registry.register(HimalayasProvider(HttpxHimalayasTransport(max_entries=1000)))
     registry.register(JobicyProvider())
     registry.register(WorkingNomadsProvider())
-    # Greenhouse + Ashby: open hosted application forms the autopilot can submit to.
+    registry.register(WeWorkRemotelyProvider())
+    registry.register(TheMuseProvider())
+    # Open-form ATS boards: forms the autopilot can actually submit to.
     registry.register(GreenhouseProvider())
     registry.register(AshbyProvider())
+    registry.register(LeverProvider())
     return registry
 
 
