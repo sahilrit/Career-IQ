@@ -8,6 +8,7 @@
     #   careeros-autonomous-execution
     #   careeros-autopilot
     #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-application-intelligence
     # via careeros-autonomous-execution
 -e ./packages/careeros-application-runner
@@ -15,9 +16,13 @@
     #   careeros-autonomous-execution
     #   careeros-autopilot
 -e ./packages/careeros-arbeitnow-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-ashby-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-audit-proposal-engine
     # via careeros-dashboard
 -e ./packages/careeros-auth
@@ -62,6 +67,7 @@
     #   careeros-interview-intelligence
     #   careeros-job-agent
     #   careeros-job-discovery
+    #   careeros-job-search
     #   careeros-memory
     #   careeros-opportunity-intelligence
     #   careeros-personal-brand
@@ -119,6 +125,7 @@
     #   careeros-job-agent
     #   careeros-job-discovery
     #   careeros-job-providers
+    #   careeros-job-search
     #   careeros-jobicy-provider
     #   careeros-learning-lab
     #   careeros-lever-provider
@@ -159,6 +166,7 @@
     #   careeros-interview-intelligence
     #   careeros-job-agent
     #   careeros-job-discovery
+    #   careeros-job-search
     #   careeros-memory
 -e ./packages/careeros-financial-intelligence
     # via
@@ -167,9 +175,13 @@
 -e ./packages/careeros-freelance-providers
     # via careeros-opportunity-intelligence
 -e ./packages/careeros-greenhouse-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-himalayas-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-human-in-the-loop
     # via
     #   careeros-autonomous-execution
@@ -180,10 +192,12 @@
     # via
     #   careeros-autopilot
     #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-job-discovery
     # via
     #   careeros-dashboard
     #   careeros-job-agent
+    #   careeros-job-search
 -e ./packages/careeros-job-providers
     # via
     #   careeros-application-engine
@@ -198,6 +212,7 @@
     #   careeros-himalayas-provider
     #   careeros-job-agent
     #   careeros-job-discovery
+    #   careeros-job-search
     #   careeros-jobicy-provider
     #   careeros-lever-provider
     #   careeros-opportunity-intelligence
@@ -205,12 +220,18 @@
     #   careeros-themuse-provider
     #   careeros-weworkremotely-provider
     #   careeros-workingnomads-provider
--e ./packages/careeros-jobicy-provider
+-e ./packages/careeros-job-search
     # via careeros-dashboard
+-e ./packages/careeros-jobicy-provider
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-learning-lab
     # via careeros-dashboard
 -e ./packages/careeros-lever-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-memory
     # via careeros-career-brain-engine
 -e ./packages/careeros-offer-negotiation
@@ -225,7 +246,9 @@
 -e ./packages/careeros-personal-brand
     # via careeros-dashboard
 -e ./packages/careeros-remoteok-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-runtime
     # via careeros-job-agent
 -e ./packages/careeros-tenancy
@@ -234,15 +257,21 @@
     #   careeros-compliance
     #   careeros-dashboard
 -e ./packages/careeros-themuse-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-trust-layer
     # via
     #   careeros-compliance
     #   careeros-dashboard
 -e ./packages/careeros-weworkremotely-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 -e ./packages/careeros-workingnomads-provider
-    # via careeros-dashboard
+    # via
+    #   careeros-dashboard
+    #   careeros-job-search
 altair==6.2.2
     # via streamlit
 annotated-types==0.8.0

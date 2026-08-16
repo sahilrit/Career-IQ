@@ -59,6 +59,7 @@ members = [
     "careeros-job-agent",
     "careeros-job-discovery",
     "careeros-job-providers",
+    "careeros-job-search",
     "careeros-jobicy-provider",
     "careeros-launch",
     "careeros-learning-lab",
@@ -214,6 +215,7 @@ dependencies = [
     { name = "careeros-billing" },
     { name = "careeros-career-brain" },
     { name = "careeros-common" },
+    { name = "careeros-job-search" },
     { name = "careeros-tenancy" },
     { name = "fastapi" },
     { name = "uvicorn" },
@@ -225,6 +227,7 @@ requires-dist = [
     { name = "careeros-billing", editable = "packages/careeros-billing" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-search", editable = "packages/careeros-job-search" },
     { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
     { name = "fastapi", specifier = ">=0.110" },
     { name = "uvicorn", specifier = ">=0.29" },
@@ -781,6 +784,7 @@ dependencies = [
     { name = "careeros-job-agent" },
     { name = "careeros-job-discovery" },
     { name = "careeros-job-providers" },
+    { name = "careeros-job-search" },
     { name = "careeros-jobicy-provider" },
     { name = "careeros-learning-lab" },
     { name = "careeros-lever-provider" },
@@ -824,6 +828,7 @@ requires-dist = [
     { name = "careeros-job-agent", editable = "packages/careeros-job-agent" },
     { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "careeros-job-search", editable = "packages/careeros-job-search" },
     { name = "careeros-jobicy-provider", editable = "packages/careeros-jobicy-provider" },
     { name = "careeros-learning-lab", editable = "packages/careeros-learning-lab" },
     { name = "careeros-lever-provider", editable = "packages/careeros-lever-provider" },
@@ -1080,6 +1085,51 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-job-search"
+version = "0.1.0"
+source = { editable = "packages/careeros-job-search" }
+dependencies = [
+    { name = "careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider" },
+    { name = "careeros-ashby-provider" },
+    { name = "careeros-career-brain" },
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+    { name = "careeros-greenhouse-provider" },
+    { name = "careeros-himalayas-provider" },
+    { name = "careeros-job-agent" },
+    { name = "careeros-job-discovery" },
+    { name = "careeros-job-providers" },
+    { name = "careeros-jobicy-provider" },
+    { name = "careeros-lever-provider" },
+    { name = "careeros-remoteok-provider" },
+    { name = "careeros-themuse-provider" },
+    { name = "careeros-weworkremotely-provider" },
+    { name = "careeros-workingnomads-provider" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
+    { name = "careeros-arbeitnow-provider", editable = "packages/careeros-arbeitnow-provider" },
+    { name = "careeros-ashby-provider", editable = "packages/careeros-ashby-provider" },
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+    { name = "careeros-greenhouse-provider", editable = "packages/careeros-greenhouse-provider" },
+    { name = "careeros-himalayas-provider", editable = "packages/careeros-himalayas-provider" },
+    { name = "careeros-job-agent", editable = "packages/careeros-job-agent" },
+    { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "careeros-jobicy-provider", editable = "packages/careeros-jobicy-provider" },
+    { name = "careeros-lever-provider", editable = "packages/careeros-lever-provider" },
+    { name = "careeros-remoteok-provider", editable = "packages/careeros-remoteok-provider" },
+    { name = "careeros-themuse-provider", editable = "packages/careeros-themuse-provider" },
+    { name = "careeros-weworkremotely-provider", editable = "packages/careeros-weworkremotely-provider" },
+    { name = "careeros-workingnomads-provider", editable = "packages/careeros-workingnomads-provider" },
 ]
 
 [[package]]

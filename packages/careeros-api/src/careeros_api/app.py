@@ -14,7 +14,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from careeros_api.routers import auth, brain, webhooks
+from careeros_api.routers import auth, brain, opportunities, webhooks
 
 
 def _cors_origins() -> list[str]:
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(brain.router)
+    app.include_router(opportunities.router)
     app.include_router(webhooks.router)
     return app
 

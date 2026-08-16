@@ -64,3 +64,23 @@ class ExperienceCreateRequest(BaseModel):
     start_date: str = Field(min_length=1, description="ISO date, e.g. 2024-05-01")
     end_date: str | None = None
     description: str = ""
+
+
+class SearchRequest(BaseModel):
+    keywords: list[str] = Field(default_factory=list)
+    remote_only: bool = True
+    limit: int = Field(default=100, ge=1, le=500)
+
+
+class SearchResponse(BaseModel):
+    discovered: int
+    qualified: int
+
+
+class GenerateRequest(BaseModel):
+    job_url: str = Field(min_length=1)
+
+
+class ApplicationPackageResponse(BaseModel):
+    resume_text: str
+    cover_letter: str

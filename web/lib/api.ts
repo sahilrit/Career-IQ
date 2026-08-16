@@ -84,4 +84,18 @@ export const api = {
     token: string,
     body: { company_name: string; title: string; start_date: string; description?: string },
   ) => request<CareerBrain>("/brain/experience", { token, method: "POST", body }),
+  searchJobs: (
+    token: string,
+    body: { keywords: string[]; remote_only: boolean; limit?: number },
+  ) => request<{ discovered: number; qualified: number }>("/opportunities/search", {
+    token,
+    method: "POST",
+    body,
+  }),
+  generatePackage: (token: string, job_url: string) =>
+    request<{ resume_text: string; cover_letter: string }>("/opportunities/generate", {
+      token,
+      method: "POST",
+      body: { job_url },
+    }),
 };

@@ -34,6 +34,7 @@ dependencies = [
     "careeros-lever-provider",
     "careeros-greenhouse-provider",
     "careeros-job-agent",
+    "careeros-job-search",
     "careeros-job-discovery",
     "careeros-job-providers",
     "careeros-offer-negotiation",
@@ -76,6 +77,7 @@ careeros-themuse-provider = { workspace = true }
 careeros-lever-provider = { workspace = true }
 careeros-greenhouse-provider = { workspace = true }
 careeros-job-agent = { workspace = true }
+careeros-job-search = { workspace = true }
 careeros-job-discovery = { workspace = true }
 careeros-job-providers = { workspace = true }
 careeros-offer-negotiation = { workspace = true }
