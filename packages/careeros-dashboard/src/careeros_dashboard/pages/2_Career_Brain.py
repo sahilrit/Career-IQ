@@ -38,7 +38,27 @@ st.title("Career Brain")
 brain = primary_brain(store)
 
 if brain is None:
-    st.subheader("Create your Career Brain")
+    st.subheader("Start from your resume")
+    st.caption(
+        "Upload a PDF resume and we'll pre-fill your Career Brain — you can edit everything after."
+    )
+    resume_file = st.file_uploader("Resume (PDF)", type="pdf")
+    if resume_file is not None and st.button("Import resume"):
+        from careeros_dashboard.resume_import import import_resume
+
+        try:
+            _, parsed = import_resume(store, resume_file.getvalue())
+            skill_count = len(parsed.skills)
+            st.success(
+                f"Imported {parsed.full_name or 'your profile'} with "
+                f"{skill_count} skill(s). Review and refine below."
+            )
+            st.rerun()
+        except Exception as error:
+            st.error(f"Couldn't import that resume: {error}")
+
+    st.divider()
+    st.subheader("…or create it manually")
     with st.form("create_brain"):
         full_name = st.text_input("Full name", value=account.user.full_name if account.user else "")
         email = st.text_input("Email", value=account.user.email if account.user else "")

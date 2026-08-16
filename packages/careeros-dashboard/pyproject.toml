@@ -5,6 +5,8 @@ description = "Dashboard / SaaS Control Center: the product UI over the platform
 requires-python = ">=3.12"
 dependencies = [
     "careeros-application-engine",
+    "careeros-analytics",
+    "careeros-interview-intelligence",
     "careeros-audit-proposal-engine",
     "careeros-arbeitnow-provider",
     "careeros-ashby-provider",
@@ -35,11 +37,14 @@ dependencies = [
     "careeros-remoteok-provider",
     "careeros-tenancy",
     "careeros-trust-layer",
+    "pypdf>=4.0",
     "streamlit>=1.38",
 ]
 
 [tool.uv.sources]
 careeros-application-engine = { workspace = true }
+careeros-analytics = { workspace = true }
+careeros-interview-intelligence = { workspace = true }
 careeros-audit-proposal-engine = { workspace = true }
 careeros-arbeitnow-provider = { workspace = true }
 careeros-ashby-provider = { workspace = true }

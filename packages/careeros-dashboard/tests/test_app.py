@@ -96,3 +96,38 @@ def test_freelance_page_renders(data_dir):
     at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "7_Freelance.py")).run()
     assert not at.exception
     assert "Freelance" in at.title[0].value
+
+
+def test_analytics_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "8_Analytics.py")).run()
+    assert not at.exception
+    assert "Analytics" in at.title[0].value
+
+
+def test_interview_prep_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "9_Interview_Prep.py")).run()
+    assert not at.exception
+
+
+def test_offers_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "10_Offers.py")).run()
+    assert not at.exception
+    assert "Offers" in at.title[0].value
+
+
+def test_network_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "11_Network.py")).run()
+    assert not at.exception
+    assert "Network" in at.title[0].value
+
+
+def test_legal_page_renders(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "12_Legal.py")).run()
+    assert not at.exception
+    assert "Legal" in at.title[0].value
+
+
+def test_career_brain_page_shows_resume_upload_with_no_data(data_dir):
+    at = AppTest.from_file(str(_PACKAGE_ROOT / "pages" / "2_Career_Brain.py")).run()
+    assert not at.exception
+    assert any("resume" in caption.value.lower() for caption in at.caption)
