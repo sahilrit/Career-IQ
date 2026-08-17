@@ -113,15 +113,53 @@ platforms issue TLS automatically). Update `CAREEROS_API_BASE` and
 `CAREEROS_CORS_ORIGINS` to the custom domains. The session cookie is
 `secure` in production, so both must be HTTPS.
 
-## 4. Stripe
+## 4. Stripe (take real payments)
 
-1. Create two **Payment Links** (Pro $29/mo, Agency $99/mo, recurring).
-   Put them in the dashboard's billing env if you keep Streamlit, and
-   they already surface on the web Billing page via the API.
-2. Add a **webhook** → `https://api.yourdomain.com/webhooks/stripe`,
-   event `checkout.session.completed`. Copy its signing secret into
-   `CAREEROS_STRIPE_WEBHOOK_SECRET`. Paid plans then activate
-   automatically (verified by the API's webhook tests).
+1. Create two recurring **Payment Links** in Stripe (Pro $29/mo, Agency
+   $99/mo). On each link, add **metadata `plan=pro`** / **`plan=agency`**
+   — the webhook uses it to map a payment to the right tier (if you use
+   non-standard prices this metadata is required; otherwise it falls back
+   to matching the amount, 2900/9900 cents).
+2. Put the link URLs in `careeros-api` env: **`CAREEROS_STRIPE_LINK_PRO`**
+   and **`CAREEROS_STRIPE_LINK_AGENCY`**. They then appear as pay buttons
+   on the web **Billing** page (until set, it shows "Contact us to
+   upgrade").
+3. Add a **webhook** → `https://<api-url>/webhooks/stripe`, event
+   `checkout.session.completed`. Copy its signing secret into
+   **`CAREEROS_STRIPE_WEBHOOK_SECRET`**. Paid plans then activate
+   automatically. **Note:** activation matches the payer's email to an
+   existing CareerOS account — tell customers to pay with their account
+   email. (Cancellations/downgrades from Stripe aren't auto-handled yet.)
+
+## 4A. Transactional email (password reset)
+
+Set the SMTP env on `careeros-api` (any provider — e.g. SendGrid, Resend,
+Postmark, Gmail app password): `CAREEROS_SMTP_HOST`, `CAREEROS_SMTP_PORT`
+(default 587), `CAREEROS_SMTP_USER`, `CAREEROS_SMTP_PASSWORD`,
+`CAREEROS_EMAIL_FROM`, plus `CAREEROS_APP_BASE_URL` (the web app URL, used
+to build the reset link). With these set, **Forgot password → reset**
+works over email. Without them the flow still returns success but sends
+nothing.
+
+## 4B. Reliability & monitoring
+
+- **No cold starts:** the `Keep-alive` GitHub Action pings the services
+  every 14 min. Edit the URLs in `.github/workflows/keepalive.yml` (or set
+  repo variables `WEB_URL`/`API_URL`) if yours differ.
+- **Database backups:** add a repo **secret** `CAREEROS_DATABASE_URL` =
+  Render → careeros-db → *External Database URL*. The `Database backup`
+  Action then dumps Postgres nightly to a 30-day artifact. Important: the
+  free DB **expires ~90 days** after creation — restore a dump into a new
+  DB before then (`pg_restore --clean --no-owner -d "<new url>" dump`).
+- **Error monitoring (optional):** set `CAREEROS_SENTRY_DSN` on
+  `careeros-api` to your Sentry DSN to capture backend errors.
+
+## 4C. Legal pages
+
+`/terms` and `/privacy` are live public pages (linked in the landing
+footer). They're a template — replace the bracketed placeholders and have
+them reviewed. Optionally set `CAREEROS_COMPANY_NAME` /
+`CAREEROS_SUPPORT_EMAIL` (used by the Streamlit legal page).
 
 ## 5. First admin + smoke test
 
