@@ -15,7 +15,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from careeros_api.routers import (
+    admin,
     auth,
+    autopilot,
+    billing,
     brain,
     freelance,
     network,
@@ -54,6 +57,9 @@ def create_app() -> FastAPI:
     app.include_router(offers.router)
     app.include_router(network.router)
     app.include_router(freelance.router)
+    app.include_router(billing.router)
+    app.include_router(autopilot.router)
+    app.include_router(admin.router)
     app.include_router(webhooks.router)
     return app
 

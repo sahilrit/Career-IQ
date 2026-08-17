@@ -6,10 +6,12 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/career-brain", label: "Career Brain" },
   { href: "/opportunities", label: "Opportunities" },
+  { href: "/autopilot", label: "Autopilot" },
   { href: "/offers", label: "Offers" },
   { href: "/freelance", label: "Freelance" },
   { href: "/network", label: "Network" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/billing", label: "Billing" },
 ];
 
 export function Shell({
@@ -35,6 +37,14 @@ export function Shell({
               {item.label}
             </Link>
           ))}
+          {account.is_admin && (
+            <Link
+              href="/admin"
+              className="rounded-xl px-3 py-2 text-sm text-accentSoft transition hover:bg-panel"
+            >
+              Admin
+            </Link>
+          )}
         </nav>
         <div className="mt-auto px-2 pt-8 text-sm text-muted">
           <div className="mb-2 truncate">{account.full_name}</div>

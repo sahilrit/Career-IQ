@@ -57,6 +57,43 @@ export type Prospect = {
   stage: string | null;
 };
 
+export type PlanInfo = {
+  tier: string;
+  name: string;
+  monthly_price_usd: number;
+  features: string[];
+  is_current: boolean;
+  checkout_url: string | null;
+};
+
+export type Billing = { current_tier: string; status: string; plans: PlanInfo[] };
+
+export type AutopilotRun = {
+  id: string;
+  ran_at: string;
+  discovered: number;
+  submitted: number;
+  qualified_total: number;
+  outcomes: { job_title: string; company_name: string; submitted: boolean; reason: string }[];
+};
+
+export type Customer = {
+  name: string;
+  email: string;
+  role: string;
+  workspace_id: string;
+  plan: string;
+  status: string;
+  joined: string;
+};
+
+export type AdminOverview = {
+  accounts: number;
+  paying_workspaces: number;
+  mrr: number;
+  customers: Customer[];
+};
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -132,4 +169,9 @@ export const api = {
   prospects: (token: string) => request<Prospect[]>("/freelance/prospects", { token }),
   addProspect: (token: string, body: { name: string; website: string; industry: string }) =>
     request<Prospect>("/freelance/prospects", { token, method: "POST", body }),
+  billing: (token: string) => request<Billing>("/billing", { token }),
+  autopilotRuns: (token: string) => request<AutopilotRun[]>("/autopilot/runs", { token }),
+  adminOverview: (token: string) => request<AdminOverview>("/admin/overview", { token }),
+  adminActivate: (token: string, body: { workspace_id: string; tier: string }) =>
+    request<AdminOverview>("/admin/activate", { token, method: "POST", body }),
 };

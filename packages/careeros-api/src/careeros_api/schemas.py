@@ -133,3 +133,56 @@ class ProspectResponse(BaseModel):
     website: str
     industry: str
     stage: str | None
+
+
+class PlanInfo(BaseModel):
+    tier: str
+    name: str
+    monthly_price_usd: float
+    features: list[str]
+    is_current: bool
+    checkout_url: str | None
+
+
+class BillingResponse(BaseModel):
+    current_tier: str
+    status: str
+    plans: list[PlanInfo]
+
+
+class AutopilotOutcome(BaseModel):
+    job_title: str
+    company_name: str
+    submitted: bool
+    reason: str
+
+
+class AutopilotRunResponse(BaseModel):
+    id: str
+    ran_at: str
+    discovered: int
+    submitted: int
+    qualified_total: int
+    outcomes: list[AutopilotOutcome]
+
+
+class CustomerResponse(BaseModel):
+    name: str
+    email: str
+    role: str
+    workspace_id: str
+    plan: str
+    status: str
+    joined: str
+
+
+class AdminOverviewResponse(BaseModel):
+    accounts: int
+    paying_workspaces: int
+    mrr: float
+    customers: list[CustomerResponse]
+
+
+class ActivatePlanRequest(BaseModel):
+    workspace_id: str = Field(min_length=1)
+    tier: str = Field(min_length=1)
