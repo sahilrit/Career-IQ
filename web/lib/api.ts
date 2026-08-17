@@ -68,6 +68,8 @@ export type PlanInfo = {
 
 export type Billing = { current_tier: string; status: string; plans: PlanInfo[] };
 
+export type AiStatus = { has_key: boolean; model: string };
+
 export type AutopilotRun = {
   id: string;
   ran_at: string;
@@ -153,11 +155,15 @@ export const api = {
     body,
   }),
   generatePackage: (token: string, job_url: string) =>
-    request<{ resume_text: string; cover_letter: string }>("/opportunities/generate", {
-      token,
-      method: "POST",
-      body: { job_url },
-    }),
+    request<{ resume_text: string; cover_letter: string; ai_used: boolean }>(
+      "/opportunities/generate",
+      { token, method: "POST", body: { job_url } },
+    ),
+  aiStatus: (token: string) => request<AiStatus>("/settings/ai", { token }),
+  setAiKey: (token: string, api_key: string) =>
+    request<AiStatus>("/settings/ai", { token, method: "PUT", body: { api_key } }),
+  deleteAiKey: (token: string) =>
+    request<AiStatus>("/settings/ai", { token, method: "DELETE" }),
   offers: (token: string) => request<RankedOffer[]>("/offers", { token }),
   addOffer: (token: string, body: Record<string, unknown>) =>
     request<RankedOffer[]>("/offers", { token, method: "POST", body }),

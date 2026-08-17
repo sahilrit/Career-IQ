@@ -12,6 +12,7 @@ const NAV = [
   { href: "/network", label: "Network" },
   { href: "/analytics", label: "Analytics" },
   { href: "/billing", label: "Billing" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function Shell({
