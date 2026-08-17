@@ -1,0 +1,35 @@
+# Fly.io config for the CareerOS API. Deploy with:
+#   fly launch --no-deploy --config fly.api.toml --dockerfile Dockerfile.api
+#   fly postgres create --name careeros-db && fly postgres attach careeros-db
+#   fly secrets set CAREEROS_ADMIN_EMAILS=you@x.com CAREEROS_CORS_ORIGINS=https://<web-app>.fly.dev CAREEROS_STRIPE_WEBHOOK_SECRET=whsec_...
+#   fly deploy --config fly.api.toml --dockerfile Dockerfile.api
+# `fly postgres attach` sets DATABASE_URL; the app reads CAREEROS_DATABASE_URL,
+# so also: fly secrets set CAREEROS_DATABASE_URL="$(fly ssh console -C 'printenv DATABASE_URL')"
+# (or set CAREEROS_DATABASE_URL to the same value the attach printed).
+
+app = "careeros-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.api"
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  method = "GET"
+  path = "/health"
+  interval = "15s"
+  timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

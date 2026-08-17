@@ -21,8 +21,30 @@ export function Shell({
   account: Account;
   children: React.ReactNode;
 }) {
+  const nav = account.is_admin
+    ? [...NAV, { href: "/admin", label: "Admin" }]
+    : NAV;
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-4 py-6 md:px-6">
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row md:px-6">
+      {/* Mobile top nav (the sidebar is hidden below md). */}
+      <div className="md:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-lg font-semibold tracking-tight">CareerOS</span>
+          <LogoutButton />
+        </div>
+        <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          {nav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="shrink-0 rounded-xl border border-line px-3 py-1.5 text-sm text-white/80"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
       <aside className="hidden w-56 shrink-0 flex-col md:flex">
         <div className="mb-8 flex items-center gap-2 px-2">
           <span className="text-lg font-semibold tracking-tight">CareerOS</span>

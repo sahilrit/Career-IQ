@@ -1,0 +1,24 @@
+# Fly.io config for the CareerOS web app (Next.js). From ./web:
+#   fly launch --no-deploy --dockerfile Dockerfile
+#   fly secrets set CAREEROS_API_BASE=https://careeros-api.fly.dev
+#   fly deploy
+# CAREEROS_API_BASE must point at the deployed API, and the API's
+# CAREEROS_CORS_ORIGINS must include this app's URL.
+
+app = "careeros-web"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
