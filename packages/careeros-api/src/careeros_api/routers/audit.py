@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from careeros_ai import AIError
 from careeros_api import ai_support
 from careeros_api.dependencies import Context
+from careeros_api.storefront_audit import audit_storefront
 from careeros_audit_proposal_engine import (
     AdCreative,
     AuditProposalEngine,
@@ -104,6 +105,10 @@ def pitch_kit(body: PitchKitRequest, context: Context) -> dict[str, Any]:
     provider = ManualMetaAdsAuditProvider(ads) if ads else None
     engine = AuditProposalEngine(meta_ads_provider=provider)
     findings = engine.collect_findings(company)
+
+    # Audit the real storefront over HTTP (no browser) when a site is given.
+    if body.website:
+        findings = audit_storefront(body.website) + findings
 
     roi_inputs = None
     if (
