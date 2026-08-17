@@ -49,7 +49,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <div>
             <label className="label">Full name</label>
             <input
-              className="input"
+              className="input py-3.5 text-base"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -59,7 +59,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         <div>
           <label className="label">Email</label>
           <input
-            className="input"
+            className="input py-3.5 text-base"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -69,7 +69,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         <div>
           <label className="label">Password</label>
           <input
-            className="input"
+            className="input py-3.5 text-base"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
