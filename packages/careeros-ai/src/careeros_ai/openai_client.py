@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import httpx
 
-from careeros_ai.client import AIAuthError, AIUnavailableError
+from careeros_ai.client import AIAuthError, AIUnavailableError, default_timeout
 
 
 class OpenAICompatibleClient:
@@ -21,7 +21,7 @@ class OpenAICompatibleClient:
         self._api_key = api_key
         self._model = model
         self._base_url = base_url.rstrip("/")
-        self._http = http_client or httpx.Client(timeout=60.0)
+        self._http = http_client or httpx.Client(timeout=default_timeout())
 
     def complete(self, *, system: str, prompt: str) -> str:
         try:

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import httpx
 
-from careeros_ai.client import DEFAULT_MODEL, AIAuthError, AIUnavailableError
+from careeros_ai.client import DEFAULT_MODEL, AIAuthError, AIUnavailableError, default_timeout
 
 _URL = "https://api.anthropic.com/v1/messages"
 _VERSION = "2023-06-01"
@@ -21,7 +21,7 @@ class AnthropicClient:
     ) -> None:
         self._api_key = api_key
         self._model = model
-        self._http = http_client or httpx.Client(timeout=60.0)
+        self._http = http_client or httpx.Client(timeout=default_timeout())
 
     def complete(self, *, system: str, prompt: str) -> str:
         try:

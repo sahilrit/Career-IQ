@@ -3,9 +3,20 @@ it knows nothing about résumés, postings, or the domain."""
 
 from __future__ import annotations
 
+import os
 from typing import Protocol
 
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
+
+def default_timeout() -> float:
+    """Read timeout for AI calls. Generous by default so slow free tiers
+    (e.g. NVIDIA's free NIM) have room to respond; override with
+    CAREEROS_AI_TIMEOUT (seconds)."""
+    try:
+        return float(os.environ.get("CAREEROS_AI_TIMEOUT", "120"))
+    except ValueError:
+        return 120.0
 
 
 class AIError(Exception):
