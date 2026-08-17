@@ -39,6 +39,36 @@ services:
       # Optional: override the default Claude model for AI generation.
       - key: CAREEROS_AI_MODEL
         sync: false
+      # Stripe Payment Link URLs per paid tier (create them in Stripe →
+      # Payment Links, add metadata plan=pro / plan=agency). Until set, the
+      # billing page shows "Contact us to upgrade" instead of a pay button.
+      - key: CAREEROS_STRIPE_LINK_PRO
+        sync: false
+      - key: CAREEROS_STRIPE_LINK_AGENCY
+        sync: false
+      # Public origin of the web app — used to build password-reset links.
+      - key: CAREEROS_APP_BASE_URL
+        sync: false
+      # Transactional email (password reset). Without these, reset links are
+      # returned to the caller instead of emailed. Any SMTP provider works.
+      - key: CAREEROS_SMTP_HOST
+        sync: false
+      - key: CAREEROS_SMTP_PORT
+        sync: false
+      - key: CAREEROS_SMTP_USER
+        sync: false
+      - key: CAREEROS_SMTP_PASSWORD
+        sync: false
+      - key: CAREEROS_EMAIL_FROM
+        sync: false
+      # Shown on the legal pages.
+      - key: CAREEROS_COMPANY_NAME
+        sync: false
+      - key: CAREEROS_SUPPORT_EMAIL
+        sync: false
+      # Optional error monitoring — set to a Sentry DSN to turn it on.
+      - key: CAREEROS_SENTRY_DSN
+        sync: false
 
   - type: web
     name: careeros-web

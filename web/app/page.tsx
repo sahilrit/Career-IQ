@@ -104,7 +104,16 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-line py-8 text-center text-sm text-muted">
-        CareerOS — built to help you land the work.
+        <div>CareerOS — built to help you land the work.</div>
+        <div className="mt-2">
+          <Link href="/terms" className="transition hover:text-white">
+            Terms
+          </Link>
+          <span className="mx-2">·</span>
+          <Link href="/privacy" className="transition hover:text-white">
+            Privacy
+          </Link>
+        </div>
       </footer>
     </div>
   );

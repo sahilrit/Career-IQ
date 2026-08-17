@@ -80,6 +80,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
               12+ characters, with an uppercase letter, a digit, and a symbol.
             </p>
           )}
+          {mode === "login" && (
+            <p className="mt-1.5 text-right text-xs">
+              <Link href="/forgot" className="text-muted hover:text-white">
+                Forgot password?
+              </Link>
+            </p>
+          )}
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button className="btn w-full" disabled={busy}>

@@ -30,6 +30,7 @@ dependencies = [
     "uvicorn>=0.29",
     "python-multipart>=0.0.9",
     "pypdf>=4.0",
+    "sentry-sdk>=2.0",
 ]
 
 [tool.uv.sources]

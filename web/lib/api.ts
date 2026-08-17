@@ -70,6 +70,9 @@ export type Billing = { current_tier: string; status: string; plans: PlanInfo[] 
 
 export type AiStatus = { has_key: boolean; model: string };
 
+export type OnboardingStep = { key: string; label: string; href: string; done: boolean };
+export type Onboarding = { steps: OnboardingStep[]; complete: boolean };
+
 export type StarPrompt = { question: string; achievement_description: string; metric: string | null };
 export type InterviewPrep = {
   questions: {
@@ -224,6 +227,14 @@ export const api = {
   login: (body: { email: string; password: string }) =>
     request<{ token: string }>("/auth/login", { method: "POST", body }),
   me: (token: string) => request<Account>("/auth/me", { token }),
+  onboarding: (token: string) => request<Onboarding>("/onboarding", { token }),
+  resetRequest: (email: string) =>
+    request<{ message: string }>("/auth/reset/request", { method: "POST", body: { email } }),
+  resetConfirm: (token: string, new_password: string) =>
+    request<{ message: string }>("/auth/reset/confirm", {
+      method: "POST",
+      body: { token, new_password },
+    }),
   brain: (token: string) => request<CareerBrain>("/brain", { token }),
   applications: (token: string) => request<Application[]>("/applications", { token }),
   createBrain: (token: string, body: { full_name: string; email: string }) =>

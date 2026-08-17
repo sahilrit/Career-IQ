@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 
 from careeros_api.dependencies import Context, get_auth_service
+from careeros_api.email import app_base_url, send_email
 from careeros_api.schemas import (
     LoginRequest,
     MeResponse,
@@ -66,7 +67,18 @@ def logout(context: Context) -> MessageResponse:
 @router.post("/reset/request", response_model=MessageResponse)
 def request_reset(body: ResetRequest) -> MessageResponse:
     # Always the same response, so we never reveal which emails exist.
-    get_auth_service().request_password_reset(body.email)
+    token = get_auth_service().request_password_reset(body.email)
+    if token:
+        link = f"{app_base_url()}/reset?token={token}"
+        send_email(
+            to=body.email,
+            subject="Reset your CareerOS password",
+            body=(
+                "We received a request to reset your CareerOS password.\n\n"
+                f"Reset it here (link expires in 1 hour):\n{link}\n\n"
+                "If you didn't request this, you can safely ignore this email."
+            ),
+        )
     return MessageResponse(message="if that email has an account, a reset link is on its way")
 
 

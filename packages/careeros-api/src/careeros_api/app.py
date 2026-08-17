@@ -29,6 +29,7 @@ from careeros_api.routers import (
     learning,
     network,
     offers,
+    onboarding,
     opportunities,
     personal_brand,
     settings,
@@ -41,7 +42,22 @@ def _cors_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _init_error_monitoring() -> None:
+    # Optional: only active when a Sentry DSN is provided. Import is lazy so
+    # the dependency is never required in dev or on the free tier.
+    dsn = os.environ.get("CAREEROS_SENTRY_DSN")
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(dsn=dsn, traces_sample_rate=0.0)
+    except Exception:  # never let monitoring setup break startup
+        pass
+
+
 def create_app() -> FastAPI:
+    _init_error_monitoring()
     app = FastAPI(
         title="CareerOS API",
         version="0.1.0",
@@ -76,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(learning.router)
     app.include_router(finance.router)
     app.include_router(career_intel.router)
+    app.include_router(onboarding.router)
     app.include_router(webhooks.router)
     return app
 

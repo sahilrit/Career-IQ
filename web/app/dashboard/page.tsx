@@ -1,7 +1,8 @@
 import { requireAccount } from "@/lib/session";
-import { api, type Application, type CareerBrain } from "@/lib/api";
+import { api, type Application, type CareerBrain, type Onboarding } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { Stagger, StaggerItem } from "@/components/Motion";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,12 @@ export default async function DashboardPage() {
   } catch {
     brain = null;
   }
+  let onboarding: Onboarding | null = null;
+  try {
+    onboarding = await api.onboarding(token);
+  } catch {
+    onboarding = null;
+  }
 
   const tiles = [
     { label: "Applications", value: applications.length },
@@ -44,6 +51,8 @@ export default async function DashboardPage() {
         </p>
       </header>
 
+      {onboarding && <OnboardingChecklist data={onboarding} />}
+
       <Stagger>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           {tiles.map((tile) => (
@@ -56,13 +65,6 @@ export default async function DashboardPage() {
           ))}
         </div>
       </Stagger>
-
-      {!brain && (
-        <div className="card mt-6 p-6 text-muted">
-          No Career Brain yet — head to the Career Brain page (in the Streamlit
-          app) or import your resume to get started.
-        </div>
-      )}
     </Shell>
   );
 }
