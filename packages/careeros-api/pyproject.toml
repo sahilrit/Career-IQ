@@ -7,8 +7,11 @@ dependencies = [
     "careeros-auth",
     "careeros-billing",
     "careeros-career-brain",
+    "careeros-client-acquisition",
     "careeros-common",
+    "careeros-crm",
     "careeros-job-search",
+    "careeros-offer-negotiation",
     "careeros-tenancy",
     "fastapi>=0.110",
     "uvicorn>=0.29",
@@ -18,8 +21,11 @@ dependencies = [
 careeros-auth = { workspace = true }
 careeros-billing = { workspace = true }
 careeros-career-brain = { workspace = true }
+careeros-client-acquisition = { workspace = true }
 careeros-common = { workspace = true }
+careeros-crm = { workspace = true }
 careeros-job-search = { workspace = true }
+careeros-offer-negotiation = { workspace = true }
 careeros-tenancy = { workspace = true }
 
 [build-system]

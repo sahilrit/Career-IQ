@@ -34,6 +34,29 @@ export type CareerBrain = {
   experiences: { title: string; company_name: string }[];
 };
 
+export type RankedOffer = {
+  company_name: string;
+  job_title: string;
+  base_salary: number;
+  opportunity_value: number;
+};
+
+export type Contact = {
+  id: string;
+  name: string;
+  role: string;
+  organization_name: string;
+  stage: string | null;
+};
+
+export type Prospect = {
+  id: string;
+  name: string;
+  website: string;
+  industry: string;
+  stage: string | null;
+};
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -98,4 +121,15 @@ export const api = {
       method: "POST",
       body: { job_url },
     }),
+  offers: (token: string) => request<RankedOffer[]>("/offers", { token }),
+  addOffer: (token: string, body: Record<string, unknown>) =>
+    request<RankedOffer[]>("/offers", { token, method: "POST", body }),
+  contacts: (token: string) => request<Contact[]>("/contacts", { token }),
+  addContact: (
+    token: string,
+    body: { name: string; role: string; organization_name: string; email: string | null },
+  ) => request<Contact>("/contacts", { token, method: "POST", body }),
+  prospects: (token: string) => request<Prospect[]>("/freelance/prospects", { token }),
+  addProspect: (token: string, body: { name: string; website: string; industry: string }) =>
+    request<Prospect>("/freelance/prospects", { token, method: "POST", body }),
 };

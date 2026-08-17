@@ -84,3 +84,52 @@ class GenerateRequest(BaseModel):
 class ApplicationPackageResponse(BaseModel):
     resume_text: str
     cover_letter: str
+
+
+class OfferCreateRequest(BaseModel):
+    company_name: str = Field(min_length=1)
+    job_title: str = Field(min_length=1)
+    base_salary: float = Field(ge=0)
+    bonus: float = Field(default=0, ge=0)
+    equity_value: float = Field(default=0, ge=0)
+    benefits_value: float = Field(default=0, ge=0)
+    remote_policy: str = ""
+    stability_score: int = Field(default=3, ge=1, le=5)
+    growth_score: int = Field(default=3, ge=1, le=5)
+    reputation_score: int = Field(default=3, ge=1, le=5)
+
+
+class RankedOfferResponse(BaseModel):
+    company_name: str
+    job_title: str
+    base_salary: float
+    opportunity_value: float
+
+
+class ContactCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    role: str = "prospect"
+    organization_name: str = ""
+    email: str | None = None
+
+
+class ContactResponse(BaseModel):
+    id: str
+    name: str
+    role: str
+    organization_name: str
+    stage: str | None
+
+
+class ProspectCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    website: str = Field(min_length=1)
+    industry: str = ""
+
+
+class ProspectResponse(BaseModel):
+    id: str
+    name: str
+    website: str
+    industry: str
+    stage: str | None
