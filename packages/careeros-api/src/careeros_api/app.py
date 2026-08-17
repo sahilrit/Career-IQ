@@ -20,10 +20,17 @@ from careeros_api.routers import (
     autopilot,
     billing,
     brain,
+    career_intel,
+    ceo,
+    client_success,
+    finance,
     freelance,
+    interview,
+    learning,
     network,
     offers,
     opportunities,
+    personal_brand,
     settings,
     webhooks,
 )
@@ -62,6 +69,13 @@ def create_app() -> FastAPI:
     app.include_router(autopilot.router)
     app.include_router(admin.router)
     app.include_router(settings.router)
+    app.include_router(interview.router)
+    app.include_router(personal_brand.router)
+    app.include_router(client_success.router)
+    app.include_router(ceo.router)
+    app.include_router(learning.router)
+    app.include_router(finance.router)
+    app.include_router(career_intel.router)
     app.include_router(webhooks.router)
     return app
 
