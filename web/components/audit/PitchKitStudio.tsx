@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PitchKit } from "@/lib/api";
 import { FadeIn } from "@/components/Motion";
+import { GmailSendButton } from "@/components/GmailSendButton";
 
 type Ad = { headline: string; body_text: string; cta: string; landing_page_url: string };
 
@@ -225,7 +226,16 @@ export function PitchKitStudio() {
               </div>
               <textarea readOnly className="input min-h-48 text-xs" value={kit.proposal} />
             </div>
-            <Deliverable title="Cold email" body={kit.email} />
+            <div>
+              <Deliverable title="Cold email" body={kit.email} />
+              <div className="mt-2">
+                <GmailSendButton
+                  label="Send this email"
+                  defaultSubject={`Quick audit of ${company.company_name}`}
+                  defaultBody={kit.email}
+                />
+              </div>
+            </div>
             <Deliverable title="LinkedIn message" body={kit.linkedin_message} />
             <Deliverable title="Loom walkthrough script" body={kit.loom_script} />
           </section>

@@ -47,6 +47,7 @@ export type Contact = {
   role: string;
   organization_name: string;
   stage: string | null;
+  email: string | null;
 };
 
 export type Prospect = {

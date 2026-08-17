@@ -29,6 +29,7 @@ def _to_response(crm: RelationshipCRM, contact: Contact) -> ContactResponse:
         role=contact.role.value,
         organization_name=contact.organization_name,
         stage=stage.value if stage else None,
+        email=contact.email,
     )
 
 

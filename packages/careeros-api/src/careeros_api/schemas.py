@@ -129,6 +129,7 @@ class ContactResponse(BaseModel):
     role: str
     organization_name: str
     stage: str | None
+    email: str | None = None
 
 
 class ProspectCreateRequest(BaseModel):
