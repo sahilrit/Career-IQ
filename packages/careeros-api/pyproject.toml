@@ -4,11 +4,14 @@ version = "0.1.0"
 description = "HTTP API (FastAPI) over the CareerOS domain packages — the backend the React/Next frontend consumes. Thin controllers only: auth, tenant-scoped reads/writes, and the Stripe webhook. No business logic lives here."
 requires-python = ">=3.12"
 dependencies = [
+    "careeros-ai",
+    "careeros-application-engine",
     "careeros-auth",
     "careeros-billing",
     "careeros-career-brain",
     "careeros-client-acquisition",
     "careeros-common",
+    "careeros-credentials",
     "careeros-crm",
     "careeros-job-search",
     "careeros-offer-negotiation",
@@ -22,11 +25,14 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+careeros-ai = { workspace = true }
+careeros-application-engine = { workspace = true }
 careeros-auth = { workspace = true }
 careeros-billing = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-client-acquisition = { workspace = true }
 careeros-common = { workspace = true }
+careeros-credentials = { workspace = true }
 careeros-crm = { workspace = true }
 careeros-job-search = { workspace = true }
 careeros-offer-negotiation = { workspace = true }

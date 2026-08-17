@@ -223,11 +223,14 @@ name = "careeros-api"
 version = "0.1.0"
 source = { editable = "packages/careeros-api" }
 dependencies = [
+    { name = "careeros-ai" },
+    { name = "careeros-application-engine" },
     { name = "careeros-auth" },
     { name = "careeros-billing" },
     { name = "careeros-career-brain" },
     { name = "careeros-client-acquisition" },
     { name = "careeros-common" },
+    { name = "careeros-credentials" },
     { name = "careeros-crm" },
     { name = "careeros-job-search" },
     { name = "careeros-offer-negotiation" },
@@ -242,11 +245,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "careeros-ai", editable = "packages/careeros-ai" },
+    { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
     { name = "careeros-auth", editable = "packages/careeros-auth" },
     { name = "careeros-billing", editable = "packages/careeros-billing" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-client-acquisition", editable = "packages/careeros-client-acquisition" },
     { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-credentials", editable = "packages/careeros-credentials" },
     { name = "careeros-crm", editable = "packages/careeros-crm" },
     { name = "careeros-job-search", editable = "packages/careeros-job-search" },
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
