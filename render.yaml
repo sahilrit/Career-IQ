@@ -1,0 +1,46 @@
+# Render Blueprint — the free path. In Render: New -> Blueprint -> pick
+# this repo. It provisions a free Postgres, the API, and the web app, and
+# redeploys automatically on every push to main (no GitHub Action needed).
+#
+# Free-tier notes: web services sleep after ~15 min idle (first request
+# after that is a slow cold start) and the free Postgres expires after
+# 90 days — both fine for validating the product before you spend anything.
+#
+# After the first deploy, set two values in the Render dashboard:
+#   careeros-web -> CAREEROS_API_BASE = the careeros-api public URL
+#   careeros-api -> CAREEROS_ADMIN_EMAILS = your email (to get the Admin page)
+
+databases:
+  - name: careeros-db
+    plan: free
+
+services:
+  - type: web
+    name: careeros-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CAREEROS_DATABASE_URL
+        fromDatabase:
+          name: careeros-db
+          property: connectionString
+      - key: CAREEROS_ADMIN_EMAILS
+        sync: false
+      - key: CAREEROS_STRIPE_WEBHOOK_SECRET
+        sync: false
+
+  - type: web
+    name: careeros-web
+    runtime: docker
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
+    plan: free
+    envVars:
+      # Paste the careeros-api public URL here after the first deploy.
+      # (Every API call the web app makes is server-to-server, so there is
+      # no browser CORS to configure.)
+      - key: CAREEROS_API_BASE
+        sync: false

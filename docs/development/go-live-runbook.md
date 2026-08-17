@@ -23,7 +23,39 @@ This triggers `.github/workflows/ci.yml`: lint + tests **against a real
 Postgres** and a **build of both Docker images**. Watch it green on
 GitHub → this proves the Postgres store and the images before any deploy.
 
-## 2A. Deploy on Fly.io
+**Auto-deploy on green CI** — `.github/workflows/deploy.yml` runs *after*
+CI succeeds on main. If you use Fly, add a `FLY_API_TOKEN` repo secret
+(`fly tokens create deploy`) and it deploys the API + web automatically
+on every green push. With no secret it's a clean no-op — and Render /
+Vercel auto-deploy on push on their own, so you don't need the Action
+there.
+
+## 2. Free path (recommended to validate before spending anything)
+
+**Render Blueprint** — deploys the API, a free Postgres, and the web app
+from `render.yaml`, and **auto-redeploys on every push to main** (no
+GitHub Action needed):
+
+1. Render → **New → Blueprint** → pick `sahilrit/Career-IQ`. It reads
+   `render.yaml` and provisions `careeros-db` (free Postgres),
+   `careeros-api`, and `careeros-web`.
+2. After the first build, set two values in the dashboard:
+   - `careeros-web` → `CAREEROS_API_BASE` = the `careeros-api` public URL.
+   - `careeros-api` → `CAREEROS_ADMIN_EMAILS` = your email.
+3. Open the `careeros-web` URL, sign up, done.
+
+Free-tier caveats (fine for validation): services sleep after ~15 min
+idle (slow first request after that), and free Postgres expires after
+90 days. Render's free tier is typically card-free — if a card is ever
+requested it's for identity only; low usage bills $0.
+
+**Even freer frontend (optional):** deploy `./web` to **Vercel** (free
+hobby, no sleep) instead of the Render web service — import the repo, set
+root directory `web`, add `CAREEROS_API_BASE`. Keep the API + Postgres on
+Render. Note: every API call the web app makes is server-to-server, so
+there is nothing to configure for browser CORS.
+
+## 2A. Paid / always-on path — Deploy on Fly.io
 
 ```bash
 # API
