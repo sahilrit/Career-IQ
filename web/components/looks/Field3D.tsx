@@ -6,9 +6,9 @@ import { useEffect, useRef } from "react";
 // the camera. Real depth (z-projection), mouse parallax, additive glow. Reads
 // as a cinematic 3D tunnel without three.js or any external asset.
 
-type Props = { accent: string; density?: number };
+type Props = { accent: string; density?: number; speed?: number };
 
-export function Field3D({ accent, density = 260 }: Props) {
+export function Field3D({ accent, density = 260, speed: speedProp = 3.2 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function Field3D({ accent, density = 260 }: Props) {
     window.addEventListener("mousemove", onMove);
 
     let raf = 0;
-    const speed = reduce ? 0 : 3.2;
+    const speed = reduce ? 0 : speedProp;
 
     const draw = () => {
       mouse.x += (mouse.tx - mouse.x) * 0.05;
@@ -90,7 +90,7 @@ export function Field3D({ accent, density = 260 }: Props) {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMove);
     };
-  }, [accent, density]);
+  }, [accent, density, speedProp]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />;
 }
