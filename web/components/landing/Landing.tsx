@@ -2,8 +2,8 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import { Reveal, Reveal3D } from "@/components/Motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { Parallax, Reveal, Reveal3D } from "@/components/Motion";
 import { Wordmark } from "@/components/Wordmark";
 import { AuroraBackground } from "@/components/landing/AuroraBackground";
 import { HeroStack } from "@/components/landing/HeroStack";
@@ -85,26 +85,20 @@ function DepthRow({
   index: number;
   capability: (typeof CAPABILITIES)[number];
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 0.9", "center 0.55"],
-  });
-  const progress = useSpring(scrollYProgress, { stiffness: 90, damping: 28, mass: 0.5 });
   const flip = index % 2 === 1;
-  const x = useTransform(progress, [0, 1], [flip ? 90 : -90, 0]);
-  const rotateY = useTransform(progress, [0, 1], [flip ? -14 : 14, 0]);
-  const opacity = useTransform(progress, [0, 0.6], [0, 1]);
 
   return (
     <div
-      ref={ref}
-      className={`grid items-center gap-8 py-14 md:grid-cols-2 md:gap-16 ${flip ? "" : ""}`}
+      className="grid items-center gap-8 py-14 md:grid-cols-2 md:gap-16"
       style={{ perspective: 1300 }}
     >
       <motion.div
-        style={{ x, rotateY, opacity, transformStyle: "preserve-3d" }}
         className={flip ? "md:order-2" : ""}
+        style={{ transformStyle: "preserve-3d" }}
+        initial={{ opacity: 0, x: flip ? 80 : -80, rotateY: flip ? -12 : 12 }}
+        whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
+        viewport={{ once: true, amount: 0.4 }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-accent/80">
           {String(index + 1).padStart(2, "0")} · {capability.tag}
@@ -124,10 +118,13 @@ function DepthRow({
       </motion.div>
 
       <motion.div
-        style={{ opacity, transformStyle: "preserve-3d" }}
         className={flip ? "md:order-1" : ""}
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="relative">
+        <Parallax distance={36} className="relative">
           <div
             className="absolute -inset-6 rounded-[2rem] bg-accent/10 blur-3xl"
             aria-hidden
@@ -153,7 +150,7 @@ function DepthRow({
               </div>
             </div>
           </div>
-        </div>
+        </Parallax>
       </motion.div>
     </div>
   );
