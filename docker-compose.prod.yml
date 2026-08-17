@@ -1,0 +1,72 @@
+# Production stack: Postgres + API + React web + (optional) Streamlit
+# dashboard. Copy .env.prod.example to .env and fill it in first.
+#
+#   docker compose -f docker-compose.prod.yml up --build
+#
+# For a real deploy, run these behind a reverse proxy that terminates
+# HTTPS (Caddy/Traefik/nginx) or use a PaaS (Fly.io/Render) per
+# docs/development/deployment.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=careeros
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-careeros}
+      - POSTGRES_DB=careeros
+    volumes:
+      - careeros-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careeros"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - CAREEROS_DATABASE_URL=postgresql://careeros:${POSTGRES_PASSWORD:-careeros}@postgres:5432/careeros
+      - CAREEROS_ADMIN_EMAILS=${CAREEROS_ADMIN_EMAILS:-}
+      - CAREEROS_CORS_ORIGINS=${CAREEROS_CORS_ORIGINS:-http://localhost:3000}
+      - CAREEROS_STRIPE_WEBHOOK_SECRET=${CAREEROS_STRIPE_WEBHOOK_SECRET:-}
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      - CAREEROS_API_BASE=${CAREEROS_API_BASE:-http://api:8000}
+    ports:
+      - "3000:3000"
+
+  # Optional: the Streamlit dashboard against the same Postgres. Enable
+  # with `--profile dashboard`.
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["dashboard"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - CAREEROS_DATABASE_URL=postgresql://careeros:${POSTGRES_PASSWORD:-careeros}@postgres:5432/careeros
+      - CAREEROS_ADMIN_EMAILS=${CAREEROS_ADMIN_EMAILS:-}
+    ports:
+      - "8501:8501"
+
+volumes:
+  careeros-postgres:

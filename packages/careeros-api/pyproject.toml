@@ -13,6 +13,8 @@ dependencies = [
     "careeros-job-search",
     "careeros-offer-negotiation",
     "careeros-tenancy",
+    "psycopg[binary]>=3.1",
+    "psycopg-pool>=3.2",
     "fastapi>=0.110",
     "uvicorn>=0.29",
 ]

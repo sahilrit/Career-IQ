@@ -12,26 +12,21 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Header, HTTPException, status
 
 from careeros_auth import AuthService
 from careeros_auth.models import AuthenticatedAccount
-from careeros_common import DocumentStore
+from careeros_common import open_store
 from careeros_tenancy import Permission, TenantScopedDocumentStore, has_permission
-
-DEFAULT_DATA_DIR = Path(".careeros/data")
-
-
-def resolve_data_dir() -> Path:
-    return Path(os.environ.get("CAREEROS_DATA_DIR", str(DEFAULT_DATA_DIR)))
 
 
 @lru_cache(maxsize=1)
-def get_store() -> DocumentStore:
-    return DocumentStore(resolve_data_dir() / "careeros.db")
+def get_store() -> Any:
+    # Postgres when CAREEROS_DATABASE_URL is set, else SQLite — see
+    # careeros_common.open_store. Cached so one pool/connection is reused.
+    return open_store()
 
 
 def get_auth_service() -> AuthService:
@@ -47,7 +42,7 @@ class RequestContext:
     """What every authenticated request resolves to: the account and a
     DocumentStore already scoped to its workspace (tenant)."""
 
-    def __init__(self, account: AuthenticatedAccount, raw_store: DocumentStore) -> None:
+    def __init__(self, account: AuthenticatedAccount, raw_store: Any) -> None:
         self.account = account
         self.raw_store = raw_store
         self.store = TenantScopedDocumentStore(raw_store, account.workspace_id)
