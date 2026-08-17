@@ -16,24 +16,28 @@ const CAPABILITIES = [
     title: "One brain for your whole career.",
     body: "Every role, result, and skill in a single authoritative record. It's the source every résumé, application, and pitch is written from — so nothing is invented, nothing is exaggerated, and you never rewrite the same story twice.",
     points: ["Résumé & links in, structured profile out", "Grounds every AI draft in real facts"],
+    metric: { label: "Profile completeness", value: "100%" },
   },
   {
     tag: "Discovery",
     title: "It finds the work. You pick the winners.",
     body: "Jobs and freelance clients pulled in and scored against your actual profile — not a keyword feed to drown in. You wake up to a shortlist worth your time, ranked by how well it fits you.",
     points: ["Scored against your Career Brain", "Roles and retainer clients in one queue"],
+    metric: { label: "Top match today", value: "96%" },
   },
   {
     tag: "Applications",
     title: "A tailored application in the time it takes to read one.",
     body: "A résumé and cover letter rewritten for each posting, grounded in your facts. Turn autopilot on and it applies across open boards for you — with a human handoff before anything is sent.",
     points: ["Per-posting résumé + cover letter", "Apply and book interviews in-app"],
+    metric: { label: "Draft ready in", value: "8s" },
   },
   {
     tag: "Pitch Kit",
     title: "Turn a cold prospect into a signed client.",
     body: "Audit any storefront live, put a number on the revenue they're leaving on the table, and generate the proposal, outreach email, and Loom script to win the deal. Your freelance money-maker, in one click.",
     points: ["Live site audit → ROI in dollars", "Proposal, email & script, ready to send"],
+    metric: { label: "Revenue found / yr", value: "$1.8M" },
   },
 ];
 
@@ -86,30 +90,28 @@ function DepthRow({
   capability: (typeof CAPABILITIES)[number];
 }) {
   const flip = index % 2 === 1;
+  const num = String(index + 1).padStart(2, "0");
+  const tilt = flip ? 9 : -9; // persistent 3D tilt toward the copy
 
   return (
-    <div
-      className="grid items-center gap-8 py-14 md:grid-cols-2 md:gap-16"
-      style={{ perspective: 1300 }}
-    >
+    <div className="grid items-center gap-10 py-16 md:grid-cols-2 md:gap-16">
       <motion.div
         className={flip ? "md:order-2" : ""}
-        style={{ transformStyle: "preserve-3d" }}
-        initial={{ opacity: 0, x: flip ? 80 : -80, rotateY: flip ? -12 : 12 }}
-        whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-        viewport={{ once: true, amount: 0.4 }}
-        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, x: flip ? 60 : -60 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: "0px 0px -15% 0px" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="font-mono text-xs uppercase tracking-[0.22em] text-accent/80">
-          {String(index + 1).padStart(2, "0")} · {capability.tag}
+        <div className="font-mono text-xs uppercase tracking-[0.22em] text-accent">
+          {num} · {capability.tag}
         </div>
         <h3 className="mt-4 font-display text-3xl font-medium tracking-tightest sm:text-4xl">
           {capability.title}
         </h3>
-        <p className="mt-4 max-w-md text-base leading-relaxed text-muted">{capability.body}</p>
-        <ul className="mt-6 space-y-2">
+        <p className="mt-4 max-w-md text-base leading-relaxed text-white/70">{capability.body}</p>
+        <ul className="mt-6 space-y-2.5">
           {capability.points.map((p) => (
-            <li key={p} className="flex items-start gap-2.5 text-sm text-white/80">
+            <li key={p} className="flex items-start gap-2.5 text-sm text-white/85">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
               {p}
             </li>
@@ -119,35 +121,61 @@ function DepthRow({
 
       <motion.div
         className={flip ? "md:order-1" : ""}
-        initial={{ opacity: 0, y: 50 }}
+        style={{ perspective: 1400 }}
+        initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+        viewport={{ once: true, margin: "0px 0px -15% 0px" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <Parallax distance={36} className="relative">
+        <Parallax distance={28} className="relative">
+          <div className="absolute -inset-8 rounded-[2.5rem] bg-accent/15 blur-3xl" aria-hidden />
           <div
-            className="absolute -inset-6 rounded-[2rem] bg-accent/10 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-panel/70 p-6 shadow-card backdrop-blur">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-              <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+            className="relative aspect-[4/3] rounded-2xl border border-white/12 bg-gradient-to-br from-raised/90 to-panel/80 p-6 shadow-raised backdrop-blur-xl"
+            style={{ transformStyle: "preserve-3d", transform: `rotateY(${tilt}deg) rotateX(5deg)` }}
+          >
+            {/* glass sheen */}
+            <div
+              className="pointer-events-none absolute inset-0 rounded-2xl"
+              style={{ background: "linear-gradient(140deg, rgba(255,255,255,0.12), transparent 42%)" }}
+              aria-hidden
+            />
+            {/* window chrome */}
+            <div className="flex items-center gap-1.5" style={{ transform: "translateZ(30px)" }}>
+              <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60">
                 careeros / {capability.tag.toLowerCase().replace(/\s+/g, "-")}
               </span>
             </div>
-            <div className="mt-5 flex h-full flex-col justify-center gap-3">
-              <div className="font-display text-5xl font-semibold tracking-tightest text-accent/90">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <div className="space-y-2">
-                <div className="h-2.5 w-11/12 rounded bg-white/12" />
-                <div className="h-2.5 w-9/12 rounded bg-white/10" />
-                <div className="h-2.5 w-10/12 rounded bg-white/[0.07]" />
-                <div className="h-2.5 w-6/12 rounded bg-white/[0.07]" />
-              </div>
+
+            {/* highlighted metric tile — raised in Z for real depth */}
+            <div
+              className="mt-5 inline-flex flex-col rounded-xl border border-accent/30 bg-accent/10 px-4 py-3"
+              style={{ transform: "translateZ(55px)" }}
+            >
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-accent/90">
+                {capability.metric.label}
+              </span>
+              <span className="mt-0.5 font-display text-2xl font-semibold text-white">
+                {capability.metric.value}
+              </span>
+            </div>
+
+            {/* content lines — brighter, layered */}
+            <div className="mt-5 space-y-2.5" style={{ transform: "translateZ(20px)" }}>
+              <div className="h-2.5 w-11/12 rounded bg-white/25" />
+              <div className="h-2.5 w-9/12 rounded bg-white/18" />
+              <div className="h-2.5 w-10/12 rounded bg-white/12" />
+              <div className="h-2.5 w-7/12 rounded bg-white/10" />
+            </div>
+
+            {/* floating index chip, furthest forward */}
+            <div
+              className="absolute bottom-5 right-5 flex h-12 w-12 items-center justify-center rounded-xl bg-accent font-display text-lg font-bold text-accentInk shadow-glow"
+              style={{ transform: "translateZ(80px)" }}
+            >
+              {num}
             </div>
           </div>
         </Parallax>
