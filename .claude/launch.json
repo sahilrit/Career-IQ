@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd '/Users/sahilsachdeva/Documents/CAREER IQ/web' && npm run dev"],
+      "port": 3000
+    },
+    {
       "name": "dashboard",
       "runtimeExecutable": "env",
       "runtimeArgs": [

@@ -5,15 +5,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#0b0b0f",
-        panel: "#141419",
-        line: "#26262e",
-        muted: "#9c9ca6",
-        accent: "#6366f1",
-        accentSoft: "#818cf8",
+        ink: "#09090c",
+        panel: "#15151c",
+        line: "#26262f",
+        muted: "#9a9aa6",
+        accent: "#6d5efc",
+        accentSoft: "#8b7bff",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      boxShadow: {
+        card: "0 1px 0 0 rgba(255,255,255,0.03) inset, 0 12px 40px -12px rgba(0,0,0,0.5)",
+        glow: "0 8px 30px -8px rgba(109,94,252,0.45)",
       },
     },
   },
