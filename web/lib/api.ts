@@ -73,6 +73,9 @@ export type AiStatus = { has_key: boolean; model: string };
 export type OnboardingStep = { key: string; label: string; href: string; done: boolean };
 export type Onboarding = { steps: OnboardingStep[]; complete: boolean };
 
+export type GoogleStatus = { configured: boolean; connected: boolean; email: string | null };
+export type CalendarEvent = { summary: string; start: string; html_link: string };
+
 export type StarPrompt = { question: string; achievement_description: string; metric: string | null };
 export type InterviewPrep = {
   questions: {
@@ -256,6 +259,21 @@ export const api = {
     request<{ token: string }>("/auth/login", { method: "POST", body }),
   me: (token: string) => request<Account>("/auth/me", { token }),
   onboarding: (token: string) => request<Onboarding>("/onboarding", { token }),
+  googleStatus: (token: string) => request<GoogleStatus>("/integrations/google", { token }),
+  googleAuthUrl: (token: string) =>
+    request<{ url: string }>("/integrations/google/auth-url", { token }),
+  googleConnect: (token: string, code: string) =>
+    request<{ connected: boolean; email: string }>("/integrations/google/connect", {
+      token,
+      method: "POST",
+      body: { code },
+    }),
+  googleDisconnect: (token: string) =>
+    request<{ connected: boolean }>("/integrations/google", { token, method: "DELETE" }),
+  gmailSend: (token: string, body: { to: string; subject: string; body: string }) =>
+    request<{ sent: boolean }>("/integrations/gmail/send", { token, method: "POST", body }),
+  calendarEvents: (token: string) =>
+    request<CalendarEvent[]>("/integrations/calendar/events", { token }),
   resetRequest: (email: string) =>
     request<{ message: string }>("/auth/reset/request", { method: "POST", body: { email } }),
   resetConfirm: (token: string, new_password: string) =>

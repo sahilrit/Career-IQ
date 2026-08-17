@@ -4,42 +4,20 @@ not a third-party plugin)."""
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import os
 from typing import Any
 
 from careeros_ai import AIClient, build_client
+from careeros_api.vault_support import open_vault
 from careeros_application_engine import AICoverLetterGenerator, CoverLetterGenerator
-from careeros_credentials import (
-    CredentialAuditLog,
-    CredentialVault,
-    SecretCipher,
-    SecretNotFoundError,
-    credential_permission,
-)
+from careeros_credentials import SecretNotFoundError
 
 _SERVICE = "anthropic_api_key"
 _REQUESTER = "careeros-app"
 
 
-def _cipher() -> SecretCipher:
-    # Derive a valid Fernet key from any secret string so operators can set
-    # CAREEROS_SECRET_KEY to an arbitrary value (e.g. Render's generated
-    # random string) without it having to already be Fernet-formatted.
-    # Deterministic: the same secret always yields the same key, so stored
-    # secrets keep decrypting. Falls back to a fixed dev secret when unset
-    # (never used in production, which always sets the env).
-    raw = os.environ.get("CAREEROS_SECRET_KEY") or "careeros-dev-secret"
-    key = base64.urlsafe_b64encode(hashlib.sha256(raw.encode("utf-8")).digest()).decode()
-    return SecretCipher(key)
-
-
-def _vault(store: Any) -> CredentialVault:
-    def lookup(_requester: str) -> frozenset[str]:
-        return frozenset({credential_permission(_SERVICE)})
-
-    return CredentialVault(store, _cipher(), CredentialAuditLog(store), lookup_permissions=lookup)
+def _vault(store: Any):
+    return open_vault(store, _SERVICE)
 
 
 def ai_model_override() -> str | None:

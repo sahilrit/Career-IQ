@@ -69,6 +69,13 @@ services:
       # Optional error monitoring — set to a Sentry DSN to turn it on.
       - key: CAREEROS_SENTRY_DSN
         sync: false
+      # Google integration (Gmail send + Calendar). From Google Cloud →
+      # APIs & Services → Credentials → OAuth client (Web application).
+      # Inert until both are set.
+      - key: CAREEROS_GOOGLE_CLIENT_ID
+        sync: false
+      - key: CAREEROS_GOOGLE_CLIENT_SECRET
+        sync: false
 
   - type: web
     name: careeros-web

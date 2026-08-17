@@ -1,7 +1,8 @@
 import { requireAccount } from "@/lib/session";
-import { api, type AiStatus } from "@/lib/api";
+import { api, type AiStatus, type GoogleStatus } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { AiKeyForm } from "@/components/settings/AiKeyForm";
+import { GoogleCard } from "@/components/settings/GoogleCard";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,12 @@ export default async function SettingsPage() {
   } catch {
     // Leave the default (AI off) if the call fails.
   }
+  let google: GoogleStatus = { configured: false, connected: false, email: null };
+  try {
+    google = await api.googleStatus(token);
+  } catch {
+    // Leave the default (not configured) if the call fails.
+  }
 
   return (
     <Shell account={account}>
@@ -21,7 +28,10 @@ export default async function SettingsPage() {
         Connect your own AI key — Anthropic, OpenRouter, or OpenAI — so CareerOS writes your cover
         letters and proposals. Without a key everything still works on free templates.
       </p>
-      <AiKeyForm initial={status} />
+      <div className="space-y-4">
+        <AiKeyForm initial={status} />
+        <GoogleCard initial={google} />
+      </div>
     </Shell>
   );
 }
