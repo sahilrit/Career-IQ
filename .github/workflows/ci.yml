@@ -8,6 +8,24 @@ on:
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
+
+    # A real Postgres so the store-factory's gated test actually exercises
+    # PostgresDocumentStore (skipped locally where no DB is available).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: careeros
+          POSTGRES_PASSWORD: careeros
+          POSTGRES_DB: careeros_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U careeros"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,5 +46,18 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
 
-      - name: Pytest
+      - name: Pytest (incl. live Postgres store)
+        env:
+          CAREEROS_TEST_DATABASE_URL: postgresql://careeros:careeros@localhost:5432/careeros_test
         run: uv run pytest
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t careeros-api:ci .
+
+      - name: Build web image
+        run: docker build -f web/Dockerfile -t careeros-web:ci ./web
