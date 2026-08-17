@@ -70,6 +70,96 @@ export type Billing = { current_tier: string; status: string; plans: PlanInfo[] 
 
 export type AiStatus = { has_key: boolean; model: string };
 
+export type StarPrompt = { question: string; achievement_description: string; metric: string | null };
+export type InterviewPrep = {
+  questions: {
+    role_specific: string[];
+    technical: string[];
+    company_specific: string[];
+    star_prompts: StarPrompt[];
+  };
+  briefing: {
+    company_name: string;
+    job_title: string;
+    strongest_achievements: string[];
+    questions_to_ask: string[];
+    compensation_strategy: string;
+    things_to_avoid: string[];
+  };
+  briefing_text: string;
+};
+
+export type BrandProject = { id: string; name: string };
+export type BrandContent = {
+  case_study: { title: string; problem: string; approach: string; result: string };
+  linkedin: string;
+  x_thread: string[];
+  portfolio: string;
+  blog: string;
+};
+
+export type ClientContract = {
+  id: string;
+  title: string;
+  rate: number;
+  status: string;
+  outstanding: number;
+};
+export type ClientRow = {
+  id: string;
+  name: string;
+  lifecycle_stage: string | null;
+  contracts: ClientContract[];
+};
+
+export type AllocationPlan = {
+  allocations: Record<string, number>;
+  generated_at: string;
+  disclaimer: string;
+} | null;
+export type CeoOverview = { latest: AllocationPlan; history: AllocationPlan[] };
+
+export type VariantRow = {
+  id: string;
+  label: string;
+  sent: number;
+  responses: number;
+  response_rate: number | null;
+};
+export type ExperimentRow = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  variants: VariantRow[];
+  winner: string | null;
+};
+
+export type IncomeRecord = {
+  id: string;
+  source: string;
+  source_name: string;
+  amount: number;
+  received_date: string;
+};
+export type FinanceOverview = {
+  records: IncomeRecord[];
+  total: number;
+  monthly: { year: number; month: number; total: number }[];
+  trend: string | null;
+};
+
+export type RankedSubject = {
+  subject: string;
+  combined_score: number;
+  supporting_signal_count: number;
+  sources: string[];
+};
+export type CareerIntel = {
+  direction_summary: string;
+  recommendations: Record<string, RankedSubject[]>;
+};
+
 export type AutopilotRun = {
   id: string;
   ran_at: string;
@@ -180,4 +270,57 @@ export const api = {
   adminOverview: (token: string) => request<AdminOverview>("/admin/overview", { token }),
   adminActivate: (token: string, body: { workspace_id: string; tier: string }) =>
     request<AdminOverview>("/admin/activate", { token, method: "POST", body }),
+
+  interviewPrep: (
+    token: string,
+    body: { job_title: string; company_name: string; job_description: string },
+  ) => request<InterviewPrep>("/interview/prep", { token, method: "POST", body }),
+
+  brandProjects: (token: string) => request<BrandProject[]>("/personal-brand/projects", { token }),
+  brandGenerate: (token: string, project_id: string) =>
+    request<BrandContent>("/personal-brand/generate", {
+      token,
+      method: "POST",
+      body: { project_id },
+    }),
+
+  clients: (token: string) => request<ClientRow[]>("/clients", { token }),
+  addClient: (token: string, name: string) =>
+    request<{ id: string; name: string }>("/clients", { token, method: "POST", body: { name } }),
+  addContract: (
+    token: string,
+    body: { client_id: string; title: string; rate: number; start_date: string },
+  ) => request<{ id: string }>("/clients/contracts", { token, method: "POST", body }),
+  addInvoice: (token: string, body: { contract_id: string; amount: number; due_date: string }) =>
+    request<{ id: string }>("/clients/invoices", { token, method: "POST", body }),
+
+  ceo: (token: string) => request<CeoOverview>("/ceo", { token }),
+  ceoRecord: (token: string, body: { category: string; metric_name: string; value: number }) =>
+    request<{ ok: boolean }>("/ceo/performance", { token, method: "POST", body }),
+  ceoCompute: (token: string) =>
+    request<AllocationPlan>("/ceo/compute", { token, method: "POST", body: {} }),
+
+  experiments: (token: string) => request<ExperimentRow[]>("/learning", { token }),
+  createExperiment: (token: string, body: { experiment_type: string; name: string }) =>
+    request<{ id: string }>("/learning/experiments", { token, method: "POST", body }),
+  addVariant: (token: string, body: { experiment_id: string; label: string }) =>
+    request<{ id: string }>("/learning/variants", { token, method: "POST", body }),
+  recordOutcome: (token: string, body: { variant_id: string; outcome_type: string }) =>
+    request<{ ok: boolean }>("/learning/outcomes", { token, method: "POST", body }),
+
+  finance: (token: string) => request<FinanceOverview>("/finance/income", { token }),
+  addIncome: (
+    token: string,
+    body: {
+      source: string;
+      source_name: string;
+      amount: number;
+      received_date: string;
+      hours_worked?: number | null;
+    },
+  ) => request<{ id: string }>("/finance/income", { token, method: "POST", body }),
+
+  careerIntel: (token: string) => request<CareerIntel>("/career-intel", { token }),
+  addSignal: (token: string, body: { category: string; subject: string; score: number }) =>
+    request<{ ok: boolean }>("/career-intel/signals", { token, method: "POST", body }),
 };
