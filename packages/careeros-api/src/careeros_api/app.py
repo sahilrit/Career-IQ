@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from careeros_api.routers import (
     admin,
+    audit,
     auth,
     autopilot,
     billing,
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(finance.router)
     app.include_router(career_intel.router)
     app.include_router(onboarding.router)
+    app.include_router(audit.router)
     app.include_router(webhooks.router)
     return app
 

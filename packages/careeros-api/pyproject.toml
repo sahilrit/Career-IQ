@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "careeros-ai",
     "careeros-application-engine",
+    "careeros-audit-proposal-engine",
     "careeros-auth",
     "careeros-billing",
     "careeros-career-brain",
@@ -36,6 +37,7 @@ dependencies = [
 [tool.uv.sources]
 careeros-ai = { workspace = true }
 careeros-application-engine = { workspace = true }
+careeros-audit-proposal-engine = { workspace = true }
 careeros-auth = { workspace = true }
 careeros-billing = { workspace = true }
 careeros-career-brain = { workspace = true }

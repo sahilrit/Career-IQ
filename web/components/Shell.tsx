@@ -10,6 +10,7 @@ const NAV = [
   { href: "/autopilot", label: "Autopilot" },
   { href: "/offers", label: "Offers" },
   { href: "/freelance", label: "Freelance" },
+  { href: "/pitch-kit", label: "Pitch Kit" },
   { href: "/clients", label: "Clients" },
   { href: "/network", label: "Network" },
   { href: "/personal-brand", label: "Personal Brand" },

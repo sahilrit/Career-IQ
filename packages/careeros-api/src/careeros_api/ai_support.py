@@ -70,3 +70,12 @@ def resolve_cover_letter_generator(store: Any, workspace_id: str) -> CoverLetter
     if not key:
         return None
     return AICoverLetterGenerator(AnthropicClient(key, ai_model()))
+
+
+def resolve_ai_client(store: Any, workspace_id: str) -> AnthropicClient | None:
+    """The raw AI client for features that build their own prompts (e.g. the
+    audit pitch kit). None when the workspace has no key."""
+    key = _get_key(store, workspace_id)
+    if not key:
+        return None
+    return AnthropicClient(key, ai_model())

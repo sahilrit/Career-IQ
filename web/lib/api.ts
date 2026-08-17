@@ -163,6 +163,34 @@ export type CareerIntel = {
   recommendations: Record<string, RankedSubject[]>;
 };
 
+export type PitchFinding = { category: string; detail: string; recommendation: string };
+export type PitchRoi = {
+  current_monthly_revenue: number;
+  assumed_uplift_pct: number;
+  projected_additional_monthly_revenue: number;
+  projected_additional_annual_revenue: number;
+  disclaimer: string;
+} | null;
+export type PitchKit = {
+  findings: PitchFinding[];
+  roi: PitchRoi;
+  email: string;
+  linkedin_message: string;
+  loom_script: string;
+  proposal: string;
+  ai_used: boolean;
+  pdf_base64: string;
+};
+export type PitchKitInput = {
+  company_name: string;
+  website: string;
+  industry: string;
+  monthly_visitors?: number | null;
+  conversion_rate?: number | null;
+  average_order_value?: number | null;
+  ads: { headline: string; body_text: string; cta: string; landing_page_url: string }[];
+};
+
 export type AutopilotRun = {
   id: string;
   ran_at: string;
@@ -330,6 +358,9 @@ export const api = {
       hours_worked?: number | null;
     },
   ) => request<{ id: string }>("/finance/income", { token, method: "POST", body }),
+
+  pitchKit: (token: string, body: PitchKitInput) =>
+    request<PitchKit>("/audit/pitch-kit", { token, method: "POST", body }),
 
   careerIntel: (token: string) => request<CareerIntel>("/career-intel", { token }),
   addSignal: (token: string, body: { category: string; subject: string; score: number }) =>

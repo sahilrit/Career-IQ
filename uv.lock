@@ -225,6 +225,7 @@ source = { editable = "packages/careeros-api" }
 dependencies = [
     { name = "careeros-ai" },
     { name = "careeros-application-engine" },
+    { name = "careeros-audit-proposal-engine" },
     { name = "careeros-auth" },
     { name = "careeros-billing" },
     { name = "careeros-career-brain" },
@@ -256,6 +257,7 @@ dependencies = [
 requires-dist = [
     { name = "careeros-ai", editable = "packages/careeros-ai" },
     { name = "careeros-application-engine", editable = "packages/careeros-application-engine" },
+    { name = "careeros-audit-proposal-engine", editable = "packages/careeros-audit-proposal-engine" },
     { name = "careeros-auth", editable = "packages/careeros-auth" },
     { name = "careeros-billing", editable = "packages/careeros-billing" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
