@@ -18,8 +18,8 @@ export default async function SettingsPage() {
     <Shell account={account}>
       <h1 className="mb-2 text-2xl font-semibold tracking-tight">Settings</h1>
       <p className="mb-6 text-sm text-muted">
-        Connect your own AI so CareerOS writes your cover letters. Without a key everything still
-        works on free templates.
+        Connect your own AI key — Anthropic, OpenRouter, or OpenAI — so CareerOS writes your cover
+        letters and proposals. Without a key everything still works on free templates.
       </p>
       <AiKeyForm initial={status} />
     </Shell>

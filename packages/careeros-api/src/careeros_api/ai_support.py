@@ -9,7 +9,7 @@ import hashlib
 import os
 from typing import Any
 
-from careeros_ai import DEFAULT_MODEL, AnthropicClient
+from careeros_ai import AIClient, build_client
 from careeros_application_engine import AICoverLetterGenerator, CoverLetterGenerator
 from careeros_credentials import (
     CredentialAuditLog,
@@ -42,8 +42,15 @@ def _vault(store: Any) -> CredentialVault:
     return CredentialVault(store, _cipher(), CredentialAuditLog(store), lookup_permissions=lookup)
 
 
+def ai_model_override() -> str | None:
+    """A specific model to force across providers, or None to let each
+    provider use its default."""
+    return os.environ.get("CAREEROS_AI_MODEL") or None
+
+
 def ai_model() -> str:
-    return os.environ.get("CAREEROS_AI_MODEL", DEFAULT_MODEL)
+    """Human label for the Settings page."""
+    return os.environ.get("CAREEROS_AI_MODEL") or "your provider's default"
 
 
 def store_workspace_key(store: Any, workspace_id: str, api_key: str) -> None:
@@ -69,13 +76,14 @@ def resolve_cover_letter_generator(store: Any, workspace_id: str) -> CoverLetter
     key = _get_key(store, workspace_id)
     if not key:
         return None
-    return AICoverLetterGenerator(AnthropicClient(key, ai_model()))
+    return AICoverLetterGenerator(build_client(key, ai_model_override()))
 
 
-def resolve_ai_client(store: Any, workspace_id: str) -> AnthropicClient | None:
+def resolve_ai_client(store: Any, workspace_id: str) -> AIClient | None:
     """The raw AI client for features that build their own prompts (e.g. the
-    audit pitch kit). None when the workspace has no key."""
+    audit pitch kit). Works with Anthropic, OpenRouter, or OpenAI keys. None
+    when the workspace has no key."""
     key = _get_key(store, workspace_id)
     if not key:
         return None
-    return AnthropicClient(key, ai_model())
+    return build_client(key, ai_model_override())

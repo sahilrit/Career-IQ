@@ -6,6 +6,12 @@ from careeros_ai.client import (
     AIError,
     AIUnavailableError,
 )
+from careeros_ai.factory import (
+    build_client,
+    default_model_for_key,
+    provider_for_key,
+)
+from careeros_ai.openai_client import OpenAICompatibleClient
 
 __all__ = [
     "DEFAULT_MODEL",
@@ -14,4 +20,8 @@ __all__ = [
     "AIError",
     "AIUnavailableError",
     "AnthropicClient",
+    "OpenAICompatibleClient",
+    "build_client",
+    "default_model_for_key",
+    "provider_for_key",
 ]

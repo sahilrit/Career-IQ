@@ -25,10 +25,11 @@ def get_ai(context: Context) -> AiStatusResponse:
 def put_ai(body: AiKeyRequest, context: Context) -> AiStatusResponse:
     context.require_permission(Permission.CAREER_BRAIN_WRITE)
     key = body.api_key.strip()
-    if not key.startswith("sk-ant-") or len(key) < 20:
+    if not key.startswith("sk-") or len(key) < 20:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "that doesn't look like an Anthropic API key (expected 'sk-ant-…')",
+            "that doesn't look like an API key — paste an 'sk-…' key from "
+            "Anthropic (sk-ant-…), OpenRouter (sk-or-…), or OpenAI (sk-…)",
         )
     ai_support.store_workspace_key(context.store, context.account.workspace_id, key)
     return AiStatusResponse(has_key=True, model=ai_support.ai_model())

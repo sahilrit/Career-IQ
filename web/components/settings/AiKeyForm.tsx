@@ -65,25 +65,26 @@ export function AiKeyForm({ initial }: { initial: AiStatus }) {
         <h2 className="mb-1 text-sm uppercase tracking-wide text-muted">AI writing</h2>
         {status.has_key ? (
           <p className="mb-4 text-sm text-emerald-400">
-            AI is ON — cover letters are written by {status.model}.
+            AI is ON — writing with {status.model}.
           </p>
         ) : (
           <p className="mb-4 text-sm text-muted">
-            AI is off — using free templates. Add your Anthropic API key to switch it on.
+            AI is off — using free templates. Add an API key to switch it on.
           </p>
         )}
 
-        <label className="label">Anthropic API key</label>
+        <label className="label">AI provider key</label>
         <input
           type="password"
           className="input"
-          placeholder="sk-ant-…"
+          placeholder="sk-ant-… / sk-or-… / sk-…"
           value={key}
           onChange={(event) => setKey(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Create one at console.anthropic.com (add ~$5 credit). Stored encrypted; never shown again.
+          Works with Anthropic (sk-ant-…), OpenRouter (sk-or-…), or OpenAI (sk-…). We detect the
+          provider from the key. Stored encrypted; never shown again.
         </p>
 
         <div className="mt-4 flex gap-2">
