@@ -94,6 +94,7 @@ class ApplicationPackageResponse(BaseModel):
     resume_text: str
     cover_letter: str
     ai_used: bool = False
+    ai_error: str | None = None
 
 
 class OfferCreateRequest(BaseModel):

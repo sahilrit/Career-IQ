@@ -224,6 +224,11 @@ export function PitchKitStudio() {
                   {kit.ai_used ? "✨ AI-written" : "Template"}
                 </span>
               </div>
+              {kit.ai_error && (
+                <p className="mb-2 text-xs text-amber-400">
+                  AI unavailable, using template — {kit.ai_error}
+                </p>
+              )}
               <textarea readOnly className="input min-h-48 text-xs" value={kit.proposal} />
             </div>
             <div>

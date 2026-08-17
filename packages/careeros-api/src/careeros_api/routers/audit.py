@@ -131,14 +131,16 @@ def pitch_kit(body: PitchKitRequest, context: Context) -> dict[str, Any]:
 
     proposal = deliverables.proposal
     ai_used = False
+    ai_error: str | None = None
     client = ai_support.resolve_ai_client(context.store, context.account.workspace_id)
     if client is not None:
         try:
             proposal = _ai_proposal(client, brain, company, findings, deliverables.roi_estimate)
             ai_used = True
-        except AIError:
+        except AIError as error:
             proposal = deliverables.proposal  # fall back to template
             ai_used = False
+            ai_error = str(error)
 
     roi = None
     if deliverables.roi_estimate is not None:
@@ -162,5 +164,6 @@ def pitch_kit(body: PitchKitRequest, context: Context) -> dict[str, Any]:
         "loom_script": deliverables.loom_script,
         "proposal": proposal,
         "ai_used": ai_used,
+        "ai_error": ai_error,
         "pdf_base64": pdf_base64,
     }

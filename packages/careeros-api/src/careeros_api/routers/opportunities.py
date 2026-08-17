@@ -53,20 +53,25 @@ def generate(body: GenerateRequest, context: Context) -> ApplicationPackageRespo
         context.store, context.account.workspace_id
     )
     ai_used = generator is not None
+    ai_error: str | None = None
     try:
         package = generate_application_for_job(
             context.store, identity_id, body.job_url, cover_letter_generator=generator
         )
-    except AIError:
+    except AIError as error:
         # A transient AI failure (bad key, quota, timeout) never blocks
-        # generation — fall back to the free template.
+        # generation — fall back to the free template, but surface why.
         package = generate_application_for_job(context.store, identity_id, body.job_url)
         ai_used = False
+        ai_error = str(error)
     if package is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "that posting is no longer available to generate from",
         )
     return ApplicationPackageResponse(
-        resume_text=package.resume_text, cover_letter=package.cover_letter, ai_used=ai_used
+        resume_text=package.resume_text,
+        cover_letter=package.cover_letter,
+        ai_used=ai_used,
+        ai_error=ai_error,
     )

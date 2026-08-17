@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-type Package = { resume_text: string; cover_letter: string; ai_used?: boolean };
+type Package = {
+  resume_text: string;
+  cover_letter: string;
+  ai_used?: boolean;
+  ai_error?: string | null;
+};
 
 export function GenerateButton({ jobUrl }: { jobUrl: string | null }) {
   const [busy, setBusy] = useState(false);
@@ -54,6 +59,11 @@ export function GenerateButton({ jobUrl }: { jobUrl: string | null }) {
               </span>
             </div>
             <textarea readOnly className="input min-h-40 text-xs" value={pkg.cover_letter} />
+            {pkg.ai_error && (
+              <p className="mt-1 text-xs text-amber-400">
+                AI unavailable, using template — {pkg.ai_error}
+              </p>
+            )}
           </div>
         </div>
       )}
