@@ -85,29 +85,32 @@ export function AiKeyForm({ initial }: { initial: AiStatus }) {
         <input
           type="password"
           className="input"
-          placeholder={status.has_key ? "•••••••• (leave blank to keep)" : "sk-ant-… / sk-or-… / sk-…"}
+          placeholder={
+            status.has_key ? "•••••••• (leave blank to keep)" : "sk-ant-… / sk-or-… / sk-… / nvapi-…"
+          }
           value={key}
           onChange={(event) => setKey(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Works with Anthropic (sk-ant-…), OpenRouter (sk-or-…), or OpenAI (sk-…). We detect the
-          provider from the key. Stored encrypted; never shown again.
+          Works with Anthropic (sk-ant-…), OpenRouter (sk-or-…), OpenAI (sk-…), or{" "}
+          <span className="text-white/80">NVIDIA (nvapi-…)</span>. We detect the provider from the
+          key. Stored encrypted; never shown again.
         </p>
 
         <label className="label mt-4">Model (optional)</label>
         <input
           className="input"
-          placeholder="e.g. meta-llama/llama-3.3-70b-instruct:free"
+          placeholder="e.g. meta/llama-3.3-70b-instruct"
           value={model}
           onChange={(event) => setModel(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Leave blank for the provider default. On OpenRouter, paste a{" "}
-          <span className="text-white/80">:free</span> model (e.g.{" "}
-          <span className="text-white/80">meta-llama/llama-3.3-70b-instruct:free</span>) to run at
-          $0 with no credits. Browse models at openrouter.ai/models.
+          Leave blank for the provider default. <span className="text-white/80">NVIDIA</span> is the
+          most reliable free option — its default (
+          <span className="text-white/80">meta/llama-3.3-70b-instruct</span>) runs on NVIDIA&apos;s
+          free tier. Browse models at build.nvidia.com (or openrouter.ai/models).
         </p>
 
         <div className="mt-4 flex gap-2">

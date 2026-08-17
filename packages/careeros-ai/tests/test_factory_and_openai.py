@@ -18,13 +18,25 @@ def _transport(handler):
 def test_provider_detection():
     assert provider_for_key("sk-ant-abc") == "anthropic"
     assert provider_for_key("sk-or-v1-abc") == "openrouter"
+    assert provider_for_key("nvapi-abc123") == "nvidia"
     assert provider_for_key("sk-abc123") == "openai"
 
 
 def test_build_client_picks_the_right_client():
     assert isinstance(build_client("sk-ant-xxxxxxxxxxxx"), AnthropicClient)
     assert isinstance(build_client("sk-or-v1-xxxxxxxx"), OpenAICompatibleClient)
+    assert isinstance(build_client("nvapi-xxxxxxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("sk-openai-xxxxxxxx"), OpenAICompatibleClient)
+
+
+def test_nvidia_client_hits_nvidia_endpoint():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "integrate.api.nvidia.com" in str(request.url)
+        assert request.headers["authorization"] == "Bearer nvapi-test"
+        return httpx.Response(200, json={"choices": [{"message": {"content": "Hi from NVIDIA"}}]})
+
+    client = build_client("nvapi-test", http_client=_transport(handler))
+    assert client.complete(system="s", prompt="p") == "Hi from NVIDIA"
 
 
 def test_openrouter_client_hits_openrouter_and_parses():
