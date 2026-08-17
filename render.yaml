@@ -31,6 +31,14 @@ services:
         sync: false
       - key: CAREEROS_STRIPE_WEBHOOK_SECRET
         sync: false
+      # Encrypts stored secrets (e.g. each workspace's Anthropic API key).
+      # Auto-generated once and MUST stay stable — rotating it makes every
+      # stored key undecryptable.
+      - key: CAREEROS_SECRET_KEY
+        generateValue: true
+      # Optional: override the default Claude model for AI generation.
+      - key: CAREEROS_AI_MODEL
+        sync: false
 
   - type: web
     name: careeros-web

@@ -40,6 +40,7 @@
 ```python
 """AIClient: the one seam every AI feature calls. Strings in, strings out —
 it knows nothing about résumés, postings, or the domain."""
+
 from __future__ import annotations
 from typing import Protocol
 
@@ -107,6 +108,7 @@ def test_500_raises_unavailable():
 ```python
 """AnthropicClient: a minimal Messages API caller over httpx (no SDK, to
 keep the API image slim). One non-streaming completion per call."""
+
 from __future__ import annotations
 import httpx
 from careeros_ai.client import AIAuthError, AIUnavailableError, DEFAULT_MODEL
@@ -116,7 +118,9 @@ _VERSION = "2023-06-01"
 
 
 class AnthropicClient:
-    def __init__(self, api_key: str, model: str = DEFAULT_MODEL, *, http_client: httpx.Client | None = None) -> None:
+    def __init__(
+        self, api_key: str, model: str = DEFAULT_MODEL, *, http_client: httpx.Client | None = None
+    ) -> None:
         self._api_key = api_key
         self._model = model
         self._http = http_client or httpx.Client(timeout=60.0)
@@ -144,7 +148,9 @@ class AnthropicClient:
         if response.status_code >= 500 or response.status_code == 429:
             raise AIUnavailableError(f"Anthropic returned {response.status_code}")
         if response.status_code >= 400:
-            raise AIUnavailableError(f"Anthropic returned {response.status_code}: {response.text[:200]}")
+            raise AIUnavailableError(
+                f"Anthropic returned {response.status_code}: {response.text[:200]}"
+            )
         blocks = response.json().get("content", [])
         return "".join(b.get("text", "") for b in blocks if b.get("type") == "text").strip()
 ```
@@ -216,19 +222,29 @@ from careeros_job_providers import JobPosting
 
 
 class FakeClient:
-    def __init__(self): self.calls = []
+    def __init__(self):
+        self.calls = []
+
     def complete(self, *, system, prompt):
-        self.calls.append((system, prompt)); return "AI cover letter."
+        self.calls.append((system, prompt))
+        return "AI cover letter."
 
 
 def _brain():
-    return CareerBrain(identity=Identity(full_name="Ada Lovelace", email="a@x.com",
-        summary="Growth marketer."), skills=[Skill(name="Meta Ads")])
+    return CareerBrain(
+        identity=Identity(full_name="Ada Lovelace", email="a@x.com", summary="Growth marketer."),
+        skills=[Skill(name="Meta Ads")],
+    )
 
 
 def _posting():
-    return JobPosting(title="PPC Manager", company_name="Acme", url="https://acme.com/j/1",
-        description="Run paid campaigns.", source="test")
+    return JobPosting(
+        title="PPC Manager",
+        company_name="Acme",
+        url="https://acme.com/j/1",
+        description="Run paid campaigns.",
+        source="test",
+    )
 
 
 def test_uses_ai_and_grounds_prompt_in_brain():
@@ -247,6 +263,7 @@ def test_uses_ai_and_grounds_prompt_in_brain():
 ```python
 """AICoverLetterGenerator: same CoverLetterGenerator seam as the template
 one, but the prose comes from an AIClient, grounded strictly in Career Brain."""
+
 from __future__ import annotations
 from careeros_ai import AIClient
 from careeros_career_brain import CareerBrain
@@ -270,9 +287,10 @@ class AICoverLetterGenerator:
     def _prompt(self, brain: CareerBrain, posting: JobPosting) -> str:
         i = brain.identity
         skills = ", ".join(s.name for s in brain.skills) or "(none listed)"
-        experiences = "\n".join(
-            f"- {e.title} at {e.company_name}" for e in brain.experiences
-        ) or "(none listed)"
+        experiences = (
+            "\n".join(f"- {e.title} at {e.company_name}" for e in brain.experiences)
+            or "(none listed)"
+        )
         return (
             f"Candidate: {i.full_name}\n"
             f"Headline: {i.headline}\n"
@@ -313,11 +331,16 @@ from careeros_job_search import generate_application_for_job
 #  seed CareerBrain via CareerBrainRepository and a JobPosting via JobPostingRepository,
 #  mirroring packages/careeros-job-search/tests existing fixtures)
 
+
 class FakeGen:
-    def generate(self, brain, posting): return "INJECTED"
+    def generate(self, brain, posting):
+        return "INJECTED"
+
 
 def test_generate_uses_injected_cover_letter_generator(seeded_store, identity_id, job_url):
-    pkg = generate_application_for_job(seeded_store, identity_id, job_url, cover_letter_generator=FakeGen())
+    pkg = generate_application_for_job(
+        seeded_store, identity_id, job_url, cover_letter_generator=FakeGen()
+    )
     assert pkg is not None and pkg.cover_letter == "INJECTED"
 ```
 
@@ -329,7 +352,12 @@ def test_generate_uses_injected_cover_letter_generator(seeded_store, identity_id
 
 ```python
 def generate_application_for_job(
-    store, identity_id, job_url, *, provider_registry=None, cover_letter_generator=None,
+    store,
+    identity_id,
+    job_url,
+    *,
+    provider_registry=None,
+    cover_letter_generator=None,
 ):
     ...
     return build_application_package(brain, posting, cover_letter_generator=cover_letter_generator)
@@ -364,10 +392,13 @@ Add `from careeros_application_engine import CoverLetterGenerator` for the type 
 import os
 from careeros_common import open_store
 from careeros_api.ai_support import (
-    store_workspace_key, has_workspace_key, delete_workspace_key,
+    store_workspace_key,
+    has_workspace_key,
+    delete_workspace_key,
     resolve_cover_letter_generator,
 )
 from careeros_application_engine import AICoverLetterGenerator
+
 
 def test_key_round_trip_and_generator_selection(tmp_path, monkeypatch):
     monkeypatch.setenv("CAREEROS_DATA_DIR", str(tmp_path))
@@ -390,6 +421,7 @@ def test_key_round_trip_and_generator_selection(tmp_path, monkeypatch):
 """First-party wrapper over CredentialVault for the workspace's Anthropic
 key, plus generator resolution. The app is authorized explicitly (it is
 not a third-party plugin)."""
+
 from __future__ import annotations
 import base64
 import hashlib
@@ -397,11 +429,16 @@ import os
 from careeros_ai import AnthropicClient, DEFAULT_MODEL
 from careeros_application_engine import AICoverLetterGenerator, CoverLetterGenerator
 from careeros_credentials import (
-    CredentialAuditLog, CredentialVault, SecretCipher, SecretNotFoundError, credential_permission,
+    CredentialAuditLog,
+    CredentialVault,
+    SecretCipher,
+    SecretNotFoundError,
+    credential_permission,
 )
 
 _SERVICE = "anthropic_api_key"
 _REQUESTER = "careeros-app"
+
 
 def _cipher() -> SecretCipher:
     key = os.environ.get("CAREEROS_SECRET_KEY")
@@ -409,27 +446,34 @@ def _cipher() -> SecretCipher:
         key = base64.urlsafe_b64encode(hashlib.sha256(b"careeros-dev-secret").digest()).decode()
     return SecretCipher(key)
 
+
 def _vault(store) -> CredentialVault:
     lookup = lambda _requester: frozenset({credential_permission(_SERVICE)})
     return CredentialVault(store, _cipher(), CredentialAuditLog(store), lookup_permissions=lookup)
 
+
 def ai_model() -> str:
     return os.environ.get("CAREEROS_AI_MODEL", DEFAULT_MODEL)
+
 
 def store_workspace_key(store, workspace_id: str, api_key: str) -> None:
     _vault(store).store_secret(workspace_id, _SERVICE, api_key, requester_id=_REQUESTER)
 
+
 def delete_workspace_key(store, workspace_id: str) -> None:
     _vault(store).delete_secret(workspace_id, _SERVICE, requester_id=_REQUESTER)
 
+
 def has_workspace_key(store, workspace_id: str) -> bool:
     return _vault(store).has_secret(workspace_id, _SERVICE)
+
 
 def _get_key(store, workspace_id: str) -> str | None:
     try:
         return _vault(store).get_secret(workspace_id, _SERVICE, requester_id=_REQUESTER)
     except SecretNotFoundError:
         return None
+
 
 def resolve_cover_letter_generator(store, workspace_id: str) -> CoverLetterGenerator | None:
     key = _get_key(store, workspace_id)
@@ -464,13 +508,20 @@ def resolve_cover_letter_generator(store, workspace_id: str) -> CoverLetterGener
 def test_ai_key_round_trip(client, auth_headers):
     h = auth_headers()
     assert client.get("/settings/ai", headers=h).json()["has_key"] is False
-    assert client.put("/settings/ai", headers=h, json={"api_key": "sk-ant-abc123"}).status_code == 200
+    assert (
+        client.put("/settings/ai", headers=h, json={"api_key": "sk-ant-abc123"}).status_code == 200
+    )
     assert client.get("/settings/ai", headers=h).json()["has_key"] is True
     assert client.delete("/settings/ai", headers=h).status_code == 200
     assert client.get("/settings/ai", headers=h).json()["has_key"] is False
 
+
 def test_put_rejects_malformed_key(client, auth_headers):
-    assert client.put("/settings/ai", headers=auth_headers(), json={"api_key": "nope"}).status_code == 422
+    assert (
+        client.put("/settings/ai", headers=auth_headers(), json={"api_key": "nope"}).status_code
+        == 422
+    )
+
 
 def test_settings_requires_auth(client):
     assert client.get("/settings/ai").status_code == 401
@@ -484,6 +535,7 @@ def test_settings_requires_auth(client):
 class AiKeyRequest(BaseModel):
     api_key: str
 
+
 class AiStatusResponse(BaseModel):
     has_key: bool
     model: str
@@ -494,6 +546,7 @@ class AiStatusResponse(BaseModel):
 ```python
 """Workspace settings: the Anthropic API key powering AI features. The key
 is write-only over the API — GET returns only whether one is set."""
+
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from careeros_api import ai_support
@@ -503,6 +556,7 @@ from careeros_tenancy import Permission
 
 router = APIRouter(tags=["settings"])
 
+
 @router.get("/settings/ai", response_model=AiStatusResponse)
 def get_ai(context: Context) -> AiStatusResponse:
     return AiStatusResponse(
@@ -510,14 +564,19 @@ def get_ai(context: Context) -> AiStatusResponse:
         model=ai_support.ai_model(),
     )
 
+
 @router.put("/settings/ai", response_model=AiStatusResponse)
 def put_ai(body: AiKeyRequest, context: Context) -> AiStatusResponse:
     context.require_permission(Permission.CAREER_BRAIN_WRITE)
     key = body.api_key.strip()
     if not key.startswith("sk-ant-") or len(key) < 20:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "that doesn't look like an Anthropic API key (expected 'sk-ant-…')")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "that doesn't look like an Anthropic API key (expected 'sk-ant-…')",
+        )
     ai_support.store_workspace_key(context.store, context.account.workspace_id, key)
     return AiStatusResponse(has_key=True, model=ai_support.ai_model())
+
 
 @router.delete("/settings/ai", response_model=AiStatusResponse)
 def delete_ai(context: Context) -> AiStatusResponse:
@@ -564,7 +623,9 @@ def generate(body: GenerateRequest, context: Context) -> ApplicationPackageRespo
         package = generate_application_for_job(context.store, _identity_id(context), body.job_url)
         ai_used = False
     if package is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "that posting is no longer available to generate from")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "that posting is no longer available to generate from"
+        )
     return ApplicationPackageResponse(
         resume_text=package.resume_text, cover_letter=package.cover_letter, ai_used=ai_used
     )

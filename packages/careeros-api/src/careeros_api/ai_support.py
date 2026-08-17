@@ -24,10 +24,14 @@ _REQUESTER = "careeros-app"
 
 
 def _cipher() -> SecretCipher:
-    key = os.environ.get("CAREEROS_SECRET_KEY")
-    if not key:
-        # Deterministic dev/test fallback; production always sets the env.
-        key = base64.urlsafe_b64encode(hashlib.sha256(b"careeros-dev-secret").digest()).decode()
+    # Derive a valid Fernet key from any secret string so operators can set
+    # CAREEROS_SECRET_KEY to an arbitrary value (e.g. Render's generated
+    # random string) without it having to already be Fernet-formatted.
+    # Deterministic: the same secret always yields the same key, so stored
+    # secrets keep decrypting. Falls back to a fixed dev secret when unset
+    # (never used in production, which always sets the env).
+    raw = os.environ.get("CAREEROS_SECRET_KEY") or "careeros-dev-secret"
+    key = base64.urlsafe_b64encode(hashlib.sha256(raw.encode("utf-8")).digest()).decode()
     return SecretCipher(key)
 
 
