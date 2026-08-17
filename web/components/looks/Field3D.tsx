@@ -44,8 +44,8 @@ export function Field3D({ accent, density = 260, speed: speedProp = 3.2 }: Props
 
     const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
     const onMove = (e: MouseEvent) => {
-      mouse.tx = (e.clientX / window.innerWidth - 0.5) * 220;
-      mouse.ty = (e.clientY / window.innerHeight - 0.5) * 160;
+      mouse.tx = (e.clientX / window.innerWidth - 0.5) * 320;
+      mouse.ty = (e.clientY / window.innerHeight - 0.5) * 240;
     };
     window.addEventListener("mousemove", onMove);
 

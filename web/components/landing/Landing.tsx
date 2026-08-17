@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Field3D } from "@/components/looks/Field3D";
-import { CursorGlow, Drift } from "@/components/looks/Interactive";
+import { CursorGlow, Drift, useCursorVars } from "@/components/looks/Interactive";
 
 const ACCENT = "#f0b544";
 
@@ -64,7 +64,7 @@ function MomentVisual({ moment, index }: { moment: (typeof MOMENTS)[number]; ind
         style={{
           transformStyle: "preserve-3d",
           transform:
-            "rotateX(calc(var(--my,0) * -10deg)) rotateY(calc(var(--mx,0) * 12deg)) translate3d(calc(var(--mx,0) * 16px), calc(var(--my,0) * 16px), 0)",
+            "rotateX(calc(var(--my,0) * -18deg)) rotateY(calc(var(--mx,0) * 22deg)) translate3d(calc(var(--mx,0) * 34px), calc(var(--my,0) * 34px), 0)",
           willChange: "transform",
         }}
       >
@@ -147,7 +147,7 @@ function Moment({ moment, index }: { moment: (typeof MOMENTS)[number]; index: nu
         viewport={{ once: true, margin: "0px 0px -20% 0px" }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <Drift strength={10}>
+        <Drift strength={24}>
           <div className="font-mono text-xs uppercase tracking-[0.28em] text-accent">{moment.tag}</div>
           <h2 className="mt-5 font-display text-4xl font-medium leading-[1.05] tracking-tight sm:text-5xl">
             {moment.title}
@@ -170,45 +170,16 @@ function Moment({ moment, index }: { moment: (typeof MOMENTS)[number]; index: nu
 }
 
 export function Landing() {
-  const rootRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -80]);
   const heroFade = useTransform(scrollYProgress, [0, 0.85], [1, 0]);
 
-  // One loop drives every cursor-reactive layer via CSS vars.
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let mx = 0, my = 0, tmx = 0, tmy = 0, gx = window.innerWidth / 2, gy = window.innerHeight * 0.4, tgx = gx, tgy = gy, raf = 0;
-    const onMove = (e: MouseEvent) => {
-      tmx = e.clientX / window.innerWidth - 0.5;
-      tmy = e.clientY / window.innerHeight - 0.5;
-      tgx = e.clientX;
-      tgy = e.clientY;
-    };
-    const tick = () => {
-      mx += (tmx - mx) * 0.07;
-      my += (tmy - my) * 0.07;
-      gx += (tgx - gx) * 0.12;
-      gy += (tgy - gy) * 0.12;
-      root.style.setProperty("--mx", mx.toFixed(4));
-      root.style.setProperty("--my", my.toFixed(4));
-      root.style.setProperty("--gx", `${gx.toFixed(1)}px`);
-      root.style.setProperty("--gy", `${gy.toFixed(1)}px`);
-      raf = requestAnimationFrame(tick);
-    };
-    window.addEventListener("mousemove", onMove);
-    tick();
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("mousemove", onMove);
-    };
-  }, []);
+  // One smoothed loop drives every cursor-reactive layer via CSS vars on <html>.
+  useCursorVars();
 
   return (
-    <div ref={rootRef} className="relative min-h-screen w-full overflow-hidden bg-ink text-white">
+    <div className="relative min-h-screen w-full overflow-hidden bg-ink text-white">
       {/* Continuous ambient particle field */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-ink" />
@@ -248,7 +219,7 @@ export function Landing() {
           {/* Hero */}
           <section ref={heroRef} className="flex min-h-[88vh] flex-col items-center justify-center text-center">
             <motion.div style={{ y: heroY, opacity: heroFade }}>
-              <Drift strength={6}>
+              <Drift strength={12}>
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -258,7 +229,7 @@ export function Landing() {
                   The operating system for your career
                 </motion.div>
               </Drift>
-              <Drift strength={22}>
+              <Drift strength={46}>
                 <motion.h1
                   initial={{ opacity: 0, y: 28 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -269,7 +240,7 @@ export function Landing() {
                   Run your career like a <span className="italic text-accent">company.</span>
                 </motion.h1>
               </Drift>
-              <Drift strength={14}>
+              <Drift strength={30}>
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -280,7 +251,7 @@ export function Landing() {
                   and writes what it takes to win it.
                 </motion.p>
               </Drift>
-              <Drift strength={10}>
+              <Drift strength={20}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -415,7 +386,7 @@ export function Landing() {
               viewport={{ once: true, margin: "0px 0px -20% 0px" }}
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Drift strength={16}>
+              <Drift strength={34}>
                 <h2 className="mx-auto max-w-3xl font-display font-semibold leading-[1.02] tracking-tight" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}>
                   Your next role is
                   <br />

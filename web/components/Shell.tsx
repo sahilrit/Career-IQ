@@ -1,6 +1,7 @@
 import type { Account } from "@/lib/api";
 import { LogoutButton } from "@/components/LogoutButton";
 import { NavLinks } from "@/components/NavLinks";
+import { AppAmbience } from "@/components/AppAmbience";
 
 type Item = { href: string; label: string };
 
@@ -65,7 +66,9 @@ export function Shell({ account, children }: { account: Account; children: React
   const flat = account.is_admin ? [...FLAT, { href: "/admin", label: "Admin" }] : FLAT;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[76rem] flex-col gap-6 px-4 py-6 md:flex-row md:px-6">
+    <>
+      <AppAmbience />
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[76rem] flex-col gap-6 px-4 py-6 md:flex-row md:px-6">
       {/* Mobile top nav */}
       <div className="md:hidden">
         <div className="mb-3 flex items-center justify-between">
@@ -103,6 +106,7 @@ export function Shell({ account, children }: { account: Account; children: React
       </aside>
 
       <main className="min-w-0 flex-1">{children}</main>
-    </div>
+      </div>
+    </>
   );
 }
