@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 export function FadeIn({
   children,
@@ -94,6 +95,61 @@ export function Float({
       >
         {children}
       </motion.div>
+    </motion.div>
+  );
+}
+
+// Reveal with depth — the block rises and un-tilts on a shared perspective as
+// it enters the viewport, so content arrives *from* space rather than fading.
+export function Reveal3D({
+  children,
+  delay = 0,
+  y = 64,
+  className,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  y?: number;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      className={className}
+      style={{ transformPerspective: 1200, transformStyle: "preserve-3d" }}
+      initial={{ opacity: 0, y, rotateX: 14 }}
+      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Scroll-linked parallax — the child drifts on the Y axis at its own rate as it
+// passes through the viewport, so layers separate in depth while you scroll.
+export function Parallax({
+  children,
+  distance = 80,
+  className,
+}: {
+  children: React.ReactNode;
+  distance?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const y = useSpring(useTransform(scrollYProgress, [0, 1], [distance, -distance]), {
+    stiffness: 90,
+    damping: 30,
+    mass: 0.4,
+  });
+  return (
+    <motion.div ref={ref} style={{ y }} className={className}>
+      {children}
     </motion.div>
   );
 }
