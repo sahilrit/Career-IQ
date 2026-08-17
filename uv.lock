@@ -264,6 +264,7 @@ name = "careeros-application-engine"
 version = "0.1.0"
 source = { editable = "packages/careeros-application-engine" }
 dependencies = [
+    { name = "careeros-ai" },
     { name = "careeros-career-brain" },
     { name = "careeros-career-brain-engine" },
     { name = "careeros-common" },
@@ -272,6 +273,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "careeros-ai", editable = "packages/careeros-ai" },
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-career-brain-engine", editable = "packages/careeros-career-brain-engine" },
     { name = "careeros-common", editable = "packages/careeros-common" },

@@ -3,6 +3,7 @@ application answers, and ATS reports from Career Brain — every word
 sourced from real data, nothing fabricated, no paid AI required.
 """
 
+from careeros_application_engine.ai_cover_letter import AICoverLetterGenerator
 from careeros_application_engine.answers import (
     ANSWER_GENERATORS,
     answer_greatest_achievement,
@@ -27,6 +28,7 @@ from careeros_application_engine.resume import (
 
 __all__ = [
     "ANSWER_GENERATORS",
+    "AICoverLetterGenerator",
     "ATSReport",
     "Answer",
     "ApplicationPackage",
