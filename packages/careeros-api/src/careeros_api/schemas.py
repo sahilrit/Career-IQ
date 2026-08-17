@@ -93,6 +93,7 @@ class GenerateRequest(BaseModel):
 class ApplicationPackageResponse(BaseModel):
     resume_text: str
     cover_letter: str
+    ai_used: bool = False
 
 
 class OfferCreateRequest(BaseModel):

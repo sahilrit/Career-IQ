@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import types
 
+from careeros_ai import AIError
 from careeros_api.routers import opportunities
 
 
@@ -54,6 +55,8 @@ def test_generate_returns_package(client, auth_headers, monkeypatch):
     assert response.status_code == 200
     assert response.json()["resume_text"] == "RESUME BODY"
     assert response.json()["cover_letter"] == "COVER LETTER BODY"
+    # No AI key configured → template path.
+    assert response.json()["ai_used"] is False
 
 
 def test_generate_missing_posting_is_404(client, auth_headers, monkeypatch):
@@ -64,3 +67,38 @@ def test_generate_missing_posting_is_404(client, auth_headers, monkeypatch):
         "/opportunities/generate", headers=headers, json={"job_url": "https://x/gone"}
     )
     assert response.status_code == 404
+
+
+def test_generate_reports_ai_used_when_key_present(client, auth_headers, monkeypatch):
+    headers = auth_headers()
+    _create_brain(client, headers)
+    client.put("/settings/ai", headers=headers, json={"api_key": "sk-ant-api03-key-1234567"})
+
+    fake_package = types.SimpleNamespace(resume_text="R", cover_letter="AI COVER")
+    monkeypatch.setattr(opportunities, "generate_application_for_job", lambda *a, **k: fake_package)
+    response = client.post(
+        "/opportunities/generate", headers=headers, json={"job_url": "https://x/job/1"}
+    )
+    assert response.status_code == 200
+    assert response.json()["ai_used"] is True
+
+
+def test_generate_falls_back_to_template_on_ai_error(client, auth_headers, monkeypatch):
+    headers = auth_headers()
+    _create_brain(client, headers)
+    client.put("/settings/ai", headers=headers, json={"api_key": "sk-ant-api03-key-1234567"})
+
+    template_package = types.SimpleNamespace(resume_text="R", cover_letter="TEMPLATE COVER")
+
+    def fake_generate(store, identity_id, job_url, *, cover_letter_generator=None, **kwargs):
+        if cover_letter_generator is not None:
+            raise AIError("boom")
+        return template_package
+
+    monkeypatch.setattr(opportunities, "generate_application_for_job", fake_generate)
+    response = client.post(
+        "/opportunities/generate", headers=headers, json={"job_url": "https://x/job/1"}
+    )
+    assert response.status_code == 200
+    assert response.json()["cover_letter"] == "TEMPLATE COVER"
+    assert response.json()["ai_used"] is False

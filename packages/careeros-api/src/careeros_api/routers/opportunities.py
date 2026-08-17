@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
+from careeros_ai import AIError
+from careeros_api import ai_support
 from careeros_api.dependencies import Context
 from careeros_api.schemas import (
     ApplicationPackageResponse,
@@ -46,12 +48,25 @@ def search(body: SearchRequest, context: Context) -> SearchResponse:
 
 @router.post("/generate", response_model=ApplicationPackageResponse)
 def generate(body: GenerateRequest, context: Context) -> ApplicationPackageResponse:
-    package = generate_application_for_job(context.store, _identity_id(context), body.job_url)
+    identity_id = _identity_id(context)
+    generator = ai_support.resolve_cover_letter_generator(
+        context.store, context.account.workspace_id
+    )
+    ai_used = generator is not None
+    try:
+        package = generate_application_for_job(
+            context.store, identity_id, body.job_url, cover_letter_generator=generator
+        )
+    except AIError:
+        # A transient AI failure (bad key, quota, timeout) never blocks
+        # generation — fall back to the free template.
+        package = generate_application_for_job(context.store, identity_id, body.job_url)
+        ai_used = False
     if package is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "that posting is no longer available to generate from",
         )
     return ApplicationPackageResponse(
-        resume_text=package.resume_text, cover_letter=package.cover_letter
+        resume_text=package.resume_text, cover_letter=package.cover_letter, ai_used=ai_used
     )
