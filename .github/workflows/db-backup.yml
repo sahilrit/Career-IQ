@@ -1,0 +1,50 @@
+name: Database backup
+
+# Nightly logical backup of the production Postgres, kept as a downloadable
+# workflow artifact. Important because Render's FREE Postgres expires ~90
+# days after creation — a backup lets you restore into a fresh database.
+#
+# Setup (one time): add a repo *secret* CAREEROS_DATABASE_URL set to the
+# database's EXTERNAL connection string (Render dashboard → careeros-db →
+# "External Database URL"). Settings → Secrets and variables → Actions →
+# New repository secret. Without the secret this workflow is a clean no-op.
+#
+# Restore later:  pg_restore --clean --no-owner -d "<new db url>" backup.dump
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # 03:17 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.CAREEROS_DATABASE_URL }}
+    steps:
+      - name: Skip if unconfigured
+        if: ${{ env.DATABASE_URL == '' }}
+        run: echo "No CAREEROS_DATABASE_URL secret set — skipping backup."
+
+      - name: Install pg_dump (PostgreSQL 16 client)
+        if: ${{ env.DATABASE_URL != '' }}
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsS https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Dump database
+        if: ${{ env.DATABASE_URL != '' }}
+        run: |
+          STAMP="$(date -u +%Y%m%d-%H%M)"
+          pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" > "careeros-$STAMP.dump"
+          ls -lh careeros-*.dump
+
+      - name: Upload backup artifact
+        if: ${{ env.DATABASE_URL != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: careeros-db-backup
+          path: careeros-*.dump
+          retention-days: 30
