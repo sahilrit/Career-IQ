@@ -41,8 +41,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <FadeIn>
-      <form onSubmit={submit} className="card w-full max-w-sm space-y-4 p-7">
-        <h1 className="text-xl font-semibold">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-5 p-8 sm:p-10">
+        <h1 className="font-display text-2xl font-semibold sm:text-3xl">
           {mode === "login" ? "Welcome back" : "Create your account"}
         </h1>
         {mode === "signup" && (
