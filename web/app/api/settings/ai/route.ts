@@ -27,12 +27,11 @@ export async function GET() {
 export async function PUT(request: Request) {
   const token = getToken();
   if (!token) return unauthorized();
-  const { api_key } = (await request.json()) as { api_key?: string };
-  if (!api_key) return NextResponse.json({ error: "missing api_key" }, { status: 400 });
+  const { api_key, model } = (await request.json()) as { api_key?: string; model?: string };
   try {
-    return NextResponse.json(await api.setAiKey(token, api_key));
+    return NextResponse.json(await api.setAiKey(token, api_key ?? "", model ?? ""));
   } catch (error) {
-    return fail(error, "Couldn't save the key.");
+    return fail(error, "Couldn't save.");
   }
 }
 

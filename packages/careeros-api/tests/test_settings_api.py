@@ -32,6 +32,33 @@ def test_settings_requires_auth(client):
     assert client.put("/settings/ai", json={"api_key": "sk-ant-x"}).status_code == 401
 
 
+def test_ai_model_set_updated_and_cleared(client, auth_headers):
+    headers = auth_headers()
+    free = "meta-llama/llama-3.3-70b-instruct:free"
+    put = client.put(
+        "/settings/ai", headers=headers, json={"api_key": "sk-or-v1-key1234567890", "model": free}
+    )
+    assert put.status_code == 200
+    assert put.json() == {"has_key": True, "model": free}
+
+    # Update the model without re-entering the key.
+    updated = client.put(
+        "/settings/ai", headers=headers, json={"api_key": "", "model": "google/gemini:free"}
+    )
+    assert updated.json() == {"has_key": True, "model": "google/gemini:free"}
+
+    # Blank clears back to the provider default.
+    cleared = client.put("/settings/ai", headers=headers, json={"api_key": "", "model": ""})
+    assert cleared.json()["model"] == "your provider's default"
+
+
+def test_model_only_update_needs_a_key_first(client, auth_headers):
+    response = client.put(
+        "/settings/ai", headers=auth_headers(), json={"api_key": "", "model": "x:free"}
+    )
+    assert response.status_code == 422
+
+
 def test_keys_are_workspace_isolated(client, auth_headers):
     headers_a = auth_headers(email="a@example.com", full_name="A")
     headers_b = auth_headers(email="b@example.com", full_name="B")

@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 
 
 class AiKeyRequest(BaseModel):
-    api_key: str
+    api_key: str = ""
+    model: str = ""
 
 
 class AiStatusResponse(BaseModel):

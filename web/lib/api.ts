@@ -320,8 +320,8 @@ export const api = {
       ai_error: string | null;
     }>("/opportunities/generate", { token, method: "POST", body: { job_url } }),
   aiStatus: (token: string) => request<AiStatus>("/settings/ai", { token }),
-  setAiKey: (token: string, api_key: string) =>
-    request<AiStatus>("/settings/ai", { token, method: "PUT", body: { api_key } }),
+  setAiKey: (token: string, api_key: string, model: string) =>
+    request<AiStatus>("/settings/ai", { token, method: "PUT", body: { api_key, model } }),
   deleteAiKey: (token: string) =>
     request<AiStatus>("/settings/ai", { token, method: "DELETE" }),
   offers: (token: string) => request<RankedOffer[]>("/offers", { token }),
