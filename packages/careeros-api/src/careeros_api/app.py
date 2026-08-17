@@ -24,6 +24,7 @@ from careeros_api.routers import (
     network,
     offers,
     opportunities,
+    settings,
     webhooks,
 )
 
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(billing.router)
     app.include_router(autopilot.router)
     app.include_router(admin.router)
+    app.include_router(settings.router)
     app.include_router(webhooks.router)
     return app
 

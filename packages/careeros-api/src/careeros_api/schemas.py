@@ -6,6 +6,15 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class AiKeyRequest(BaseModel):
+    api_key: str
+
+
+class AiStatusResponse(BaseModel):
+    has_key: bool
+    model: str
+
+
 class SignupRequest(BaseModel):
     email: str
     password: str = Field(min_length=1)
