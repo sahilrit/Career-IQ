@@ -275,6 +275,15 @@ export const api = {
     request<{ sent: boolean }>("/integrations/gmail/send", { token, method: "POST", body }),
   calendarEvents: (token: string) =>
     request<CalendarEvent[]>("/integrations/calendar/events", { token }),
+  calendarCreate: (
+    token: string,
+    body: { summary: string; start_iso: string; end_iso: string; attendees: string[] },
+  ) =>
+    request<{ id: string; html_link: string }>("/integrations/calendar/events", {
+      token,
+      method: "POST",
+      body,
+    }),
   resetRequest: (email: string) =>
     request<{ message: string }>("/auth/reset/request", { method: "POST", body: { email } }),
   resetConfirm: (token: string, new_password: string) =>

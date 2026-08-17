@@ -237,6 +237,7 @@ def create_event(
         response = httpx.post(
             _CALENDAR_URL,
             headers={"Authorization": f"Bearer {access_token}"},
+            params={"sendUpdates": "all"},  # email the invite to attendees
             json=payload,
             timeout=30.0,
         )
