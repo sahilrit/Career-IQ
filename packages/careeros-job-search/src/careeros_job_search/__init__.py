@@ -6,7 +6,11 @@ the FastAPI backend call, so provider wiring lives in exactly one place.
 
 from __future__ import annotations
 
-from careeros_application_engine import ApplicationPackage, build_application_package
+from careeros_application_engine import (
+    ApplicationPackage,
+    CoverLetterGenerator,
+    build_application_package,
+)
 from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_career_brain import CareerBrainRepository
@@ -74,6 +78,7 @@ def generate_application_for_job(
     job_url: str,
     *,
     provider_registry: JobProviderRegistry | None = None,
+    cover_letter_generator: CoverLetterGenerator | None = None,
 ) -> ApplicationPackage | None:
     brain = CareerBrainRepository(store).load_or_none(identity_id)
     if brain is None:
@@ -89,4 +94,4 @@ def generate_application_for_job(
     if posting is None:
         return None
 
-    return build_application_package(brain, posting)
+    return build_application_package(brain, posting, cover_letter_generator=cover_letter_generator)
