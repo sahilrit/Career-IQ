@@ -24,16 +24,23 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 async def stripe_webhook(request: Request) -> MessageResponse:
     payload = await request.body()
     secret = os.environ.get("CAREEROS_STRIPE_WEBHOOK_SECRET")
-    if secret:
-        try:
-            verify_signature(
-                payload,
-                request.headers.get("stripe-signature"),
-                secret,
-                now=now_seconds(),
-            )
-        except WebhookError as error:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from error
+    # Fail closed: without a configured secret we cannot authenticate the caller,
+    # and this endpoint grants paid plans — so a missing env var must reject the
+    # request, never silently skip verification.
+    if not secret:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "billing webhook is not configured on the server",
+        )
+    try:
+        verify_signature(
+            payload,
+            request.headers.get("stripe-signature"),
+            secret,
+            now=now_seconds(),
+        )
+    except WebhookError as error:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from error
     try:
         outcome = activate_from_event(get_store(), parse_event(payload))
     except WebhookError as error:

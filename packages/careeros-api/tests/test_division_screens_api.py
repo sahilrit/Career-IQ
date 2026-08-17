@@ -232,3 +232,20 @@ def test_career_intel_bad_category_is_422(client, auth_headers):
         json={"category": "nope", "subject": "x", "score": 1},
     )
     assert response.status_code == 422
+
+
+# --- Regression: interview briefing must honour the saved min_salary ----------
+
+
+def test_interview_briefing_uses_saved_min_salary(client, auth_headers):
+    headers = auth_headers()
+    _brain(client, headers)
+    client.patch("/brain/preferences", headers=headers, json={"min_salary": 140000})
+    response = client.post(
+        "/interview/prep",
+        headers=headers,
+        json={"job_title": "Growth Lead", "company_name": "Acme"},
+    )
+    assert response.status_code == 200
+    strategy = response.json()["briefing"]["compensation_strategy"]
+    assert "140,000" in strategy  # anchors on the user's real minimum, not "none set"

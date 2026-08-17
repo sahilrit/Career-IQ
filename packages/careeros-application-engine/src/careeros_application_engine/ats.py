@@ -25,11 +25,14 @@ class ATSReport:
 
 
 def ats_keyword_coverage(resume_text: str, posting: JobPosting) -> ATSReport:
-    resume_terms = set(_TOKEN_RE.findall(resume_text.lower()))
+    # Normalise the resume to a single, space-padded token stream so multi-word
+    # keywords ("google ads") match as phrases, not just as single tokens.
+    resume_norm = f" {' '.join(_TOKEN_RE.findall(resume_text.lower()))} "
     covered = []
     missing = []
     for keyword in posting.tags:
-        if keyword.lower() in resume_terms:
+        phrase = " ".join(_TOKEN_RE.findall(keyword.lower()))
+        if phrase and f" {phrase} " in resume_norm:
             covered.append(keyword)
         else:
             missing.append(keyword)

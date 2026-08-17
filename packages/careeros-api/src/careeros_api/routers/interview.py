@@ -46,6 +46,7 @@ def prep(body: InterviewPrepRequest, context: Context) -> dict[str, Any]:
         job_title=body.job_title,
         company_name=body.company_name,
         job_description=body.job_description,
+        min_salary=brain.preferences.min_salary,
     )
     return {
         "questions": {

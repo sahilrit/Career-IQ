@@ -28,3 +28,22 @@ def test_matching_is_case_insensitive(posting_factory):
     posting = posting_factory(tags=["Python"])
     report = ats_keyword_coverage("experienced python engineer", posting)
     assert report.covered_keywords == ["Python"]
+
+
+# --- Regression: multi-word keywords must match as phrases --------------------
+
+
+def test_multiword_keywords_match_as_phrases(posting_factory):
+    posting = posting_factory(tags=["Google Ads", "growth marketing", "SQL"])
+    resume = "SKILLS\nGoogle Ads, growth marketing, SQL"
+    report = ats_keyword_coverage(resume, posting)
+    assert report.covered_keywords == ["Google Ads", "growth marketing", "SQL"]
+    assert report.missing_keywords == []
+
+
+def test_multiword_keyword_absent_is_missing(posting_factory):
+    posting = posting_factory(tags=["Google Ads", "growth marketing"])
+    report = ats_keyword_coverage("Ran Google campaigns and did some marketing.", posting)
+    # neither exact phrase is present, so both are missing (no false positives)
+    assert report.covered_keywords == []
+    assert set(report.missing_keywords) == {"Google Ads", "growth marketing"}

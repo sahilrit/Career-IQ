@@ -7,16 +7,18 @@ from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from pydantic import ValidationError
 
 from careeros_api.dependencies import Context
 from careeros_api.schemas import (
     BrainCreateRequest,
     ExperienceCreateRequest,
+    PreferencesUpdateRequest,
     SkillCreateRequest,
     SummaryUpdateRequest,
 )
 from careeros_career_brain import CareerBrain, CareerBrainRepository, parse_resume_pdf
-from careeros_career_brain.models import Experience, Identity, Skill
+from careeros_career_brain.models import Experience, Identity, Preferences, Skill
 from careeros_tenancy import Permission
 
 # Guard the upload endpoint: reject anything that isn't a smallish PDF
@@ -41,6 +43,19 @@ def _parse_date(value: str, field: str) -> date:
     except ValueError as error:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"{field} must be an ISO date (YYYY-MM-DD)"
+        ) from error
+
+
+def _build_or_422(factory):
+    """Construct a domain model, turning a model-validator rejection (e.g. an
+    end date before the start date) into a friendly 422 instead of a bare 500."""
+    try:
+        return factory()
+    except ValidationError as error:
+        errors = error.errors()
+        message = errors[0].get("msg", "invalid value") if errors else "invalid value"
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, message.removeprefix("Value error, ")
         ) from error
 
 
@@ -69,11 +84,21 @@ def update_summary(body: SummaryUpdateRequest, context: Context) -> dict[str, An
     return brain.model_dump(mode="json")
 
 
+@router.patch("/brain/preferences")
+def update_preferences(body: PreferencesUpdateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    merged = {**brain.preferences.model_dump(), **body.model_dump(exclude_unset=True)}
+    brain.preferences = _build_or_422(lambda: Preferences(**merged))
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
 @router.post("/brain/skills", status_code=status.HTTP_201_CREATED)
 def add_skill(body: SkillCreateRequest, context: Context) -> dict[str, Any]:
     context.require_permission(Permission.CAREER_BRAIN_WRITE)
     brain = _primary(context)
-    brain.skills.append(Skill(name=body.name, proficiency=body.proficiency))
+    brain.skills.append(_build_or_422(lambda: Skill(name=body.name, proficiency=body.proficiency)))
     CareerBrainRepository(context.store).save(brain)
     return brain.model_dump(mode="json")
 
@@ -82,13 +107,17 @@ def add_skill(body: SkillCreateRequest, context: Context) -> dict[str, Any]:
 def add_experience(body: ExperienceCreateRequest, context: Context) -> dict[str, Any]:
     context.require_permission(Permission.CAREER_BRAIN_WRITE)
     brain = _primary(context)
+    start_date = _parse_date(body.start_date, "start_date")
+    end_date = _parse_date(body.end_date, "end_date") if body.end_date else None
     brain.experiences.append(
-        Experience(
-            company_name=body.company_name,
-            title=body.title,
-            start_date=_parse_date(body.start_date, "start_date"),
-            end_date=_parse_date(body.end_date, "end_date") if body.end_date else None,
-            description=body.description,
+        _build_or_422(
+            lambda: Experience(
+                company_name=body.company_name,
+                title=body.title,
+                start_date=start_date,
+                end_date=end_date,
+                description=body.description,
+            )
         )
     )
     CareerBrainRepository(context.store).save(brain)

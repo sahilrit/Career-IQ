@@ -175,3 +175,53 @@ def test_import_resume_requires_auth(client):
         "/brain/import-resume", files={"file": ("r.pdf", b"%PDF-1.4", "application/pdf")}
     )
     assert response.status_code == 401
+
+
+# --- Regression: bugs found in the 2026-08-18 deep audit ----------------------
+
+
+def _make_brain(client, headers):
+    client.post("/brain", headers=headers, json={"full_name": "Ada", "email": "ada@example.com"})
+
+
+def test_experience_end_before_start_is_422_not_500(client, auth_headers):
+    """Swapped dates are a common typo — must be a friendly 422, never a 500."""
+    headers = auth_headers()
+    _make_brain(client, headers)
+    response = client.post(
+        "/brain/experience",
+        headers=headers,
+        json={
+            "company_name": "Acme",
+            "title": "Growth Lead",
+            "start_date": "2022-01-01",
+            "end_date": "2020-01-01",
+        },
+    )
+    assert response.status_code == 422
+    assert "end_date" in response.json()["detail"]
+
+
+def test_update_preferences_sets_min_salary(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    response = client.patch("/brain/preferences", headers=headers, json={"min_salary": 140000})
+    assert response.status_code == 200
+    assert response.json()["preferences"]["min_salary"] == 140000
+
+
+def test_update_preferences_negative_salary_is_422(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    response = client.patch("/brain/preferences", headers=headers, json={"min_salary": -5})
+    assert response.status_code == 422
+
+
+def test_update_preferences_partial_does_not_clobber(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    client.patch("/brain/preferences", headers=headers, json={"min_salary": 120000})
+    client.patch("/brain/preferences", headers=headers, json={"remote_only": True})
+    prefs = client.get("/brain", headers=headers).json()["preferences"]
+    assert prefs["min_salary"] == 120000  # not wiped by the second partial update
+    assert prefs["remote_only"] is True

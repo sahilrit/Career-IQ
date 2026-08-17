@@ -76,6 +76,16 @@ class ExperienceCreateRequest(BaseModel):
     description: str = ""
 
 
+class PreferencesUpdateRequest(BaseModel):
+    """Partial update — only fields the client sends are applied."""
+
+    min_salary: int | None = None
+    salary_currency: str | None = None
+    desired_titles: list[str] | None = None
+    desired_locations: list[str] | None = None
+    remote_only: bool | None = None
+
+
 class SearchRequest(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     remote_only: bool = True

@@ -78,8 +78,24 @@ def test_signature_mismatch_raises():
         verify_signature(b"{}", "t=1700000000,v1=deadbeef", "whsec_test", now=1_700_000_000)
 
 
-def test_webhook_endpoint_activates_without_secret(client, auth_headers):
+def test_webhook_endpoint_fails_closed_without_secret(client, auth_headers):
+    """Previously this endpoint activated plans with no signature when the
+    secret was unset (a fail-open auth bypass). It must now refuse (503)."""
     auth_headers()
     response = client.post("/webhooks/stripe", json=_completed_event(plan="agency"))
-    assert response.status_code == 200
-    assert "activated agency" in response.json()["message"]
+    assert response.status_code == 503
+    assert response.json()["detail"] != "activated agency for ada@example.com"
+
+
+# --- Regression: signature still enforced when the secret IS set --------------
+
+
+def test_stripe_endpoint_rejects_bad_signature_when_secret_set(client, auth_headers, monkeypatch):
+    auth_headers()  # register ada@example.com
+    monkeypatch.setenv("CAREEROS_STRIPE_WEBHOOK_SECRET", "whsec_test")
+    response = client.post(
+        "/webhooks/stripe",
+        headers={"stripe-signature": "t=1700000000,v1=deadbeef"},
+        json={"type": "checkout.session.completed", "data": {"object": {}}},
+    )
+    assert response.status_code == 400
