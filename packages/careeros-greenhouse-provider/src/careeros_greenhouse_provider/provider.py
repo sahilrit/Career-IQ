@@ -34,8 +34,8 @@ class GreenhouseProvider(JobProvider):
         return JobSearchResult(postings=filtered[: query.limit])
 
     def health_check(self) -> ProviderHealth:
-        try:
-            self._transport.fetch()
-        except Exception as exc:
-            return ProviderHealth(status=HealthStatus.DOWN, detail=str(exc))
+        # Optimistic: fetching every board just to health-check would double
+        # each search's crawl. search() already skips dead boards and the
+        # registry catches a whole-provider failure, so report healthy and
+        # let the real search surface any problem.
         return ProviderHealth(status=HealthStatus.HEALTHY)

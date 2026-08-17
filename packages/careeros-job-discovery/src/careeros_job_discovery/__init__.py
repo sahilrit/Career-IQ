@@ -4,6 +4,7 @@ at every step.
 """
 
 from careeros_job_discovery.pipeline import JobDiscoveryPipeline
+from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting
 
-__all__ = ["JobDiscoveryPipeline", "score_posting"]
+__all__ = ["JobDiscoveryPipeline", "JobPostingRepository", "score_posting"]

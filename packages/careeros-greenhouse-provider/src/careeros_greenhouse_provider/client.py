@@ -9,7 +9,7 @@ description so keyword matching and scoring have something to work with.
 
 from __future__ import annotations
 
-import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Protocol
 
 import httpx
@@ -34,35 +34,46 @@ class HttpxGreenhouseTransport:
         companies: tuple[str, ...] = DEFAULT_COMPANY_BOARDS,
         base_url: str = BOARDS_API,
         timeout: float = 15.0,
-        per_board_delay_seconds: float = 0.3,
+        max_workers: int = 8,
         client: httpx.Client | None = None,
     ) -> None:
         self._companies = companies
         self._base_url = base_url
-        self._delay = per_board_delay_seconds
+        self._max_workers = max_workers
         self._owns_client = client is None
+        # httpx.Client is safe to share across threads (pooled connections).
         self._client = client or httpx.Client(timeout=timeout)
 
+    def _fetch_board(self, company: str) -> list[dict[str, Any]] | None:
+        """Return the board's jobs, or None if the request failed (a dead
+        board must not sink the whole crawl)."""
+        try:
+            response = self._client.get(
+                f"{self._base_url}/{company}/jobs",
+                params={"content": "true"},
+                headers={"User-Agent": USER_AGENT},
+            )
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPError:
+            return None
+        jobs = data.get("jobs", [])
+        for job in jobs:
+            job["_company"] = company
+        return jobs
+
     def fetch(self) -> list[dict[str, Any]]:
+        if not self._companies:
+            return []
         entries: list[dict[str, Any]] = []
         any_ok = False
-        for company in self._companies:
-            try:
-                response = self._client.get(
-                    f"{self._base_url}/{company}/jobs",
-                    params={"content": "true"},
-                    headers={"User-Agent": USER_AGENT},
-                )
-                response.raise_for_status()
-                data = response.json()
-            except httpx.HTTPError:
-                continue  # a dead board must not sink the whole crawl
-            any_ok = True
-            for job in data.get("jobs", []):
-                job["_company"] = company
-                entries.append(job)
-            time.sleep(self._delay)
-        if not any_ok and self._companies:
+        with ThreadPoolExecutor(max_workers=min(self._max_workers, len(self._companies))) as pool:
+            for board_jobs in pool.map(self._fetch_board, self._companies):
+                if board_jobs is None:
+                    continue
+                any_ok = True
+                entries.extend(board_jobs)
+        if not any_ok:
             raise JobProviderError("Every Greenhouse board request failed")
         return entries
 

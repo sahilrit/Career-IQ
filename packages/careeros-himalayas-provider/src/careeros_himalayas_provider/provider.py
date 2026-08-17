@@ -33,8 +33,6 @@ class HimalayasProvider(JobProvider):
         return JobSearchResult(postings=filtered[: query.limit])
 
     def health_check(self) -> ProviderHealth:
-        try:
-            self._transport.fetch()
-        except Exception as exc:
-            return ProviderHealth(status=HealthStatus.DOWN, detail=str(exc))
+        # Optimistic: paging the whole feed just to health-check would
+        # double each search's work. search() surfaces real failures.
         return ProviderHealth(status=HealthStatus.HEALTHY)

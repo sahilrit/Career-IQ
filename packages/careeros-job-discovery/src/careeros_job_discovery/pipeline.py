@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from careeros_career_brain import Application, CareerBrainRepository
 from careeros_event_bus import Event, EventBus
+from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
 
@@ -23,10 +24,12 @@ class JobDiscoveryPipeline:
         provider_registry: JobProviderRegistry,
         career_brain_repository: CareerBrainRepository,
         event_bus: EventBus,
+        posting_repository: JobPostingRepository | None = None,
     ) -> None:
         self._providers = provider_registry
         self._repository = career_brain_repository
         self._bus = event_bus
+        self._postings = posting_repository
 
     def run(self, identity_id: str, query: JobSearchQuery) -> list[Application]:
         """Discover, score, and store new applications for one user's Career Brain.
@@ -39,6 +42,11 @@ class JobDiscoveryPipeline:
 
         new_applications: list[Application] = []
         for posting in result.postings:
+            # Cache the full posting so generation/submission can read it
+            # back by URL instead of re-crawling every provider.
+            if self._postings is not None:
+                self._postings.save(posting)
+
             if brain.find_application_by_job_url(posting.url) is not None:
                 continue
 

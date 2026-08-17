@@ -15,7 +15,7 @@ from careeros_event_bus import EventBus
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_job_agent import JobAgent
-from careeros_job_discovery import JobDiscoveryPipeline
+from careeros_job_discovery import JobDiscoveryPipeline, JobPostingRepository
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
 from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
@@ -60,7 +60,9 @@ def search_for_jobs(
     registry = provider_registry or default_provider_registry()
     repository = CareerBrainRepository(store)
     bus = EventBus()
-    pipeline = JobDiscoveryPipeline(registry, repository, bus)
+    # Cache discovered postings so generation reads them back by URL
+    # instead of re-crawling every provider.
+    pipeline = JobDiscoveryPipeline(registry, repository, bus, JobPostingRepository(store))
     agent = JobAgent(pipeline, repository, bus)
     query = JobSearchQuery(keywords=keywords, remote_only=remote_only, limit=limit)
     return agent.run_cycle(identity_id, query)
@@ -77,9 +79,13 @@ def generate_application_for_job(
     if brain is None:
         return None
 
-    registry = provider_registry or default_provider_registry()
-    result = registry.search_all(JobSearchQuery(limit=200))
-    posting = next((p for p in result.postings if p.url == job_url), None)
+    # Fast path: the posting was cached at discovery time — no crawl needed.
+    posting = JobPostingRepository(store).load_or_none(job_url)
+    if posting is None:
+        # Fallback for postings discovered before caching existed: one crawl.
+        registry = provider_registry or default_provider_registry()
+        result = registry.search_all(JobSearchQuery(limit=200))
+        posting = next((p for p in result.postings if p.url == job_url), None)
     if posting is None:
         return None
 
