@@ -17,6 +17,8 @@ dependencies = [
     "psycopg-pool>=3.2",
     "fastapi>=0.110",
     "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
+    "pypdf>=4.0",
 ]
 
 [tool.uv.sources]

@@ -25,6 +25,12 @@ from careeros_career_brain.models import (
     StatusChange,
 )
 from careeros_career_brain.repository import CareerBrainRepository
+from careeros_career_brain.resume_parsing import (
+    ParsedResume,
+    extract_text_from_pdf,
+    parse_resume,
+    parse_resume_pdf,
+)
 
 __all__ = [
     "ALLOWED_STATUS_TRANSITIONS",
@@ -43,9 +49,13 @@ __all__ = [
     "Identity",
     "InvalidStatusTransitionError",
     "Language",
+    "ParsedResume",
     "Preferences",
     "Project",
     "Recruiter",
     "Skill",
     "StatusChange",
+    "extract_text_from_pdf",
+    "parse_resume",
+    "parse_resume_pdf",
 ]

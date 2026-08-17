@@ -3,6 +3,7 @@ import { api, type CareerBrain } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { CreateBrainForm } from "@/components/brain/CreateBrainForm";
 import { BrainEditor } from "@/components/brain/BrainEditor";
+import { ResumeUpload } from "@/components/brain/ResumeUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function CareerBrainPage() {
   return (
     <Shell account={account}>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Career Brain</h1>
+      <ResumeUpload />
       {brain ? (
         <BrainEditor brain={brain} />
       ) : (

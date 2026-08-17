@@ -102,3 +102,76 @@ def test_add_experience_bad_date_is_422(client, auth_headers):
 def test_writes_require_auth(client):
     assert client.post("/brain", json={"full_name": "x", "email": "y@z.com"}).status_code == 401
     assert client.post("/brain/skills", json={"name": "x"}).status_code == 401
+
+
+def _resume_pdf_bytes() -> bytes:
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    for line in [
+        "Ada Lovelace",
+        "Performance Marketer",
+        "ada@example.com",
+        "+1 555 123 4567",
+        "",
+        "Professional Summary",
+        "Growth marketer with 6 years scaling paid acquisition.",
+        "",
+        "Skills",
+        "Meta Ads, Google Ads, A/B Testing, SQL",
+    ]:
+        pdf.cell(0, 8, line, ln=True)
+    return bytes(pdf.output())
+
+
+def _upload(client, headers, data: bytes, filename: str = "resume.pdf"):
+    return client.post(
+        "/brain/import-resume",
+        headers=headers,
+        files={"file": (filename, data, "application/pdf")},
+    )
+
+
+def test_import_resume_creates_and_fills_brain(client, auth_headers):
+    headers = auth_headers()
+    response = _upload(client, headers, _resume_pdf_bytes())
+    assert response.status_code == 200
+    brain = response.json()["brain"]
+    assert brain["identity"]["full_name"] == "Ada Lovelace"
+    assert brain["identity"]["email"] == "ada@example.com"
+    assert brain["identity"]["summary"]
+    skill_names = {s["name"] for s in brain["skills"]}
+    assert {"Meta Ads", "Google Ads"} <= skill_names
+    assert response.json()["imported"]["skills_added"] >= 3
+
+
+def test_import_resume_merges_without_clobbering(client, auth_headers):
+    headers = auth_headers()
+    client.post("/brain", headers=headers, json={"full_name": "Real Name", "email": "real@me.com"})
+    client.patch("/brain/summary", headers=headers, json={"summary": "My own words."})
+    response = _upload(client, headers, _resume_pdf_bytes())
+    assert response.status_code == 200
+    brain = response.json()["brain"]
+    # User-entered identity + summary are preserved; skills still merge in.
+    assert brain["identity"]["full_name"] == "Real Name"
+    assert brain["identity"]["summary"] == "My own words."
+    assert any(s["name"] == "Meta Ads" for s in brain["skills"])
+
+
+def test_import_resume_rejects_non_pdf(client, auth_headers):
+    headers = auth_headers()
+    response = client.post(
+        "/brain/import-resume",
+        headers=headers,
+        files={"file": ("notes.txt", b"just text", "text/plain")},
+    )
+    assert response.status_code == 415
+
+
+def test_import_resume_requires_auth(client):
+    response = client.post(
+        "/brain/import-resume", files={"file": ("r.pdf", b"%PDF-1.4", "application/pdf")}
+    )
+    assert response.status_code == 401
