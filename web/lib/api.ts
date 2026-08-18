@@ -38,7 +38,9 @@ export type Application = {
   job_url: string | null;
   notes?: string;
   history?: StatusChange[];
+  follow_up_date?: string | null;
 };
+export type FollowUp = Application & { days_until: number; due: boolean };
 
 export type CareerBrain = {
   identity: {
@@ -323,6 +325,12 @@ export const api = {
     request<MatchGap>(`/applications/${id}/gap`, { token }),
   editDocument: (token: string, id: string, content: string) =>
     request<GeneratedDocument>(`/documents/${id}`, { token, method: "PATCH", body: { content } }),
+  followUps: (token: string) => request<FollowUp[]>("/applications/follow-ups", { token }),
+  setFollowUp: (token: string, id: string, date: string | null, add_to_calendar = false) =>
+    request<{ application: Application; calendar: { created: boolean; reason?: string } }>(
+      `/applications/${id}/follow-up`,
+      { token, method: "PATCH", body: { date, add_to_calendar } },
+    ),
   createBrain: (token: string, body: { full_name: string; email: string }) =>
     request<CareerBrain>("/brain", { token, method: "POST", body }),
   updateSummary: (token: string, summary: string) =>

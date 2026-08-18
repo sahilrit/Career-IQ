@@ -140,3 +140,55 @@ def test_keyword_gap_unavailable_when_posting_not_cached(client, auth_headers):
     app_id = _seed_application(headers, client, job_url="https://uncached/9")
     body = client.get(f"/applications/{app_id}/gap", headers=headers).json()
     assert body["available"] is False
+
+
+# --- Follow-up reminders (roadmap #4) ----------------------------------------
+
+
+def test_set_and_clear_follow_up(client, auth_headers):
+    headers = auth_headers()
+    app_id = _seed_application(headers, client)
+
+    r = client.patch(
+        f"/applications/{app_id}/follow-up", headers=headers, json={"date": "2099-01-15"}
+    )
+    assert r.status_code == 200
+    assert r.json()["application"]["follow_up_date"] == "2099-01-15"
+
+    ups = client.get("/applications/follow-ups", headers=headers).json()
+    assert len(ups) == 1
+    assert ups[0]["due"] is False and ups[0]["days_until"] > 0
+
+    # clearing removes it from the list
+    client.patch(f"/applications/{app_id}/follow-up", headers=headers, json={"date": None})
+    assert client.get("/applications/follow-ups", headers=headers).json() == []
+
+
+def test_follow_up_due_flag(client, auth_headers):
+    headers = auth_headers()
+    app_id = _seed_application(headers, client)
+    client.patch(f"/applications/{app_id}/follow-up", headers=headers, json={"date": "2000-01-01"})
+    ups = client.get("/applications/follow-ups", headers=headers).json()
+    assert ups[0]["due"] is True
+
+
+def test_follow_up_bad_date_is_422(client, auth_headers):
+    headers = auth_headers()
+    app_id = _seed_application(headers, client)
+    r = client.patch(f"/applications/{app_id}/follow-up", headers=headers, json={"date": "nope"})
+    assert r.status_code == 422
+
+
+def test_follow_up_calendar_needs_google(client, auth_headers):
+    headers = auth_headers()
+    app_id = _seed_application(headers, client)
+    r = client.patch(
+        f"/applications/{app_id}/follow-up",
+        headers=headers,
+        json={"date": "2099-01-15", "add_to_calendar": True},
+    )
+    assert r.status_code == 200
+    # follow-up is still set; calendar gracefully reports it needs a connection
+    assert r.json()["application"]["follow_up_date"] == "2099-01-15"
+    assert r.json()["calendar"]["created"] is False
+    assert "Google" in r.json()["calendar"]["reason"]

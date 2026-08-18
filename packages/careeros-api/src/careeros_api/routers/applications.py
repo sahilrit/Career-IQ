@@ -4,11 +4,13 @@ and edit notes. The status state-machine lives in the domain
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from careeros_api import integrations_google as google
 from careeros_api.dependencies import Context
 from careeros_career_brain import (
     Application,
@@ -31,6 +33,11 @@ class NotesRequest(BaseModel):
     notes: str = ""
 
 
+class FollowUpRequest(BaseModel):
+    date: str | None = Field(default=None, description="ISO date; null clears the reminder")
+    add_to_calendar: bool = False
+
+
 def _applications(context: Context) -> list[Application]:
     return [
         application
@@ -50,6 +57,58 @@ def _brain_with(context: Context, application_id: str):
 @router.get("")
 def list_applications(context: Context) -> list[dict[str, Any]]:
     return [application.model_dump(mode="json") for application in _applications(context)]
+
+
+@router.get("/follow-ups")
+def follow_ups(context: Context) -> list[dict[str, Any]]:
+    """Applications with a follow-up set, soonest first, each flagged as due
+    when the date has arrived — powers the 'due soon' nudge."""
+    today = date.today()
+    items = []
+    for application in _applications(context):
+        if application.follow_up_date is None:
+            continue
+        payload = application.model_dump(mode="json")
+        payload["days_until"] = (application.follow_up_date - today).days
+        payload["due"] = application.follow_up_date <= today
+        items.append(payload)
+    items.sort(key=lambda item: item["follow_up_date"])
+    return items
+
+
+@router.patch("/{application_id}/follow-up")
+def set_follow_up(application_id: str, body: FollowUpRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain, application = _brain_with(context, application_id)
+    if body.date is None:
+        application.follow_up_date = None
+    else:
+        try:
+            application.follow_up_date = date.fromisoformat(body.date)
+        except ValueError as error:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "date must be ISO (YYYY-MM-DD)"
+            ) from error
+    CareerBrainRepository(context.store).save(brain)
+
+    calendar: dict[str, Any] = {"created": False}
+    if body.add_to_calendar and application.follow_up_date is not None:
+        iso = application.follow_up_date.isoformat()
+        try:
+            event = google.create_event(
+                context.store,
+                context.account.workspace_id,
+                summary=f"Follow up: {application.job_title} at {application.company_name}",
+                start_iso=f"{iso}T09:00:00",
+                end_iso=f"{iso}T09:30:00",
+            )
+            calendar = {"created": True, "html_link": event.get("htmlLink")}
+        except google.GoogleNotConnectedError:
+            calendar = {"created": False, "reason": "connect Google in Settings first"}
+        except google.GoogleError as error:
+            calendar = {"created": False, "reason": str(error)}
+
+    return {"application": application.model_dump(mode="json"), "calendar": calendar}
 
 
 @router.get("/board")

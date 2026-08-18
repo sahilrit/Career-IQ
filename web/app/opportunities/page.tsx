@@ -1,27 +1,49 @@
 import { requireAccount } from "@/lib/session";
-import { api, type Application } from "@/lib/api";
+import { api, type Application, type FollowUp } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { Stagger, StaggerItem } from "@/components/Motion";
 import { SearchForm } from "@/components/opportunities/SearchForm";
 import { GenerateButton } from "@/components/opportunities/GenerateButton";
 import { StatusControl } from "@/components/opportunities/StatusControl";
 import { MatchGap } from "@/components/opportunities/MatchGap";
+import { FollowUpControl } from "@/components/opportunities/FollowUpControl";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpportunitiesPage() {
   const { token, account } = await requireAccount();
   let applications: Application[] = [];
+  let followUps: FollowUp[] = [];
   try {
-    applications = await api.applications(token);
+    [applications, followUps] = await Promise.all([api.applications(token), api.followUps(token)]);
   } catch {
     /* empty */
   }
   const ranked = [...applications].sort((a, b) => (b.match_score ?? 0) - (a.match_score ?? 0));
+  const dueSoon = followUps.filter((f) => f.days_until <= 3);
 
   return (
     <Shell account={account}>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Opportunities</h1>
+      {dueSoon.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-amber-400">
+            Follow-ups due soon
+          </div>
+          <ul className="space-y-1 text-sm text-white/85">
+            {dueSoon.map((f) => (
+              <li key={f.id} className="flex items-center justify-between gap-3">
+                <span className="truncate">
+                  {f.job_title} · {f.company_name}
+                </span>
+                <span className="shrink-0 text-xs text-amber-400">
+                  {f.due ? "due now" : `in ${f.days_until}d`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <SearchForm />
       {ranked.length === 0 ? (
         <div className="card p-6 text-muted">
@@ -50,6 +72,7 @@ export default async function OpportunitiesPage() {
                   </div>
                   <MatchGap applicationId={application.id} />
                   <StatusControl application={application} />
+                  <FollowUpControl application={application} />
                   <GenerateButton jobUrl={application.job_url} />
                 </div>
               </StaggerItem>

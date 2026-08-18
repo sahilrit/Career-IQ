@@ -233,6 +233,7 @@ class Application(BaseModel):
     resume_id: str | None = None
     cover_letter_id: str | None = None
     notes: str = ""
+    follow_up_date: date | None = None
 
     @model_validator(mode="after")
     def _seed_history(self) -> Application:
