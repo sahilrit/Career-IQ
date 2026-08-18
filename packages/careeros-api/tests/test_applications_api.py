@@ -97,3 +97,46 @@ def test_tenancy_isolation(client, auth_headers):
         ).status_code
         == 404
     )
+
+
+# --- ATS keyword gap per match (roadmap #2) ----------------------------------
+
+
+def test_keyword_gap_matched_and_missing(client, auth_headers):
+    from careeros_career_brain.models import Skill
+    from careeros_job_discovery import JobPostingRepository
+    from careeros_job_providers import JobPosting
+
+    headers = auth_headers()
+    workspace_id = client.get("/auth/me", headers=headers).json()["workspace_id"]
+    scoped = TenantScopedDocumentStore(dependencies.get_store(), workspace_id)
+    brain = CareerBrain(
+        identity=Identity(full_name="Sahil", email="s@example.com"),
+        skills=[Skill(name="Meta Ads"), Skill(name="SQL")],
+    )
+    posting = JobPosting(
+        source_provider="x",
+        external_id="1",
+        title="Growth Marketer",
+        company_name="Ramp",
+        url="https://jobs/1",
+        tags=["Meta Ads", "Google Ads", "SQL"],
+    )
+    JobPostingRepository(scoped).save(posting)
+    application = Application(
+        job_title="Growth Marketer", company_name="Ramp", job_url="https://jobs/1"
+    )
+    brain.applications.append(application)
+    CareerBrainRepository(scoped).save(brain)
+
+    body = client.get(f"/applications/{application.id}/gap", headers=headers).json()
+    assert body["available"] is True
+    assert set(body["matched_skills"]) == {"Meta Ads", "SQL"}
+    assert body["missing_keywords"] == ["Google Ads"]
+
+
+def test_keyword_gap_unavailable_when_posting_not_cached(client, auth_headers):
+    headers = auth_headers()
+    app_id = _seed_application(headers, client, job_url="https://uncached/9")
+    body = client.get(f"/applications/{app_id}/gap", headers=headers).json()
+    assert body["available"] is False

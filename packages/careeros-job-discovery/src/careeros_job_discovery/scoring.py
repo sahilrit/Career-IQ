@@ -92,3 +92,34 @@ def score_posting(posting: JobPosting, brain: CareerBrain) -> float:
         + _SALARY_WEIGHT * _salary_score(posting, brain)
         + _LOCATION_WEIGHT * _location_score(posting, brain)
     )
+
+
+def skill_gap(posting: JobPosting, brain: CareerBrain) -> dict[str, list[str]]:
+    """Explain a match: which of the candidate's skills the posting mentions,
+    and which posting keywords/tags are absent from the Career Brain — the
+    concrete "add these to your resume" list behind the bare score."""
+    posting_terms = _tokenize(posting.title) | _tokenize(posting.description)
+    for tag in posting.tags:
+        posting_terms |= _tokenize(tag)
+
+    matched = [
+        skill.name
+        for skill in brain.skills
+        if any(tokens <= posting_terms for tokens in _skill_phrases(skill.name))
+    ]
+
+    brain_terms: set[str] = set()
+    for skill in brain.skills:
+        for tokens in _skill_phrases(skill.name):
+            brain_terms |= tokens
+
+    missing = []
+    seen: set[str] = set()
+    for tag in posting.tags:
+        tokens = _tokenize(tag)
+        key = tag.strip().lower()
+        if tokens and not (tokens <= brain_terms) and key not in seen:
+            missing.append(tag)
+            seen.add(key)
+
+    return {"matched_skills": matched, "missing_keywords": missing}

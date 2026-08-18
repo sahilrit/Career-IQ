@@ -5,6 +5,7 @@ import { Stagger, StaggerItem } from "@/components/Motion";
 import { SearchForm } from "@/components/opportunities/SearchForm";
 import { GenerateButton } from "@/components/opportunities/GenerateButton";
 import { StatusControl } from "@/components/opportunities/StatusControl";
+import { MatchGap } from "@/components/opportunities/MatchGap";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function OpportunitiesPage() {
                       )}
                     </div>
                   </div>
+                  <MatchGap applicationId={application.id} />
                   <StatusControl application={application} />
                   <GenerateButton jobUrl={application.job_url} />
                 </div>

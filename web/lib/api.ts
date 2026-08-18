@@ -15,6 +15,11 @@ export type Account = {
 };
 
 export type StatusChange = { status: string; changed_at: string; note: string };
+export type MatchGap = {
+  available: boolean;
+  matched_skills: string[];
+  missing_keywords: string[];
+};
 export type Application = {
   id: string;
   job_title: string;
@@ -305,6 +310,8 @@ export const api = {
     }),
   updateApplicationNotes: (token: string, id: string, notes: string) =>
     request<Application>(`/applications/${id}`, { token, method: "PATCH", body: { notes } }),
+  applicationGap: (token: string, id: string) =>
+    request<MatchGap>(`/applications/${id}/gap`, { token }),
   createBrain: (token: string, body: { full_name: string; email: string }) =>
     request<CareerBrain>("/brain", { token, method: "POST", body }),
   updateSummary: (token: string, summary: string) =>

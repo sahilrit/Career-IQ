@@ -16,6 +16,7 @@ from careeros_career_brain import (
     CareerBrainRepository,
     InvalidStatusTransitionError,
 )
+from careeros_job_discovery import JobPostingRepository, skill_gap
 from careeros_tenancy import Permission
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -63,6 +64,22 @@ def board(context: Context) -> dict[str, Any]:
         "counts": {name: len(items) for name, items in columns.items()},
         "total": sum(len(items) for items in columns.values()),
     }
+
+
+@router.get("/{application_id}/gap")
+def keyword_gap(application_id: str, context: Context) -> dict[str, Any]:
+    """Why this scored the way it did: which of your skills the posting mentions,
+    and which posting keywords are missing from your Career Brain."""
+    brain, application = _brain_with(context, application_id)
+    posting = (
+        JobPostingRepository(context.store).load_or_none(application.job_url)
+        if application.job_url
+        else None
+    )
+    if posting is None:
+        return {"available": False, "matched_skills": [], "missing_keywords": []}
+    gap = skill_gap(posting, brain)
+    return {"available": True, **gap}
 
 
 @router.post("/{application_id}/status")
