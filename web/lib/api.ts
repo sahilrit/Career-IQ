@@ -20,6 +20,15 @@ export type MatchGap = {
   matched_skills: string[];
   missing_keywords: string[];
 };
+export type GeneratedDocument = {
+  id: string;
+  application_id: string;
+  kind: string;
+  title: string;
+  content: string;
+  version: number;
+  ai_used: boolean;
+};
 export type Application = {
   id: string;
   job_title: string;
@@ -312,6 +321,8 @@ export const api = {
     request<Application>(`/applications/${id}`, { token, method: "PATCH", body: { notes } }),
   applicationGap: (token: string, id: string) =>
     request<MatchGap>(`/applications/${id}/gap`, { token }),
+  editDocument: (token: string, id: string, content: string) =>
+    request<GeneratedDocument>(`/documents/${id}`, { token, method: "PATCH", body: { content } }),
   createBrain: (token: string, body: { full_name: string; email: string }) =>
     request<CareerBrain>("/brain", { token, method: "POST", body }),
   updateSummary: (token: string, summary: string) =>

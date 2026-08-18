@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, status
 from careeros_ai import AIError
 from careeros_api import ai_support
 from careeros_api.dependencies import Context
+from careeros_api.documents_store import DocumentRepository
 from careeros_api.schemas import (
     ApplicationPackageResponse,
     GenerateRequest,
@@ -69,9 +70,43 @@ def generate(body: GenerateRequest, context: Context) -> ApplicationPackageRespo
             status.HTTP_404_NOT_FOUND,
             "that posting is no longer available to generate from",
         )
+
+    # Persist the tailored documents (versioned) so they don't vanish and can
+    # be edited / exported as PDF later. Attach them to the application.
+    resume_id: str | None = None
+    cover_letter_id: str | None = None
+    version: int | None = None
+    repository = CareerBrainRepository(context.store)
+    brain = repository.list_all()[0]
+    application = brain.find_application_by_job_url(body.job_url)
+    if application is not None:
+        docs = DocumentRepository(context.store)
+        label = f"{application.job_title} — {application.company_name}"
+        resume_doc = docs.create(
+            application_id=application.id,
+            kind="resume",
+            title=f"{label} · résumé",
+            content=package.resume_text,
+            ai_used=ai_used,
+        )
+        cover_doc = docs.create(
+            application_id=application.id,
+            kind="cover_letter",
+            title=f"{label} · cover letter",
+            content=package.cover_letter,
+            ai_used=ai_used,
+        )
+        application.resume_id = resume_doc.id
+        application.cover_letter_id = cover_doc.id
+        repository.save(brain)
+        resume_id, cover_letter_id, version = resume_doc.id, cover_doc.id, resume_doc.version
+
     return ApplicationPackageResponse(
         resume_text=package.resume_text,
         cover_letter=package.cover_letter,
         ai_used=ai_used,
         ai_error=ai_error,
+        resume_document_id=resume_id,
+        cover_letter_document_id=cover_letter_id,
+        version=version,
     )
