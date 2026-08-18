@@ -4,18 +4,9 @@ import { Shell } from "@/components/Shell";
 import { Stagger, StaggerItem } from "@/components/Motion";
 import { SearchForm } from "@/components/opportunities/SearchForm";
 import { GenerateButton } from "@/components/opportunities/GenerateButton";
+import { StatusControl } from "@/components/opportunities/StatusControl";
 
 export const dynamic = "force-dynamic";
-
-const TONE: Record<string, string> = {
-  qualified: "text-emerald-400 border-emerald-500/40",
-  applied: "text-sky-400 border-sky-500/40",
-  in_review: "text-sky-400 border-sky-500/40",
-  interviewing: "text-amber-400 border-amber-500/40",
-  offer: "text-emerald-400 border-emerald-500/40",
-  accepted: "text-emerald-400 border-emerald-500/40",
-  rejected: "text-red-400 border-red-500/40",
-};
 
 export default async function OpportunitiesPage() {
   const { token, account } = await requireAccount();
@@ -54,15 +45,9 @@ export default async function OpportunitiesPage() {
                           {Math.round(application.match_score * 100)}%
                         </span>
                       )}
-                      <span
-                        className={`rounded-full border px-2.5 py-0.5 text-xs ${
-                          TONE[application.status] ?? "text-muted border-line"
-                        }`}
-                      >
-                        {application.status.replace(/_/g, " ")}
-                      </span>
                     </div>
                   </div>
+                  <StatusControl application={application} />
                   <GenerateButton jobUrl={application.job_url} />
                 </div>
               </StaggerItem>

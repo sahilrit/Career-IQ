@@ -14,6 +14,7 @@ export type Account = {
   is_admin: boolean;
 };
 
+export type StatusChange = { status: string; changed_at: string; note: string };
 export type Application = {
   id: string;
   job_title: string;
@@ -21,6 +22,8 @@ export type Application = {
   status: string;
   match_score: number | null;
   job_url: string | null;
+  notes?: string;
+  history?: StatusChange[];
 };
 
 export type CareerBrain = {
@@ -294,6 +297,14 @@ export const api = {
     }),
   brain: (token: string) => request<CareerBrain>("/brain", { token }),
   applications: (token: string) => request<Application[]>("/applications", { token }),
+  advanceApplication: (token: string, id: string, to: string, note = "") =>
+    request<Application>(`/applications/${id}/status`, {
+      token,
+      method: "POST",
+      body: { to, note },
+    }),
+  updateApplicationNotes: (token: string, id: string, notes: string) =>
+    request<Application>(`/applications/${id}`, { token, method: "PATCH", body: { notes } }),
   createBrain: (token: string, body: { full_name: string; email: string }) =>
     request<CareerBrain>("/brain", { token, method: "POST", body }),
   updateSummary: (token: string, summary: string) =>

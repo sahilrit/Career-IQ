@@ -199,12 +199,3 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
         "brain": brain.model_dump(mode="json"),
         "imported": {"fields": filled, "skills_added": added_skills},
     }
-
-
-@router.get("/applications")
-def list_applications(context: Context) -> list[dict[str, Any]]:
-    return [
-        application.model_dump(mode="json")
-        for brain in CareerBrainRepository(context.store).list_all()
-        for application in brain.applications
-    ]
