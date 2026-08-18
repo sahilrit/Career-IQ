@@ -249,3 +249,37 @@ def test_interview_briefing_uses_saved_min_salary(client, auth_headers):
     assert response.status_code == 200
     strategy = response.json()["briefing"]["compensation_strategy"]
     assert "140,000" in strategy  # anchors on the user's real minimum, not "none set"
+
+
+# --- Mock-interview practice (roadmap) ---------------------------------------
+
+
+def test_interview_practice_scores_answer(client, auth_headers):
+    headers = auth_headers()
+    response = client.post(
+        "/interview/practice",
+        headers=headers,
+        json={
+            "question": "Tell me about a time you drove growth.",
+            "answer": (
+                "When signups plateaued I owned the fix, ran creative tests, and "
+                "increased activation by 30% as a result."
+            ),
+            "job_title": "Growth Lead",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert 1 <= body["rating"] <= 5
+    assert body["has_metrics"] is True
+    assert body["ai_used"] is False  # no key configured -> heuristic
+    assert "Score:" in body["feedback"]
+
+
+def test_interview_practice_requires_answer(client, auth_headers):
+    response = client.post(
+        "/interview/practice",
+        headers=auth_headers(),
+        json={"question": "Q", "answer": ""},
+    )
+    assert response.status_code == 422

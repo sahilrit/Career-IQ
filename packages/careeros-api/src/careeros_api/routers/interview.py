@@ -8,15 +8,32 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from careeros_ai import AIError
+from careeros_api import ai_support
 from careeros_api.dependencies import Context
 from careeros_career_brain import CareerBrainRepository
 from careeros_interview_intelligence import (
+    analyze_answer,
     generate_one_page_briefing,
     generate_questions,
+    heuristic_feedback,
     render_one_page_briefing,
 )
 
 router = APIRouter(prefix="/interview", tags=["interview"])
+
+_PRACTICE_SYSTEM = (
+    "You are an expert interview coach. Critique the candidate's answer to the "
+    "interview question in 3-4 sentences. Be specific and direct: note what "
+    "worked, then the single highest-impact fix. Judge structure (STAR), "
+    "specificity, and measurable impact. Never invent facts about the candidate."
+)
+
+
+class PracticeRequest(BaseModel):
+    question: str = Field(min_length=1)
+    answer: str = Field(min_length=1)
+    job_title: str = ""
 
 
 class InterviewPrepRequest(BaseModel):
@@ -71,4 +88,40 @@ def prep(body: InterviewPrepRequest, context: Context) -> dict[str, Any]:
             "things_to_avoid": briefing.things_to_avoid,
         },
         "briefing_text": render_one_page_briefing(briefing),
+    }
+
+
+@router.post("/practice")
+def practice(body: PracticeRequest, context: Context) -> dict[str, Any]:
+    """Score a practice answer. Deterministic signals always; AI-written prose
+    coaching when the workspace has a key, else the free heuristic critique."""
+    signals = analyze_answer(body.answer)
+    feedback = heuristic_feedback(signals)
+    ai_used = False
+    ai_error: str | None = None
+
+    client = ai_support.resolve_ai_client(context.store, context.account.workspace_id)
+    if client is not None:
+        role = f" for a {body.job_title} role" if body.job_title else ""
+        prompt = (
+            f"Interview question{role}: {body.question}\n\n"
+            f"Candidate's answer: {body.answer}\n\n"
+            "Give your critique."
+        )
+        try:
+            feedback = client.complete(system=_PRACTICE_SYSTEM, prompt=prompt).strip() or feedback
+            ai_used = True
+        except AIError as error:
+            ai_error = str(error)
+
+    return {
+        "rating": signals.rating,
+        "has_metrics": signals.has_metrics,
+        "uses_star": signals.uses_star,
+        "word_count": signals.word_count,
+        "strengths": signals.strengths,
+        "improvements": signals.improvements,
+        "feedback": feedback,
+        "ai_used": ai_used,
+        "ai_error": ai_error,
     }

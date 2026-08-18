@@ -1,6 +1,7 @@
 import { requireAccount } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { InterviewPrepForm } from "@/components/interview/InterviewPrepForm";
+import { PracticePanel } from "@/components/interview/PracticePanel";
 import { BookInterviewButton } from "@/components/BookInterviewButton";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,9 @@ export default async function InterviewPage() {
         <BookInterviewButton defaultSummary="Interview" />
       </section>
       <InterviewPrepForm />
+      <div className="mt-6">
+        <PracticePanel />
+      </div>
     </Shell>
   );
 }

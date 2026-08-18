@@ -12,6 +12,11 @@ from careeros_interview_intelligence.briefing import (
     render_one_page_briefing,
 )
 from careeros_interview_intelligence.pipeline import GeneratedBriefing, run_due_briefings
+from careeros_interview_intelligence.practice import (
+    PracticeSignals,
+    analyze_answer,
+    heuristic_feedback,
+)
 from careeros_interview_intelligence.questions import (
     InterviewQuestions,
     STARPrompt,
@@ -39,12 +44,15 @@ __all__ = [
     "InterviewQuestions",
     "ManualCompanyResearchProvider",
     "OnePageBriefing",
+    "PracticeSignals",
     "ResearchChecklist",
     "STARPrompt",
+    "analyze_answer",
     "due_milestones",
     "generate_one_page_briefing",
     "generate_questions",
     "generate_research_checklist",
+    "heuristic_feedback",
     "render_one_page_briefing",
     "run_due_briefings",
     "stage_for_milestone",

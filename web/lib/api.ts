@@ -20,6 +20,17 @@ export type MatchGap = {
   matched_skills: string[];
   missing_keywords: string[];
 };
+export type PracticeFeedback = {
+  rating: number;
+  has_metrics: boolean;
+  uses_star: boolean;
+  word_count: number;
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
+  ai_used: boolean;
+  ai_error: string | null;
+};
 export type GeneratedDocument = {
   id: string;
   application_id: string;
@@ -325,6 +336,10 @@ export const api = {
     request<MatchGap>(`/applications/${id}/gap`, { token }),
   editDocument: (token: string, id: string, content: string) =>
     request<GeneratedDocument>(`/documents/${id}`, { token, method: "PATCH", body: { content } }),
+  practiceAnswer: (
+    token: string,
+    body: { question: string; answer: string; job_title?: string },
+  ) => request<PracticeFeedback>("/interview/practice", { token, method: "POST", body }),
   followUps: (token: string) => request<FollowUp[]>("/applications/follow-ups", { token }),
   setFollowUp: (token: string, id: string, date: string | null, add_to_calendar = false) =>
     request<{ application: Application; calendar: { created: boolean; reason?: string } }>(
