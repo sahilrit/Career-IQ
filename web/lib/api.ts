@@ -62,6 +62,18 @@ export type Application = {
 };
 export type FollowUp = Application & { days_until: number; due: boolean };
 export type SavedSearch = { id: string; keywords: string[]; remote_only: boolean };
+export type Benchmark = {
+  currency: string;
+  low: number;
+  mid: number;
+  high: number;
+  suggested_ask: number;
+  seniority: string;
+  role_family: string;
+  confidence: string;
+  rationale: string;
+  disclaimer: string;
+};
 
 export type CareerBrain = {
   identity: {
@@ -408,6 +420,10 @@ export const api = {
   deleteAiKey: (token: string) =>
     request<AiStatus>("/settings/ai", { token, method: "DELETE" }),
   offers: (token: string) => request<RankedOffer[]>("/offers", { token }),
+  benchmark: (
+    token: string,
+    body: { role: string; level?: string | null; anchor_salary?: number | null },
+  ) => request<Benchmark>("/offers/benchmark", { token, method: "POST", body }),
   addOffer: (token: string, body: Record<string, unknown>) =>
     request<RankedOffer[]>("/offers", { token, method: "POST", body }),
   contacts: (token: string) => request<Contact[]>("/contacts", { token }),

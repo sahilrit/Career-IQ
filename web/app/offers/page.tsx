@@ -2,6 +2,7 @@ import { requireAccount } from "@/lib/session";
 import { api, type RankedOffer } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { AddOfferForm } from "@/components/offers/AddOfferForm";
+import { BenchmarkPanel } from "@/components/offers/BenchmarkPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function OffersPage() {
   return (
     <Shell account={account}>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Offers</h1>
+      <BenchmarkPanel />
       <AddOfferForm />
       {offers.length === 0 ? (
         <div className="card p-6 text-muted">
