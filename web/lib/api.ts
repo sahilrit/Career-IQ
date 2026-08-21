@@ -20,6 +20,15 @@ export type MatchGap = {
   matched_skills: string[];
   missing_keywords: string[];
 };
+export type OutreachResult = {
+  subject: string;
+  body: string;
+  sent: boolean;
+  logged: boolean;
+  reason: string | null;
+  ai_used: boolean;
+  ai_error: string | null;
+};
 export type PracticeFeedback = {
   rating: number;
   has_metrics: boolean;
@@ -340,6 +349,17 @@ export const api = {
     token: string,
     body: { question: string; answer: string; job_title?: string },
   ) => request<PracticeFeedback>("/interview/practice", { token, method: "POST", body }),
+  outreach: (
+    token: string,
+    contactId: string,
+    body: {
+      kind: string;
+      target_role?: string;
+      send?: boolean;
+      subject?: string;
+      body?: string;
+    },
+  ) => request<OutreachResult>(`/contacts/${contactId}/outreach`, { token, method: "POST", body }),
   followUps: (token: string) => request<FollowUp[]>("/applications/follow-ups", { token }),
   setFollowUp: (token: string, id: string, date: string | null, add_to_calendar = false) =>
     request<{ application: Application; calendar: { created: boolean; reason?: string } }>(

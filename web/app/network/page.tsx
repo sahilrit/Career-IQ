@@ -2,7 +2,7 @@ import { requireAccount } from "@/lib/session";
 import { api, type Contact } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { AddContactForm } from "@/components/network/AddContactForm";
-import { GmailSendButton } from "@/components/GmailSendButton";
+import { OutreachDrafter } from "@/components/network/OutreachDrafter";
 
 export const dynamic = "force-dynamic";
 
@@ -39,14 +39,7 @@ export default async function NetworkPage() {
                   )}
                 </div>
               </div>
-              {contact.email && (
-                <div className="mt-3">
-                  <GmailSendButton
-                    defaultTo={contact.email}
-                    defaultSubject={`Hi ${contact.name.split(" ")[0]}`}
-                  />
-                </div>
-              )}
+              <OutreachDrafter contact={contact} />
             </div>
           ))}
         </div>
