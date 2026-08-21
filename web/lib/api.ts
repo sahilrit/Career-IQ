@@ -61,6 +61,7 @@ export type Application = {
   follow_up_date?: string | null;
 };
 export type FollowUp = Application & { days_until: number; due: boolean };
+export type SavedSearch = { id: string; keywords: string[]; remote_only: boolean };
 
 export type CareerBrain = {
   identity: {
@@ -361,6 +362,16 @@ export const api = {
     },
   ) => request<OutreachResult>(`/contacts/${contactId}/outreach`, { token, method: "POST", body }),
   followUps: (token: string) => request<FollowUp[]>("/applications/follow-ups", { token }),
+  savedSearches: (token: string) => request<SavedSearch[]>("/saved-searches", { token }),
+  createSavedSearch: (token: string, keywords: string[], remote_only: boolean) =>
+    request<SavedSearch>("/saved-searches", { token, method: "POST", body: { keywords, remote_only } }),
+  deleteSavedSearch: (token: string, id: string) =>
+    request<{ deleted: boolean }>(`/saved-searches/${id}`, { token, method: "DELETE" }),
+  runSavedSearch: (token: string, id: string, send_email: boolean) =>
+    request<{ new_count: number; emailed: boolean; email_configured: boolean }>(
+      `/saved-searches/${id}/run`,
+      { token, method: "POST", body: { send_email } },
+    ),
   setFollowUp: (token: string, id: string, date: string | null, add_to_calendar = false) =>
     request<{ application: Application; calendar: { created: boolean; reason?: string } }>(
       `/applications/${id}/follow-up`,

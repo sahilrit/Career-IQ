@@ -1,8 +1,9 @@
 import { requireAccount } from "@/lib/session";
-import { api, type Application, type FollowUp } from "@/lib/api";
+import { api, type Application, type FollowUp, type SavedSearch } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { Stagger, StaggerItem } from "@/components/Motion";
 import { SearchForm } from "@/components/opportunities/SearchForm";
+import { SavedSearches } from "@/components/opportunities/SavedSearches";
 import { GenerateButton } from "@/components/opportunities/GenerateButton";
 import { StatusControl } from "@/components/opportunities/StatusControl";
 import { MatchGap } from "@/components/opportunities/MatchGap";
@@ -14,8 +15,13 @@ export default async function OpportunitiesPage() {
   const { token, account } = await requireAccount();
   let applications: Application[] = [];
   let followUps: FollowUp[] = [];
+  let saved: SavedSearch[] = [];
   try {
-    [applications, followUps] = await Promise.all([api.applications(token), api.followUps(token)]);
+    [applications, followUps, saved] = await Promise.all([
+      api.applications(token),
+      api.followUps(token),
+      api.savedSearches(token),
+    ]);
   } catch {
     /* empty */
   }
@@ -45,6 +51,7 @@ export default async function OpportunitiesPage() {
         </div>
       )}
       <SearchForm />
+      <SavedSearches initial={saved} />
       {ranked.length === 0 ? (
         <div className="card p-6 text-muted">
           No applications yet — run a search above to discover jobs.

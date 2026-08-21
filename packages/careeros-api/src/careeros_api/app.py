@@ -36,6 +36,7 @@ from careeros_api.routers import (
     onboarding,
     opportunities,
     personal_brand,
+    saved_searches,
     settings,
     webhooks,
 )
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(applications.router)
     app.include_router(documents.router)
     app.include_router(opportunities.router)
+    app.include_router(saved_searches.router)
     app.include_router(offers.router)
     app.include_router(network.router)
     app.include_router(freelance.router)
