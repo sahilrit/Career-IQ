@@ -3,6 +3,7 @@ import { api, type AiStatus, type GoogleStatus } from "@/lib/api";
 import { Shell } from "@/components/Shell";
 import { AiKeyForm } from "@/components/settings/AiKeyForm";
 import { GoogleCard } from "@/components/settings/GoogleCard";
+import { AccountDataCard } from "@/components/settings/AccountDataCard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function SettingsPage() {
       <div className="space-y-4">
         <AiKeyForm initial={status} />
         <GoogleCard initial={google} />
+        <AccountDataCard />
       </div>
     </Shell>
   );

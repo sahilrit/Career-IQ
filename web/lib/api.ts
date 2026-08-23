@@ -480,6 +480,11 @@ export const api = {
       ai_used: boolean;
       ai_error: string | null;
     }>("/opportunities/generate", { token, method: "POST", body: { job_url } }),
+  deleteAccount: (token: string) =>
+    request<{ deleted: boolean; documents_removed: number; message: string }>("/account", {
+      token,
+      method: "DELETE",
+    }),
   aiStatus: (token: string) => request<AiStatus>("/settings/ai", { token }),
   setAiKey: (token: string, api_key: string, model: string) =>
     request<AiStatus>("/settings/ai", { token, method: "PUT", body: { api_key, model } }),
