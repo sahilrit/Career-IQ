@@ -211,11 +211,36 @@ def _split_title_company(text: str) -> tuple[str, str]:
     return cleaned, ""
 
 
+# Bullet glyphs (incl. the \x7f pypdf sometimes emits) — lines that describe
+# achievements, never a role header.
+_BULLET_CHARS = "\x7f\uf0b7\u2022\u00b7\u25aa\u2023*"
+
+
+def _is_bullet(line: str) -> bool:
+    stripped = line.strip()
+    return not stripped or stripped[0] in _BULLET_CHARS
+
+
+def _title_from_above(block: list[str], index: int) -> str:
+    """The role title in a 'Title\\nCompany | Dates | Location' layout sits on
+    the line above the date line. Look back a few lines, skipping bullets and
+    other date lines."""
+    for j in range(index - 1, max(-1, index - 4), -1):
+        candidate = block[j].strip()
+        if not candidate or _is_bullet(candidate) or _DATE_RANGE_RE.search(candidate):
+            continue
+        if len(candidate) > 90:
+            continue
+        return candidate.split("|")[0].strip()
+    return ""
+
+
 def _extract_experiences(non_empty: list[str]) -> list[ParsedExperience]:
-    """Best-effort: within the experience section, treat each line carrying a
-    date range as one role and read the title/company off that line (or the one
-    above it). Résumé layouts vary, so this is meant to be reviewed, not trusted
-    blindly — it never invents a role it can't anchor to a date."""
+    """Best-effort: within the experience section, each line carrying a date
+    range is one role. Handles both common layouts — "Company | Dates |
+    Location" with the title on the line above, and an inline "Title — Company
+    Dates" line. Résumé layouts vary, so this is meant to be reviewed, not
+    trusted blindly; it never invents a role it can't anchor to a date."""
     # Isolate the experience block.
     block: list[str] = []
     capturing = False
@@ -231,17 +256,34 @@ def _extract_experiences(non_empty: list[str]) -> list[ParsedExperience]:
     experiences: list[ParsedExperience] = []
     seen: set[tuple[str, str]] = set()
     for index, line in enumerate(block):
+        # A bullet line can carry a date in prose ("Sept 1-3, 2024") — never a header.
+        if _is_bullet(line):
+            continue
         match = _DATE_RANGE_RE.search(line)
         if not match:
             continue
         start = _to_date(match.group(1), match.group(2))
         end = None if match.group(5) else _to_date(match.group(3), match.group(4))
 
-        remainder = (line[: match.start()] + " " + line[match.end() :]).strip()
-        title, company = _split_title_company(remainder)
-        if not title and index > 0:
-            title, company = _split_title_company(block[index - 1])
+        before = line[: match.start()].strip(" |\t")
+        after = line[match.end() :].strip(" |\t")
+        if "|" in line:
+            # "Company | Dates | Location" — company before the first pipe, title above.
+            company = (before or after).split("|")[0].strip()
+            title = _title_from_above(block, index) or company
+            if title == company:
+                company = ""
+        else:
+            # Inline "Title — Company  Dates".
+            title, company = _split_title_company(f"{before} {after}".strip())
+            if not title:
+                title = _title_from_above(block, index)
+
         if not title:
+            continue
+        # Reject prose that merely happens to contain a date range — a real
+        # header is short and a company name has no sentence punctuation.
+        if ";" in company or len(company) > 60 or len(title) > 80:
             continue
         key = (title.lower(), company.lower())
         if key in seen:
