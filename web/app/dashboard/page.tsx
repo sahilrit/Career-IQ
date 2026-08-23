@@ -10,6 +10,13 @@ import {
 import { Shell } from "@/components/Shell";
 import { Stagger, StaggerItem } from "@/components/Motion";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { OnboardingQuestionnaire } from "@/components/OnboardingQuestionnaire";
+
+const FOCUS_LINE: Record<string, string> = {
+  job: "Let's get you hired — find roles and apply.",
+  freelance: "Let's win you clients — find prospects and pitch.",
+  both: "Jobs and freelance, in one place.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +56,8 @@ export default async function DashboardPage() {
   }
 
   const dueSoon = followUps.filter((f) => f.days_until <= 3);
+  const needsQuestionnaire = brain != null && !(brain.preferences?.desired_titles?.length ?? 0);
+  const focusLine = brain?.preferences?.focus ? FOCUS_LINE[brain.preferences.focus] : null;
   const tiles = [
     { label: "Applications", value: applications.length },
     { label: "Qualified", value: statusOf(applications, ["qualified"]) },
@@ -64,10 +73,11 @@ export default async function DashboardPage() {
           {brain ? `Hi, ${brain.identity.full_name.split(" ")[0]}` : "Welcome to CareerOS"}
         </h1>
         <p className="text-muted">
-          {brain?.identity.headline || "Build your Career Brain to get started."}
+          {focusLine || brain?.identity.headline || "Build your Career Brain to get started."}
         </p>
       </header>
 
+      {needsQuestionnaire && <OnboardingQuestionnaire />}
       {onboarding && <OnboardingChecklist data={onboarding} />}
 
       {dueSoon.length > 0 && (

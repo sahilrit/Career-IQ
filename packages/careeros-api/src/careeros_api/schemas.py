@@ -84,6 +84,7 @@ class PreferencesUpdateRequest(BaseModel):
     desired_titles: list[str] | None = None
     desired_locations: list[str] | None = None
     remote_only: bool | None = None
+    focus: str | None = None
 
 
 class SearchRequest(BaseModel):

@@ -90,6 +90,12 @@ export type CareerBrain = {
     start_date?: string;
     end_date?: string | null;
   }[];
+  preferences?: {
+    focus: string;
+    desired_titles: string[];
+    remote_only: boolean;
+    min_salary: number | null;
+  };
 };
 
 export type RankedOffer = {
@@ -405,6 +411,15 @@ export const api = {
     token: string,
     body: { company_name: string; title: string; start_date: string; description?: string },
   ) => request<CareerBrain>("/brain/experience", { token, method: "POST", body }),
+  updatePreferences: (
+    token: string,
+    body: {
+      focus?: string;
+      desired_titles?: string[];
+      remote_only?: boolean;
+      min_salary?: number | null;
+    },
+  ) => request<CareerBrain>("/brain/preferences", { token, method: "PATCH", body }),
   deleteSkill: (token: string, id: string) =>
     request<CareerBrain>(`/brain/skills/${id}`, { token, method: "DELETE" }),
   deleteExperience: (token: string, id: string) =>

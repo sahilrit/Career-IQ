@@ -277,3 +277,27 @@ def test_import_resume_merges_experiences(client, auth_headers, monkeypatch):
     assert r.status_code == 200
     assert r.json()["imported"]["experiences_added"] == 1
     assert r.json()["brain"]["experiences"][0]["company_name"] == "Acme"
+
+
+# --- First-run questionnaire (focus preference) ------------------------------
+
+
+def test_set_focus_and_titles(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    r = client.patch(
+        "/brain/preferences",
+        headers=headers,
+        json={"focus": "freelance", "desired_titles": ["Growth Lead"], "remote_only": True},
+    )
+    assert r.status_code == 200
+    prefs = r.json()["preferences"]
+    assert prefs["focus"] == "freelance"
+    assert prefs["desired_titles"] == ["Growth Lead"]
+
+
+def test_invalid_focus_is_422(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    r = client.patch("/brain/preferences", headers=headers, json={"focus": "vacation"})
+    assert r.status_code == 422

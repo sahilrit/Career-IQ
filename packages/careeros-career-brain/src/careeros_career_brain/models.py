@@ -41,6 +41,9 @@ class Preferences(BaseModel):
     desired_titles: list[str] = Field(default_factory=list)
     desired_locations: list[str] = Field(default_factory=list)
     remote_only: bool = False
+    # What the person is here to do — set by the first-run questionnaire so the
+    # app can emphasise the right surfaces. "job" | "freelance" | "both".
+    focus: str = "both"
     min_salary: int | None = None
     salary_currency: str = "USD"
     employment_types: list[str] = Field(default_factory=list)
@@ -52,6 +55,13 @@ class Preferences(BaseModel):
     def _salary_not_negative(cls, value: int | None) -> int | None:
         if value is not None and value < 0:
             raise ValueError("min_salary cannot be negative")
+        return value
+
+    @field_validator("focus")
+    @classmethod
+    def _valid_focus(cls, value: str) -> str:
+        if value not in ("job", "freelance", "both"):
+            raise ValueError("focus must be 'job', 'freelance', or 'both'")
         return value
 
 
