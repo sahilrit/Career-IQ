@@ -341,3 +341,54 @@ def test_education_requires_fields(client, auth_headers):
         client.post("/brain/education", headers=headers, json={"institution": "X"}).status_code
         == 422
     )
+
+
+# --- Projects, languages, awards ---------------------------------------------
+
+
+def test_add_and_remove_project(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/projects",
+        headers=headers,
+        json={"name": "Portfolio", "url": "https://sahilsachdevaprojects.netlify.app/"},
+    ).json()
+    assert brain["projects"][0]["name"] == "Portfolio"
+    pid = brain["projects"][0]["id"]
+    assert client.delete(f"/brain/projects/{pid}", headers=headers).status_code == 200
+    assert client.delete(f"/brain/projects/{pid}", headers=headers).status_code == 404
+
+
+def test_add_and_remove_language(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/languages", headers=headers, json={"name": "English", "proficiency": "fluent"}
+    ).json()
+    assert brain["languages"][0] == {
+        **brain["languages"][0],
+        "name": "English",
+        "proficiency": "fluent",
+    }
+    lid = brain["languages"][0]["id"]
+    assert client.delete(f"/brain/languages/{lid}", headers=headers).status_code == 200
+
+
+def test_add_and_remove_award(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/awards", headers=headers, json={"title": "Top Performer", "issuer": "Acme"}
+    ).json()
+    assert brain["awards"][0]["title"] == "Top Performer"
+    aid = brain["awards"][0]["id"]
+    assert client.delete(f"/brain/awards/{aid}", headers=headers).status_code == 200
+
+
+def test_new_sections_require_fields(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    assert client.post("/brain/projects", headers=headers, json={}).status_code == 422
+    assert client.post("/brain/languages", headers=headers, json={}).status_code == 422
+    assert client.post("/brain/awards", headers=headers, json={}).status_code == 422

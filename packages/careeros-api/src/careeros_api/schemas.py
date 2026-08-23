@@ -91,6 +91,22 @@ class CertificationCreateRequest(BaseModel):
     credential_url: str | None = None
 
 
+class ProjectCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    description: str = ""
+    url: str | None = None
+
+
+class LanguageCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    proficiency: str = "conversational"
+
+
+class AwardCreateRequest(BaseModel):
+    title: str = Field(min_length=1)
+    issuer: str | None = None
+
+
 class PreferencesUpdateRequest(BaseModel):
     """Partial update — only fields the client sends are applied."""
 

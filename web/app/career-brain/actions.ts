@@ -88,3 +88,37 @@ export async function addCertification(_prev: unknown, formData: FormData): Prom
 export async function deleteCertification(id: string): Promise<Result> {
   return run((token) => api.deleteCertification(token, id));
 }
+
+export async function addProject(_prev: unknown, formData: FormData): Promise<Result> {
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim() || undefined;
+  if (!name) return { ok: false, error: "Project name is required." };
+  return run((token) => api.addProject(token, { name, description, url }));
+}
+
+export async function deleteProject(id: string): Promise<Result> {
+  return run((token) => api.deleteProject(token, id));
+}
+
+export async function addLanguage(_prev: unknown, formData: FormData): Promise<Result> {
+  const name = String(formData.get("name") ?? "").trim();
+  const proficiency = String(formData.get("proficiency") ?? "").trim() || undefined;
+  if (!name) return { ok: false, error: "Language is required." };
+  return run((token) => api.addLanguage(token, { name, proficiency }));
+}
+
+export async function deleteLanguage(id: string): Promise<Result> {
+  return run((token) => api.deleteLanguage(token, id));
+}
+
+export async function addAward(_prev: unknown, formData: FormData): Promise<Result> {
+  const title = String(formData.get("title") ?? "").trim();
+  const issuer = String(formData.get("issuer") ?? "").trim() || undefined;
+  if (!title) return { ok: false, error: "Award title is required." };
+  return run((token) => api.addAward(token, { title, issuer }));
+}
+
+export async function deleteAward(id: string): Promise<Result> {
+  return run((token) => api.deleteAward(token, id));
+}

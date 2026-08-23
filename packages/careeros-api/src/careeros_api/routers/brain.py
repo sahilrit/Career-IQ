@@ -11,21 +11,27 @@ from pydantic import ValidationError
 
 from careeros_api.dependencies import Context
 from careeros_api.schemas import (
+    AwardCreateRequest,
     BrainCreateRequest,
     CertificationCreateRequest,
     EducationCreateRequest,
     ExperienceCreateRequest,
+    LanguageCreateRequest,
     PreferencesUpdateRequest,
+    ProjectCreateRequest,
     SkillCreateRequest,
     SummaryUpdateRequest,
 )
 from careeros_career_brain import CareerBrain, CareerBrainRepository, parse_resume_pdf
 from careeros_career_brain.models import (
+    Award,
     Certification,
     Education,
     Experience,
     Identity,
+    Language,
     Preferences,
+    Project,
     Skill,
 )
 from careeros_tenancy import Permission
@@ -192,6 +198,73 @@ def remove_certification(certification_id: str, context: Context) -> dict[str, A
     if len(remaining) == len(brain.certifications):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "certification not found")
     brain.certifications = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.post("/brain/projects", status_code=status.HTTP_201_CREATED)
+def add_project(body: ProjectCreateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    brain.projects.append(
+        _build_or_422(lambda: Project(name=body.name, description=body.description, url=body.url))
+    )
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/projects/{project_id}")
+def remove_project(project_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [item for item in brain.projects if item.id != project_id]
+    if len(remaining) == len(brain.projects):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "project not found")
+    brain.projects = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.post("/brain/languages", status_code=status.HTTP_201_CREATED)
+def add_language(body: LanguageCreateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    brain.languages.append(
+        _build_or_422(lambda: Language(name=body.name, proficiency=body.proficiency))
+    )
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/languages/{language_id}")
+def remove_language(language_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [item for item in brain.languages if item.id != language_id]
+    if len(remaining) == len(brain.languages):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "language not found")
+    brain.languages = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.post("/brain/awards", status_code=status.HTTP_201_CREATED)
+def add_award(body: AwardCreateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    brain.awards.append(_build_or_422(lambda: Award(title=body.title, issuer=body.issuer)))
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/awards/{award_id}")
+def remove_award(award_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [item for item in brain.awards if item.id != award_id]
+    if len(remaining) == len(brain.awards):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "award not found")
+    brain.awards = remaining
     CareerBrainRepository(context.store).save(brain)
     return brain.model_dump(mode="json")
 

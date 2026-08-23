@@ -105,6 +105,9 @@ export type CareerBrain = {
     issued_date?: string | null;
     credential_url?: string | null;
   }[];
+  projects?: { id: string; name: string; description?: string; url?: string | null }[];
+  languages?: { id: string; name: string; proficiency: string }[];
+  awards?: { id: string; title: string; issuer?: string | null }[];
   preferences?: {
     focus: string;
     desired_titles: string[];
@@ -449,6 +452,18 @@ export const api = {
     request<CareerBrain>("/brain/certifications", { token, method: "POST", body }),
   deleteCertification: (token: string, id: string) =>
     request<CareerBrain>(`/brain/certifications/${id}`, { token, method: "DELETE" }),
+  addProject: (token: string, body: { name: string; description?: string; url?: string }) =>
+    request<CareerBrain>("/brain/projects", { token, method: "POST", body }),
+  deleteProject: (token: string, id: string) =>
+    request<CareerBrain>(`/brain/projects/${id}`, { token, method: "DELETE" }),
+  addLanguage: (token: string, body: { name: string; proficiency?: string }) =>
+    request<CareerBrain>("/brain/languages", { token, method: "POST", body }),
+  deleteLanguage: (token: string, id: string) =>
+    request<CareerBrain>(`/brain/languages/${id}`, { token, method: "DELETE" }),
+  addAward: (token: string, body: { title: string; issuer?: string }) =>
+    request<CareerBrain>("/brain/awards", { token, method: "POST", body }),
+  deleteAward: (token: string, id: string) =>
+    request<CareerBrain>(`/brain/awards/${id}`, { token, method: "DELETE" }),
   searchJobs: (
     token: string,
     body: { keywords: string[]; remote_only: boolean; limit?: number },

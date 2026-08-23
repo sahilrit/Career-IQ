@@ -4,13 +4,19 @@ import { useFormState } from "react-dom";
 import { useTransition } from "react";
 import type { CareerBrain } from "@/lib/api";
 import {
+  addAward,
   addCertification,
   addEducation,
   addExperience,
+  addLanguage,
+  addProject,
   addSkill,
+  deleteAward,
   deleteCertification,
   deleteEducation,
   deleteExperience,
+  deleteLanguage,
+  deleteProject,
   deleteSkill,
   updateSummary,
 } from "@/app/career-brain/actions";
@@ -43,6 +49,9 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
   const [expState, expAction] = useFormState(addExperience, null);
   const [eduState, eduAction] = useFormState(addEducation, null);
   const [certState, certAction] = useFormState(addCertification, null);
+  const [projState, projAction] = useFormState(addProject, null);
+  const [langState, langAction] = useFormState(addLanguage, null);
+  const [awardState, awardAction] = useFormState(addAward, null);
 
   return (
     <FadeIn>
@@ -198,6 +207,104 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
           </div>
         </form>
         <FormError state={certState} />
+      </section>
+
+      <section className="card mt-4 p-6">
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Projects</h2>
+        <div className="mb-4 space-y-2">
+          {(brain.projects ?? []).map((proj) => (
+            <div
+              key={proj.id}
+              className="flex items-start justify-between gap-3 rounded-xl border border-line bg-ink/40 p-3"
+            >
+              <div>
+                <div className="font-medium">
+                  {proj.url ? (
+                    <a href={proj.url} target="_blank" rel="noreferrer" className="hover:underline">
+                      {proj.name}
+                    </a>
+                  ) : (
+                    proj.name
+                  )}
+                </div>
+                {proj.description && <div className="text-sm text-muted">{proj.description}</div>}
+              </div>
+              <RemoveButton label={`Remove ${proj.name}`} onRemove={() => deleteProject(proj.id)} />
+            </div>
+          ))}
+          {(brain.projects ?? []).length === 0 && (
+            <span className="text-sm text-muted">No projects added yet.</span>
+          )}
+        </div>
+        <form action={projAction} className="grid gap-2 sm:grid-cols-2">
+          <input name="name" className="input" placeholder="Project name" />
+          <input name="url" className="input" placeholder="Link (optional)" />
+          <input name="description" className="input sm:col-span-2" placeholder="Short description (optional)" />
+          <div className="sm:col-span-2">
+            <SubmitButton>Add project</SubmitButton>
+          </div>
+        </form>
+        <FormError state={projState} />
+      </section>
+
+      <section className="card mt-4 p-6">
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Languages</h2>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(brain.languages ?? []).map((lang) => (
+            <span
+              key={lang.id}
+              className="flex items-center gap-1.5 rounded-full border border-line bg-ink/60 px-3 py-1 text-sm"
+            >
+              {lang.name}
+              <span className="text-xs text-muted">· {lang.proficiency}</span>
+              <RemoveButton label={`Remove ${lang.name}`} onRemove={() => deleteLanguage(lang.id)} />
+            </span>
+          ))}
+          {(brain.languages ?? []).length === 0 && (
+            <span className="text-sm text-muted">No languages added yet.</span>
+          )}
+        </div>
+        <form action={langAction} className="flex flex-wrap gap-2">
+          <input name="name" className="input flex-1" placeholder="e.g. English" />
+          <select name="proficiency" className="input w-auto" defaultValue="fluent">
+            {["native", "fluent", "professional", "conversational", "basic"].map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <SubmitButton>Add</SubmitButton>
+        </form>
+        <FormError state={langState} />
+      </section>
+
+      <section className="card mt-4 p-6">
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Awards</h2>
+        <div className="mb-4 space-y-2">
+          {(brain.awards ?? []).map((award) => (
+            <div
+              key={award.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-ink/40 p-3"
+            >
+              <div>
+                <span className="font-medium">{award.title}</span>
+                {award.issuer && <span className="ml-2 text-sm text-muted">{award.issuer}</span>}
+              </div>
+              <RemoveButton label={`Remove ${award.title}`} onRemove={() => deleteAward(award.id)} />
+            </div>
+          ))}
+          {(brain.awards ?? []).length === 0 && (
+            <span className="text-sm text-muted">No awards added yet.</span>
+          )}
+        </div>
+        <form action={awardAction} className="grid gap-2 sm:grid-cols-2">
+          <input name="title" className="input" placeholder="Award / honor" />
+          <input name="issuer" className="input" placeholder="Issuer (optional)" />
+          <div className="sm:col-span-2">
+            <SubmitButton>Add award</SubmitButton>
+          </div>
+        </form>
+        <FormError state={awardState} />
       </section>
     </FadeIn>
   );
