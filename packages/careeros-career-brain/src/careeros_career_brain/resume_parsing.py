@@ -12,6 +12,7 @@ from __future__ import annotations
 import io
 import re
 from dataclasses import dataclass, field
+from datetime import date
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{7,}\d)")
@@ -32,6 +33,62 @@ _NEXT_SECTION_RE = re.compile(
 _SKILL_SPLIT_RE = re.compile(r"[,|•·]|\s{2,}")
 _CATEGORY_LABEL_RE = re.compile(r"^[A-Za-z0-9 &/-]{3,40}:\s*")
 
+_EXPERIENCE_HEADING_RE = re.compile(
+    r"^(experience|employment|professional experience|work experience|work history"
+    r"|career history)\s*:?\s*$",
+    re.IGNORECASE,
+)
+# Section headings that end the experience block.
+_AFTER_EXPERIENCE_RE = re.compile(
+    r"^(education|projects|certifications|skills|core competencies|technical skills"
+    r"|awards|publications|references|languages|volunteer|interests)\s*:?\s*$",
+    re.IGNORECASE,
+)
+_MONTHS = {
+    m: i
+    for i, name in enumerate(
+        [
+            "jan|january",
+            "feb|february",
+            "mar|march",
+            "apr|april",
+            "may",
+            "jun|june",
+            "jul|july",
+            "aug|august",
+            "sep|sept|september",
+            "oct|october",
+            "nov|november",
+            "dec|december",
+        ],
+        start=1,
+    )
+    for m in name.split("|")
+}
+_PRESENT_RE = re.compile(r"present|current|now|ongoing|to date", re.IGNORECASE)
+# One date token: an optional *real* month name then a 4-digit year. Restricting
+# to month names stops a company word ("Acme 2020") being read as a month.
+_MON_NAMES = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*"
+_DATE_TOKEN = rf"(?:({_MON_NAMES})\.?\s+)?((?:19|20)\d{{2}})"
+_SEP = "[-\u2013\u2014]"  # hyphen, en dash, em dash
+_END = "(present|current|now|ongoing|to date)"
+_DATE_RANGE_RE = re.compile(
+    rf"{_DATE_TOKEN}\s*(?:{_SEP}|to|until)\s*(?:{_DATE_TOKEN}|{_END})",
+    re.IGNORECASE,
+)
+# Separators between a title and a company on one line.
+_TITLE_COMPANY_SPLIT = re.compile(
+    "(?:\\s*,\\s+|\\s+(?:[-\\u2013\\u2014|\u00b7\u2022@]|\\bat\\b)\\s+)", re.IGNORECASE
+)
+
+
+@dataclass
+class ParsedExperience:
+    title: str
+    company: str
+    start_date: date
+    end_date: date | None = None
+
 
 @dataclass
 class ParsedResume:
@@ -41,6 +98,7 @@ class ParsedResume:
     headline: str = ""
     summary: str = ""
     skills: list[str] = field(default_factory=list)
+    experiences: list[ParsedExperience] = field(default_factory=list)
 
 
 def extract_text_from_pdf(data: bytes) -> str:
@@ -86,6 +144,7 @@ def parse_resume(text: str) -> ParsedResume:
 
     parsed.summary = _extract_section(lines, _SECTION_HEADING_RE)
     parsed.skills = _extract_skills(lines)
+    parsed.experiences = _extract_experiences(non_empty)
     return parsed
 
 
@@ -136,3 +195,63 @@ def _extract_skills(lines: list[str]) -> list[str]:
             seen.add(name.lower())
             skills.append(name)
     return skills[:40]
+
+
+def _to_date(month: str | None, year: str) -> date:
+    return date(int(year), _MONTHS.get((month or "").lower(), 1), 1)
+
+
+def _split_title_company(text: str) -> tuple[str, str]:
+    cleaned = text.strip(" ,|-\u2013\u2014\u2022\u00b7\t")
+    if not cleaned:
+        return "", ""
+    parts = _TITLE_COMPANY_SPLIT.split(cleaned, maxsplit=1)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip()
+    return cleaned, ""
+
+
+def _extract_experiences(non_empty: list[str]) -> list[ParsedExperience]:
+    """Best-effort: within the experience section, treat each line carrying a
+    date range as one role and read the title/company off that line (or the one
+    above it). Résumé layouts vary, so this is meant to be reviewed, not trusted
+    blindly — it never invents a role it can't anchor to a date."""
+    # Isolate the experience block.
+    block: list[str] = []
+    capturing = False
+    for line in non_empty:
+        if _EXPERIENCE_HEADING_RE.match(line):
+            capturing = True
+            continue
+        if capturing:
+            if _AFTER_EXPERIENCE_RE.match(line):
+                break
+            block.append(line)
+
+    experiences: list[ParsedExperience] = []
+    seen: set[tuple[str, str]] = set()
+    for index, line in enumerate(block):
+        match = _DATE_RANGE_RE.search(line)
+        if not match:
+            continue
+        start = _to_date(match.group(1), match.group(2))
+        end = None if match.group(5) else _to_date(match.group(3), match.group(4))
+
+        remainder = (line[: match.start()] + " " + line[match.end() :]).strip()
+        title, company = _split_title_company(remainder)
+        if not title and index > 0:
+            title, company = _split_title_company(block[index - 1])
+        if not title:
+            continue
+        key = (title.lower(), company.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        experiences.append(
+            ParsedExperience(
+                title=title[:120], company=company[:120], start_date=start, end_date=end
+            )
+        )
+        if len(experiences) >= 15:
+            break
+    return experiences

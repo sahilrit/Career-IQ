@@ -54,3 +54,11 @@ export async function addExperience(_prev: unknown, formData: FormData): Promise
   }
   return run((token) => api.addExperience(token, { company_name, title, start_date }));
 }
+
+export async function deleteSkill(id: string): Promise<Result> {
+  return run((token) => api.deleteSkill(token, id));
+}
+
+export async function deleteExperience(id: string): Promise<Result> {
+  return run((token) => api.deleteExperience(token, id));
+}

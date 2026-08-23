@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/Motion";
 
-type Imported = { fields: string[]; skills_added: number };
+type Imported = { fields: string[]; skills_added: number; experiences_added?: number };
 
 export function ResumeUpload() {
   const router = useRouter();
@@ -40,9 +40,14 @@ export function ResumeUpload() {
   function summarize(imported: Imported): string {
     const bits: string[] = [];
     if (imported.fields.length) bits.push(imported.fields.join(", "));
-    if (imported.skills_added) bits.push(`${imported.skills_added} skill${imported.skills_added === 1 ? "" : "s"}`);
+    if (imported.skills_added)
+      bits.push(`${imported.skills_added} skill${imported.skills_added === 1 ? "" : "s"}`);
+    if (imported.experiences_added)
+      bits.push(
+        `${imported.experiences_added} role${imported.experiences_added === 1 ? "" : "s"}`,
+      );
     return bits.length
-      ? `Imported ${bits.join(" and ")}. Review below and edit anything.`
+      ? `Imported ${bits.join(", ")}. Review below — experience is best-effort, so check the details.`
       : "Nothing new to import — your details already look complete.";
   }
 
@@ -51,8 +56,8 @@ export function ResumeUpload() {
       <section className="card mb-4 p-6">
         <h2 className="mb-1 text-sm uppercase tracking-wide text-muted">Import from résumé</h2>
         <p className="mb-4 text-sm text-muted">
-          Upload your résumé (PDF) and we&apos;ll auto-fill your summary, skills, and contact
-          details. You can edit everything afterwards.
+          Upload your résumé (PDF) and we&apos;ll auto-fill your summary, skills, experience, and
+          contact details. You can edit or remove anything afterwards.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <input

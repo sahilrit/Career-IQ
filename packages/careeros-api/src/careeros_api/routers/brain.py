@@ -124,6 +124,30 @@ def add_experience(body: ExperienceCreateRequest, context: Context) -> dict[str,
     return brain.model_dump(mode="json")
 
 
+@router.delete("/brain/skills/{skill_id}")
+def remove_skill(skill_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [skill for skill in brain.skills if skill.id != skill_id]
+    if len(remaining) == len(brain.skills):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "skill not found")
+    brain.skills = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/experience/{experience_id}")
+def remove_experience(experience_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [exp for exp in brain.experiences if exp.id != experience_id]
+    if len(remaining) == len(brain.experiences):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "experience not found")
+    brain.experiences = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
 @router.post("/brain/import-resume", status_code=status.HTTP_200_OK)
 async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]) -> dict[str, Any]:
     """Parse an uploaded resume PDF and merge it into the Career Brain.
@@ -150,10 +174,10 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             status.HTTP_422_UNPROCESSABLE_ENTITY, "couldn't read that PDF — try another file"
         ) from error
 
-    if not parsed.full_name and not parsed.email and not parsed.skills:
+    if not parsed.full_name and not parsed.email and not parsed.skills and not parsed.experiences:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "couldn't find a name, email, or skills in that résumé",
+            "couldn't find a name, email, skills, or experience in that résumé",
         )
 
     repository = CareerBrainRepository(context.store)
@@ -194,8 +218,33 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             existing.add(name.strip().lower())
             added_skills += 1
 
+    # Best-effort experience import — deduped by (title, company). The parser
+    # only emits roles it could anchor to a date, and users can edit/remove.
+    existing_exp = {
+        (exp.title.strip().lower(), exp.company_name.strip().lower()) for exp in brain.experiences
+    }
+    added_experiences = 0
+    for parsed_exp in parsed.experiences:
+        key = (parsed_exp.title.strip().lower(), parsed_exp.company.strip().lower())
+        if key in existing_exp:
+            continue
+        brain.experiences.append(
+            Experience(
+                company_name=parsed_exp.company or "Unknown",
+                title=parsed_exp.title,
+                start_date=parsed_exp.start_date,
+                end_date=parsed_exp.end_date,
+            )
+        )
+        existing_exp.add(key)
+        added_experiences += 1
+
     repository.save(brain)
     return {
         "brain": brain.model_dump(mode="json"),
-        "imported": {"fields": filled, "skills_added": added_skills},
+        "imported": {
+            "fields": filled,
+            "skills_added": added_skills,
+            "experiences_added": added_experiences,
+        },
     }

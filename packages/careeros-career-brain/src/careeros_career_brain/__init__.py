@@ -26,6 +26,7 @@ from careeros_career_brain.models import (
 )
 from careeros_career_brain.repository import CareerBrainRepository
 from careeros_career_brain.resume_parsing import (
+    ParsedExperience,
     ParsedResume,
     extract_text_from_pdf,
     parse_resume,
@@ -49,6 +50,7 @@ __all__ = [
     "Identity",
     "InvalidStatusTransitionError",
     "Language",
+    "ParsedExperience",
     "ParsedResume",
     "Preferences",
     "Project",

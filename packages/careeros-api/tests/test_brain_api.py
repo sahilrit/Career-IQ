@@ -225,3 +225,55 @@ def test_update_preferences_partial_does_not_clobber(client, auth_headers):
     prefs = client.get("/brain", headers=headers).json()["preferences"]
     assert prefs["min_salary"] == 120000  # not wiped by the second partial update
     assert prefs["remote_only"] is True
+
+
+# --- Remove skills / experience + résumé experience import -------------------
+
+
+def test_remove_skill(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post("/brain/skills", headers=headers, json={"name": "Meta Ads"}).json()
+    skill_id = brain["skills"][0]["id"]
+    r = client.delete(f"/brain/skills/{skill_id}", headers=headers)
+    assert r.status_code == 200 and r.json()["skills"] == []
+    assert client.delete(f"/brain/skills/{skill_id}", headers=headers).status_code == 404
+
+
+def test_remove_experience(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/experience",
+        headers=headers,
+        json={"company_name": "Acme", "title": "Lead", "start_date": "2021-01-01"},
+    ).json()
+    exp_id = brain["experiences"][0]["id"]
+    r = client.delete(f"/brain/experience/{exp_id}", headers=headers)
+    assert r.status_code == 200 and r.json()["experiences"] == []
+
+
+def test_import_resume_merges_experiences(client, auth_headers, monkeypatch):
+    from datetime import date
+
+    from careeros_api.routers import brain as brain_router
+    from careeros_career_brain import ParsedExperience, ParsedResume
+
+    headers = auth_headers()
+    _make_brain(client, headers)
+    fake = ParsedResume(
+        full_name="Sahil",
+        skills=["Meta Ads"],
+        experiences=[
+            ParsedExperience(title="Senior Marketer", company="Acme", start_date=date(2021, 1, 1))
+        ],
+    )
+    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+    r = client.post(
+        "/brain/import-resume",
+        headers=headers,
+        files={"file": ("cv.pdf", b"%PDF-fake-bytes", "application/pdf")},
+    )
+    assert r.status_code == 200
+    assert r.json()["imported"]["experiences_added"] == 1
+    assert r.json()["brain"]["experiences"][0]["company_name"] == "Acme"

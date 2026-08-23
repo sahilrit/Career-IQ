@@ -1,10 +1,32 @@
 "use client";
 
 import { useFormState } from "react-dom";
+import { useTransition } from "react";
 import type { CareerBrain } from "@/lib/api";
-import { addExperience, addSkill, updateSummary } from "@/app/career-brain/actions";
+import {
+  addExperience,
+  addSkill,
+  deleteExperience,
+  deleteSkill,
+  updateSummary,
+} from "@/app/career-brain/actions";
 import { FadeIn } from "@/components/Motion";
 import { SubmitButton } from "@/components/brain/SubmitButton";
+
+function RemoveButton({ onRemove, label }: { onRemove: () => Promise<unknown>; label: string }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={pending}
+      onClick={() => startTransition(() => void onRemove())}
+      className="text-muted transition hover:text-red-400 disabled:opacity-40"
+    >
+      ×
+    </button>
+  );
+}
 
 function FormError({ state }: { state: { ok: boolean; error?: string } | null }) {
   if (!state || state.ok) return null;
@@ -42,10 +64,14 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
         <div className="mb-4 flex flex-wrap gap-2">
           {brain.skills.map((skill) => (
             <span
-              key={skill.name}
-              className="rounded-full border border-line bg-ink/60 px-3 py-1 text-sm"
+              key={skill.id}
+              className="flex items-center gap-1.5 rounded-full border border-line bg-ink/60 px-3 py-1 text-sm"
             >
               {skill.name}
+              <RemoveButton
+                label={`Remove ${skill.name}`}
+                onRemove={() => deleteSkill(skill.id)}
+              />
             </span>
           ))}
           {brain.skills.length === 0 && <span className="text-sm text-muted">No skills yet.</span>}
@@ -60,10 +86,27 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
       <section className="card mt-4 p-6">
         <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Experience</h2>
         <div className="mb-4 space-y-2">
-          {brain.experiences.map((experience, index) => (
-            <div key={index} className="rounded-xl border border-line bg-ink/40 p-3">
-              <div className="font-medium">{experience.title}</div>
-              <div className="text-sm text-muted">{experience.company_name}</div>
+          {brain.experiences.map((experience) => (
+            <div
+              key={experience.id}
+              className="flex items-start justify-between gap-3 rounded-xl border border-line bg-ink/40 p-3"
+            >
+              <div>
+                <div className="font-medium">{experience.title}</div>
+                <div className="text-sm text-muted">
+                  {experience.company_name}
+                  {experience.start_date && (
+                    <span className="ml-2 text-xs">
+                      {experience.start_date.slice(0, 7)} –{" "}
+                      {experience.end_date ? experience.end_date.slice(0, 7) : "Present"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <RemoveButton
+                label={`Remove ${experience.title}`}
+                onRemove={() => deleteExperience(experience.id)}
+              />
             </div>
           ))}
           {brain.experiences.length === 0 && (
