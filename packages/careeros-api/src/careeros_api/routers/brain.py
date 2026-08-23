@@ -328,9 +328,11 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
     # Prefer LLM parsing when a key is set (robust on messy layouts); always fall
     # back to the free heuristic so an import never depends on AI.
     parsed = None
+    ai_used = False
     client = ai_support.resolve_ai_client(context.store, context.account.workspace_id)
     if client is not None:
         parsed = resume_ai.ai_parse_resume(resume_text, client)
+        ai_used = parsed is not None
     if parsed is None:
         parsed = parse_resume(resume_text)
 
@@ -462,5 +464,6 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             "experiences_added": added_experiences,
             "education_added": added_education,
             "certifications_added": added_certifications,
+            "ai_used": ai_used,
         },
     }

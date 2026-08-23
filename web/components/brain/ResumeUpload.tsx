@@ -10,6 +10,7 @@ type Imported = {
   experiences_added?: number;
   education_added?: number;
   certifications_added?: number;
+  ai_used?: boolean;
 };
 
 export function ResumeUpload() {
@@ -58,8 +59,11 @@ export function ResumeUpload() {
       bits.push(
         `${imported.certifications_added} cert${imported.certifications_added === 1 ? "" : "s"}`,
       );
+    const how = imported.ai_used
+      ? " Parsed with AI."
+      : " Parsed with the basic reader — add an AI key in Settings for messy résumés.";
     return bits.length
-      ? `Imported ${bits.join(", ")}. Review below — experience is best-effort, so check the details.`
+      ? `Imported ${bits.join(", ")}.${how} Review below and edit anything.`
       : "Nothing new to import — your details already look complete.";
   }
 
