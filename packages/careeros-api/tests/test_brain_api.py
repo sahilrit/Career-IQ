@@ -460,3 +460,36 @@ def test_import_resume_merges_education_and_certifications(client, auth_headers,
     assert body["imported"]["certifications_added"] == 1
     assert body["brain"]["education"][0]["institution"] == "Axis College"
     assert body["brain"]["certifications"][0]["name"] == "Digital Marketing"
+
+
+def test_import_skips_bad_date_row_without_500(client, auth_headers, monkeypatch):
+    """A parsed role with end before start (an AI can produce this) must be
+    skipped, not 500 the whole import."""
+    from datetime import date
+
+    from careeros_api.routers import brain as brain_router
+    from careeros_career_brain import ParsedExperience, ParsedResume
+
+    headers = auth_headers()
+    _make_brain(client, headers)
+    fake = ParsedResume(
+        experiences=[
+            ParsedExperience(  # invalid: end before start
+                title="Bad Role",
+                company="X",
+                start_date=date(2025, 1, 1),
+                end_date=date(2020, 1, 1),
+            ),
+            ParsedExperience(title="Good Role", company="Y", start_date=date(2021, 1, 1)),
+        ]
+    )
+    monkeypatch.setattr(brain_router, "extract_text_from_pdf", lambda data: "resume text")
+    monkeypatch.setattr(brain_router, "parse_resume", lambda text: fake)
+    response = client.post(
+        "/brain/import-resume",
+        headers=headers,
+        files={"file": ("cv.pdf", b"%PDF-x", "application/pdf")},
+    )
+    assert response.status_code == 200  # not 500
+    titles = [e["title"] for e in response.json()["brain"]["experiences"]]
+    assert titles == ["Good Role"]  # bad row skipped, good one kept

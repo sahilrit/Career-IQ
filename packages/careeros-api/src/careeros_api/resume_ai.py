@@ -11,7 +11,7 @@ import re
 from datetime import date
 from typing import Any
 
-from careeros_ai import AIClient, AIError
+from careeros_ai import AIClient
 from careeros_career_brain import (
     ParsedCertification,
     ParsedEducation,
@@ -72,23 +72,31 @@ def ai_parse_resume(text: str, client: AIClient) -> ParsedResume | None:
     caller can fall back to the heuristic parser."""
     try:
         raw = client.complete(system=_SYSTEM, prompt=_prompt(text))
-    except AIError:
+    except Exception:
         return None
     data = _extract_json(raw)
     if data is None:
         return None
     try:
-        experiences = [
-            ParsedExperience(
-                title=str(item.get("title", "")).strip()[:120],
-                company=str(item.get("company", "")).strip()[:120],
-                start_date=_to_date(item.get("start")) or date(2000, 1, 1),
-                end_date=_to_date(item.get("end")),
-                description=str(item.get("description", "")).strip()[:3000],
+        experiences = []
+        for item in data.get("experiences", [])[:20]:
+            title = str(item.get("title", "")).strip()[:120]
+            if not title:
+                continue
+            start = _to_date(item.get("start")) or date(2000, 1, 1)
+            end = _to_date(item.get("end"))
+            # Never emit an invalid range — drop a nonsensical end instead.
+            if end is not None and end < start:
+                end = None
+            experiences.append(
+                ParsedExperience(
+                    title=title,
+                    company=str(item.get("company", "")).strip()[:120],
+                    start_date=start,
+                    end_date=end,
+                    description=str(item.get("description", "")).strip()[:3000],
+                )
             )
-            for item in data.get("experiences", [])[:20]
-        ]
-        experiences = [exp for exp in experiences if exp.title]
         education = [
             ParsedEducation(
                 institution=str(item.get("institution", "")).strip()[:120],

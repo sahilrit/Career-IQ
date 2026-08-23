@@ -80,6 +80,16 @@ def _build_or_422(factory):
         ) from error
 
 
+def _build_or_skip(factory):
+    """Résumé import is bulk + best-effort: a single malformed row (e.g. an AI
+    returning an end date before the start) must be skipped, never 500 the whole
+    upload."""
+    try:
+        return factory()
+    except ValidationError:
+        return None
+
+
 @router.get("/brain")
 def get_brain(context: Context) -> dict[str, Any]:
     return _primary(context).model_dump(mode="json")
@@ -402,16 +412,19 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
         key = (parsed_exp.title.strip().lower(), parsed_exp.company.strip().lower())
         if key in existing_exp:
             continue
-        brain.experiences.append(
-            Experience(
-                company_name=parsed_exp.company or "Unknown",
-                title=parsed_exp.title,
-                start_date=parsed_exp.start_date,
-                end_date=parsed_exp.end_date,
-                description=parsed_exp.description,
+        experience = _build_or_skip(
+            lambda exp=parsed_exp: Experience(
+                company_name=exp.company or "Unknown",
+                title=exp.title,
+                start_date=exp.start_date,
+                end_date=exp.end_date,
+                description=exp.description,
                 source="resume",
             )
         )
+        if experience is None:
+            continue
+        brain.experiences.append(experience)
         existing_exp.add(key)
         added_experiences += 1
 
@@ -427,14 +440,17 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             key = (parsed_edu.institution.strip().lower(), parsed_edu.credential.strip().lower())
             if key in existing_edu:
                 continue
-            brain.education.append(
-                Education(
-                    institution=parsed_edu.institution or "Unknown",
-                    credential=parsed_edu.credential,
-                    end_date=parsed_edu.end_date,
+            education = _build_or_skip(
+                lambda edu=parsed_edu: Education(
+                    institution=edu.institution or "Unknown",
+                    credential=edu.credential,
+                    end_date=edu.end_date,
                     source="resume",
                 )
             )
+            if education is None:
+                continue
+            brain.education.append(education)
             existing_edu.add(key)
             added_education += 1
 
@@ -449,9 +465,14 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             key = (parsed_cert.name.strip().lower(), (parsed_cert.issuer or "").strip().lower())
             if key in existing_cert:
                 continue
-            brain.certifications.append(
-                Certification(name=parsed_cert.name, issuer=parsed_cert.issuer, source="resume")
+            certification = _build_or_skip(
+                lambda cert=parsed_cert: Certification(
+                    name=cert.name, issuer=cert.issuer, source="resume"
+                )
             )
+            if certification is None:
+                continue
+            brain.certifications.append(certification)
             existing_cert.add(key)
             added_certifications += 1
 
