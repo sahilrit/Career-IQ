@@ -55,3 +55,35 @@ def test_title_above_company_pipe_dates_location_format():
     ]
     assert exps[0].end_date is None  # Present
     assert exps[1].start_date.year == 2024 and exps[1].end_date.year == 2025
+
+
+def test_experience_captures_bullet_description():
+    txt = (
+        "PROFESSIONAL EXPERIENCE\n"
+        "PPC Manager\n"
+        "Acme | Jan 2021 - Present | Remote\n"
+        "\x7f Grew revenue 30%.\n"
+        "\x7f Cut CPA by 20%.\n"
+        "EDUCATION\n"
+    )
+    exp = parse_resume(txt).experiences[0]
+    assert "Grew revenue 30%." in exp.description
+    assert "Cut CPA by 20%." in exp.description
+
+
+def test_extracts_education_credential_and_institution():
+    txt = (
+        "EDUCATION\nBachelor of Computer Applications (BCA)\nAxis College | 2023\nCERTIFICATIONS\n"
+    )
+    edu = parse_resume(txt).education
+    assert len(edu) == 1
+    assert edu[0].credential == "Bachelor of Computer Applications (BCA)"
+    assert edu[0].institution == "Axis College"
+    assert edu[0].end_date.year == 2023
+
+
+def test_extracts_certifications_name_and_issuer():
+    txt = "CERTIFICATIONS\n\x7f Digital Marketing \u2014 HubSpot Academy\n\x7f SEO \u2014 Google\n"
+    certs = parse_resume(txt).certifications
+    assert (certs[0].name, certs[0].issuer) == ("Digital Marketing", "HubSpot Academy")
+    assert (certs[1].name, certs[1].issuer) == ("SEO", "Google")

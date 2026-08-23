@@ -319,10 +319,19 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             status.HTTP_422_UNPROCESSABLE_ENTITY, "couldn't read that PDF — try another file"
         ) from error
 
-    if not parsed.full_name and not parsed.email and not parsed.skills and not parsed.experiences:
+    if not any(
+        (
+            parsed.full_name,
+            parsed.email,
+            parsed.skills,
+            parsed.experiences,
+            parsed.education,
+            parsed.certifications,
+        )
+    ):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "couldn't find a name, email, skills, or experience in that résumé",
+            "couldn't find a name, email, skills, experience, or education in that résumé",
         )
 
     repository = CareerBrainRepository(context.store)
@@ -382,11 +391,52 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
                 title=parsed_exp.title,
                 start_date=parsed_exp.start_date,
                 end_date=parsed_exp.end_date,
+                description=parsed_exp.description,
                 source="resume",
             )
         )
         existing_exp.add(key)
         added_experiences += 1
+
+    # Education & certifications — same replace-résumé-sourced / keep-manual rule.
+    added_education = 0
+    if parsed.education:
+        brain.education = [item for item in brain.education if item.source != "resume"]
+        existing_edu = {
+            (item.institution.strip().lower(), item.credential.strip().lower())
+            for item in brain.education
+        }
+        for parsed_edu in parsed.education:
+            key = (parsed_edu.institution.strip().lower(), parsed_edu.credential.strip().lower())
+            if key in existing_edu:
+                continue
+            brain.education.append(
+                Education(
+                    institution=parsed_edu.institution or "Unknown",
+                    credential=parsed_edu.credential,
+                    end_date=parsed_edu.end_date,
+                    source="resume",
+                )
+            )
+            existing_edu.add(key)
+            added_education += 1
+
+    added_certifications = 0
+    if parsed.certifications:
+        brain.certifications = [item for item in brain.certifications if item.source != "resume"]
+        existing_cert = {
+            (item.name.strip().lower(), (item.issuer or "").strip().lower())
+            for item in brain.certifications
+        }
+        for parsed_cert in parsed.certifications:
+            key = (parsed_cert.name.strip().lower(), (parsed_cert.issuer or "").strip().lower())
+            if key in existing_cert:
+                continue
+            brain.certifications.append(
+                Certification(name=parsed_cert.name, issuer=parsed_cert.issuer, source="resume")
+            )
+            existing_cert.add(key)
+            added_certifications += 1
 
     repository.save(brain)
     return {
@@ -395,5 +445,7 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             "fields": filled,
             "skills_added": added_skills,
             "experiences_added": added_experiences,
+            "education_added": added_education,
+            "certifications_added": added_certifications,
         },
     }

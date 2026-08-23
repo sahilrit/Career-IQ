@@ -117,6 +117,11 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
                     </span>
                   )}
                 </div>
+                {experience.description && (
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/70">
+                    {experience.description}
+                  </p>
+                )}
               </div>
               <RemoveButton
                 label={`Remove ${experience.title}`}

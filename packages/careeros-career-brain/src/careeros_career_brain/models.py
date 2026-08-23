@@ -130,6 +130,7 @@ class Education(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     description: str = ""
+    source: str = "manual"
 
     @model_validator(mode="after")
     def _end_not_before_start(self) -> Education:
@@ -146,6 +147,7 @@ class Certification(BaseModel):
     issued_date: date | None = None
     expiration_date: date | None = None
     credential_url: str | None = None
+    source: str = "manual"
 
     @model_validator(mode="after")
     def _expiration_not_before_issued(self) -> Certification:

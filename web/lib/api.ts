@@ -89,6 +89,7 @@ export type CareerBrain = {
     company_name: string;
     start_date?: string;
     end_date?: string | null;
+    description?: string;
   }[];
   education?: {
     id: string;

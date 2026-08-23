@@ -427,3 +427,33 @@ def test_reimport_replaces_resume_roles_keeps_manual(client, auth_headers, monke
     titles = sorted(e["title"] for e in body["brain"]["experiences"])
     # manual kept, résumé role present exactly once (not duplicated)
     assert titles == ["Manual Role", "Senior Marketer"]
+
+
+def test_import_resume_merges_education_and_certifications(client, auth_headers, monkeypatch):
+    from datetime import date
+
+    from careeros_api.routers import brain as brain_router
+    from careeros_career_brain import (
+        ParsedCertification,
+        ParsedEducation,
+        ParsedResume,
+    )
+
+    headers = auth_headers()
+    _make_brain(client, headers)
+    fake = ParsedResume(
+        education=[
+            ParsedEducation(institution="Axis College", credential="BCA", end_date=date(2023, 1, 1))
+        ],
+        certifications=[ParsedCertification(name="Digital Marketing", issuer="HubSpot")],
+    )
+    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+    body = client.post(
+        "/brain/import-resume",
+        headers=headers,
+        files={"file": ("cv.pdf", b"%PDF-x", "application/pdf")},
+    ).json()
+    assert body["imported"]["education_added"] == 1
+    assert body["imported"]["certifications_added"] == 1
+    assert body["brain"]["education"][0]["institution"] == "Axis College"
+    assert body["brain"]["certifications"][0]["name"] == "Digital Marketing"

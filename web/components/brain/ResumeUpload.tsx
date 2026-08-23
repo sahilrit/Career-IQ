@@ -4,7 +4,13 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/Motion";
 
-type Imported = { fields: string[]; skills_added: number; experiences_added?: number };
+type Imported = {
+  fields: string[];
+  skills_added: number;
+  experiences_added?: number;
+  education_added?: number;
+  certifications_added?: number;
+};
 
 export function ResumeUpload() {
   const router = useRouter();
@@ -45,6 +51,12 @@ export function ResumeUpload() {
     if (imported.experiences_added)
       bits.push(
         `${imported.experiences_added} role${imported.experiences_added === 1 ? "" : "s"}`,
+      );
+    if (imported.education_added)
+      bits.push(`${imported.education_added} education entr${imported.education_added === 1 ? "y" : "ies"}`);
+    if (imported.certifications_added)
+      bits.push(
+        `${imported.certifications_added} cert${imported.certifications_added === 1 ? "" : "s"}`,
       );
     return bits.length
       ? `Imported ${bits.join(", ")}. Review below — experience is best-effort, so check the details.`

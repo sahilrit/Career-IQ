@@ -44,6 +44,19 @@ _AFTER_EXPERIENCE_RE = re.compile(
     r"|awards|publications|references|languages|volunteer|interests)\s*:?\s*$",
     re.IGNORECASE,
 )
+_EDUCATION_HEADING_RE = re.compile(r"^education\s*:?\s*$", re.IGNORECASE)
+_CERT_HEADING_RE = re.compile(
+    r"^(certifications?|licenses?(?:\s*(?:&|and)\s*certifications?)?)\s*:?\s*$", re.IGNORECASE
+)
+# Any known section heading — used to bound a section we're reading.
+_ANY_HEADING_RE = re.compile(
+    r"^(professional experience|experience|employment|work experience|work history"
+    r"|career history|education|certifications?|licenses?.*|projects|skills"
+    r"|core competencies|technical skills|areas of expertise|expertise|awards|honors"
+    r"|publications|languages|volunteer|interests|professional summary|summary|profile"
+    r"|about|objective|references)\s*:?\s*$",
+    re.IGNORECASE,
+)
 _MONTHS = {
     m: i
     for i, name in enumerate(
@@ -88,6 +101,20 @@ class ParsedExperience:
     company: str
     start_date: date
     end_date: date | None = None
+    description: str = ""
+
+
+@dataclass
+class ParsedEducation:
+    institution: str
+    credential: str
+    end_date: date | None = None
+
+
+@dataclass
+class ParsedCertification:
+    name: str
+    issuer: str | None = None
 
 
 @dataclass
@@ -99,6 +126,8 @@ class ParsedResume:
     summary: str = ""
     skills: list[str] = field(default_factory=list)
     experiences: list[ParsedExperience] = field(default_factory=list)
+    education: list[ParsedEducation] = field(default_factory=list)
+    certifications: list[ParsedCertification] = field(default_factory=list)
 
 
 def extract_text_from_pdf(data: bytes) -> str:
@@ -145,7 +174,24 @@ def parse_resume(text: str) -> ParsedResume:
     parsed.summary = _extract_section(lines, _SECTION_HEADING_RE)
     parsed.skills = _extract_skills(lines)
     parsed.experiences = _extract_experiences(non_empty)
+    parsed.education = _extract_education(non_empty)
+    parsed.certifications = _extract_certifications(non_empty)
     return parsed
+
+
+def _section_lines(non_empty: list[str], heading_re: re.Pattern[str]) -> list[str]:
+    """Lines under a heading, up to the next known section heading."""
+    out: list[str] = []
+    capturing = False
+    for line in non_empty:
+        if heading_re.match(line):
+            capturing = True
+            continue
+        if capturing:
+            if _ANY_HEADING_RE.match(line):
+                break
+            out.append(line)
+    return out
 
 
 def parse_resume_pdf(data: bytes) -> ParsedResume:
@@ -253,47 +299,127 @@ def _extract_experiences(non_empty: list[str]) -> list[ParsedExperience]:
                 break
             block.append(line)
 
+    # Each non-bullet line with a date range anchors a role.
+    anchors = [
+        i for i, line in enumerate(block) if not _is_bullet(line) and _DATE_RANGE_RE.search(line)
+    ]
     experiences: list[ParsedExperience] = []
     seen: set[tuple[str, str]] = set()
-    for index, line in enumerate(block):
-        # A bullet line can carry a date in prose ("Sept 1-3, 2024") — never a header.
-        if _is_bullet(line):
-            continue
+    for k, index in enumerate(anchors):
+        line = block[index]
         match = _DATE_RANGE_RE.search(line)
-        if not match:
-            continue
         start = _to_date(match.group(1), match.group(2))
         end = None if match.group(5) else _to_date(match.group(3), match.group(4))
 
         before = line[: match.start()].strip(" |\t")
         after = line[match.end() :].strip(" |\t")
         if "|" in line:
-            # "Company | Dates | Location" — company before the first pipe, title above.
             company = (before or after).split("|")[0].strip()
             title = _title_from_above(block, index) or company
             if title == company:
                 company = ""
         else:
-            # Inline "Title — Company  Dates".
             title, company = _split_title_company(f"{before} {after}".strip())
             if not title:
                 title = _title_from_above(block, index)
 
-        if not title:
-            continue
-        # Reject prose that merely happens to contain a date range — a real
-        # header is short and a company name has no sentence punctuation.
-        if ";" in company or len(company) > 60 or len(title) > 80:
+        if not title or ";" in company or len(company) > 60 or len(title) > 80:
             continue
         key = (title.lower(), company.lower())
         if key in seen:
             continue
         seen.add(key)
+
+        # Description = the bullet/continuation lines until the next role. The
+        # next role's title sits just above its date line, so stop before it.
+        next_anchor = anchors[k + 1] if k + 1 < len(anchors) else len(block)
+        desc_end = next_anchor
+        if next_anchor < len(block) and next_anchor - 1 > index:
+            above = block[next_anchor - 1]
+            if not _is_bullet(above) and not _DATE_RANGE_RE.search(above):
+                desc_end = next_anchor - 1
+        description = _clean_bullets(block[index + 1 : desc_end])
+
         experiences.append(
             ParsedExperience(
-                title=title[:120], company=company[:120], start_date=start, end_date=end
+                title=title[:120],
+                company=company[:120],
+                start_date=start,
+                end_date=end,
+                description=description[:2000],
             )
         )
         if len(experiences) >= 15:
             break
     return experiences
+
+
+def _clean_bullets(lines: list[str]) -> str:
+    """Rebuild a role's bullet list: a new bullet starts on a bullet glyph;
+    lines without one continue the previous bullet (wrapped text)."""
+    bullets: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped[0] in _BULLET_CHARS:
+            bullets.append(stripped.lstrip(_BULLET_CHARS + " ").strip())
+        elif bullets:
+            bullets[-1] = f"{bullets[-1]} {stripped}".strip()
+        else:
+            bullets.append(stripped)
+    return "\n".join(f"• {b}" for b in bullets if b)
+
+
+def _extract_education(non_empty: list[str]) -> list[ParsedEducation]:
+    """A year (with a "|" or on its own line) marks the institution line; the
+    credential is the line above it."""
+    block = _section_lines(non_empty, _EDUCATION_HEADING_RE)
+    out: list[ParsedEducation] = []
+    seen: set[tuple[str, str]] = set()
+    for i, line in enumerate(block):
+        if _is_bullet(line):
+            continue
+        year = re.search(r"(?:19|20)\d{2}", line)
+        if not year:
+            continue
+        institution = line.split("|")[0].strip() if "|" in line else line[: year.start()].strip()
+        credential = ""
+        prev = block[i - 1] if i > 0 else ""
+        if prev and not re.search(r"(?:19|20)\d{2}", prev) and not _is_bullet(prev):
+            credential = prev.split("|")[0].strip()
+        if not credential:
+            credential, institution = institution, ""
+        if not credential:
+            continue
+        key = (institution.lower(), credential.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            ParsedEducation(
+                institution=institution[:120],
+                credential=credential[:160],
+                end_date=_to_date(None, year.group(0)),
+            )
+        )
+    return out[:8]
+
+
+def _extract_certifications(non_empty: list[str]) -> list[ParsedCertification]:
+    """Each entry is usually "Name — Issuer" (bulleted or plain)."""
+    block = _section_lines(non_empty, _CERT_HEADING_RE)
+    out: list[ParsedCertification] = []
+    seen: set[tuple[str, str]] = set()
+    for line in block:
+        text = line.strip().lstrip(_BULLET_CHARS + " ").strip()
+        if len(text) < 2:
+            continue
+        name, issuer = _split_title_company(text)
+        cert = ParsedCertification(name=name[:160], issuer=(issuer or None))
+        key = (cert.name.lower(), (cert.issuer or "").lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cert)
+    return out[:15]
