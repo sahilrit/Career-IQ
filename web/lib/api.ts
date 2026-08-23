@@ -90,6 +90,21 @@ export type CareerBrain = {
     start_date?: string;
     end_date?: string | null;
   }[];
+  education?: {
+    id: string;
+    institution: string;
+    credential: string;
+    field_of_study?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+  }[];
+  certifications?: {
+    id: string;
+    name: string;
+    issuer?: string | null;
+    issued_date?: string | null;
+    credential_url?: string | null;
+  }[];
   preferences?: {
     focus: string;
     desired_titles: string[];
@@ -424,6 +439,16 @@ export const api = {
     request<CareerBrain>(`/brain/skills/${id}`, { token, method: "DELETE" }),
   deleteExperience: (token: string, id: string) =>
     request<CareerBrain>(`/brain/experience/${id}`, { token, method: "DELETE" }),
+  addEducation: (
+    token: string,
+    body: { institution: string; credential: string; field_of_study?: string; end_date?: string },
+  ) => request<CareerBrain>("/brain/education", { token, method: "POST", body }),
+  deleteEducation: (token: string, id: string) =>
+    request<CareerBrain>(`/brain/education/${id}`, { token, method: "DELETE" }),
+  addCertification: (token: string, body: { name: string; issuer?: string }) =>
+    request<CareerBrain>("/brain/certifications", { token, method: "POST", body }),
+  deleteCertification: (token: string, id: string) =>
+    request<CareerBrain>(`/brain/certifications/${id}`, { token, method: "DELETE" }),
   searchJobs: (
     token: string,
     body: { keywords: string[]; remote_only: boolean; limit?: number },

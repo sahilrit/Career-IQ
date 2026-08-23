@@ -62,3 +62,29 @@ export async function deleteSkill(id: string): Promise<Result> {
 export async function deleteExperience(id: string): Promise<Result> {
   return run((token) => api.deleteExperience(token, id));
 }
+
+export async function addEducation(_prev: unknown, formData: FormData): Promise<Result> {
+  const institution = String(formData.get("institution") ?? "").trim();
+  const credential = String(formData.get("credential") ?? "").trim();
+  const field_of_study = String(formData.get("field_of_study") ?? "").trim() || undefined;
+  const end_date = String(formData.get("end_date") ?? "").trim() || undefined;
+  if (!institution || !credential) {
+    return { ok: false, error: "Institution and credential are required." };
+  }
+  return run((token) => api.addEducation(token, { institution, credential, field_of_study, end_date }));
+}
+
+export async function deleteEducation(id: string): Promise<Result> {
+  return run((token) => api.deleteEducation(token, id));
+}
+
+export async function addCertification(_prev: unknown, formData: FormData): Promise<Result> {
+  const name = String(formData.get("name") ?? "").trim();
+  const issuer = String(formData.get("issuer") ?? "").trim() || undefined;
+  if (!name) return { ok: false, error: "Certification name is required." };
+  return run((token) => api.addCertification(token, { name, issuer }));
+}
+
+export async function deleteCertification(id: string): Promise<Result> {
+  return run((token) => api.deleteCertification(token, id));
+}

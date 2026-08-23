@@ -12,13 +12,22 @@ from pydantic import ValidationError
 from careeros_api.dependencies import Context
 from careeros_api.schemas import (
     BrainCreateRequest,
+    CertificationCreateRequest,
+    EducationCreateRequest,
     ExperienceCreateRequest,
     PreferencesUpdateRequest,
     SkillCreateRequest,
     SummaryUpdateRequest,
 )
 from careeros_career_brain import CareerBrain, CareerBrainRepository, parse_resume_pdf
-from careeros_career_brain.models import Experience, Identity, Preferences, Skill
+from careeros_career_brain.models import (
+    Certification,
+    Education,
+    Experience,
+    Identity,
+    Preferences,
+    Skill,
+)
 from careeros_tenancy import Permission
 
 # Guard the upload endpoint: reject anything that isn't a smallish PDF
@@ -120,6 +129,69 @@ def add_experience(body: ExperienceCreateRequest, context: Context) -> dict[str,
             )
         )
     )
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.post("/brain/education", status_code=status.HTTP_201_CREATED)
+def add_education(body: EducationCreateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    brain.education.append(
+        _build_or_422(
+            lambda: Education(
+                institution=body.institution,
+                credential=body.credential,
+                field_of_study=body.field_of_study,
+                start_date=_parse_date(body.start_date, "start_date") if body.start_date else None,
+                end_date=_parse_date(body.end_date, "end_date") if body.end_date else None,
+            )
+        )
+    )
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/education/{education_id}")
+def remove_education(education_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [item for item in brain.education if item.id != education_id]
+    if len(remaining) == len(brain.education):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "education entry not found")
+    brain.education = remaining
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.post("/brain/certifications", status_code=status.HTTP_201_CREATED)
+def add_certification(body: CertificationCreateRequest, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    brain.certifications.append(
+        _build_or_422(
+            lambda: Certification(
+                name=body.name,
+                issuer=body.issuer,
+                issued_date=_parse_date(body.issued_date, "issued_date")
+                if body.issued_date
+                else None,
+                credential_url=body.credential_url,
+            )
+        )
+    )
+    CareerBrainRepository(context.store).save(brain)
+    return brain.model_dump(mode="json")
+
+
+@router.delete("/brain/certifications/{certification_id}")
+def remove_certification(certification_id: str, context: Context) -> dict[str, Any]:
+    context.require_permission(Permission.CAREER_BRAIN_WRITE)
+    brain = _primary(context)
+    remaining = [item for item in brain.certifications if item.id != certification_id]
+    if len(remaining) == len(brain.certifications):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "certification not found")
+    brain.certifications = remaining
     CareerBrainRepository(context.store).save(brain)
     return brain.model_dump(mode="json")
 

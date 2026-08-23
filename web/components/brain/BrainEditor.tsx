@@ -4,8 +4,12 @@ import { useFormState } from "react-dom";
 import { useTransition } from "react";
 import type { CareerBrain } from "@/lib/api";
 import {
+  addCertification,
+  addEducation,
   addExperience,
   addSkill,
+  deleteCertification,
+  deleteEducation,
   deleteExperience,
   deleteSkill,
   updateSummary,
@@ -37,6 +41,8 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
   const [summaryState, summaryAction] = useFormState(updateSummary, null);
   const [skillState, skillAction] = useFormState(addSkill, null);
   const [expState, expAction] = useFormState(addExperience, null);
+  const [eduState, eduAction] = useFormState(addEducation, null);
+  const [certState, certAction] = useFormState(addCertification, null);
 
   return (
     <FadeIn>
@@ -122,6 +128,76 @@ export function BrainEditor({ brain }: { brain: CareerBrain }) {
           </div>
         </form>
         <FormError state={expState} />
+      </section>
+
+      <section className="card mt-4 p-6">
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Education</h2>
+        <div className="mb-4 space-y-2">
+          {(brain.education ?? []).map((edu) => (
+            <div
+              key={edu.id}
+              className="flex items-start justify-between gap-3 rounded-xl border border-line bg-ink/40 p-3"
+            >
+              <div>
+                <div className="font-medium">{edu.credential}</div>
+                <div className="text-sm text-muted">
+                  {edu.institution}
+                  {edu.field_of_study ? ` · ${edu.field_of_study}` : ""}
+                  {edu.end_date ? ` · ${edu.end_date.slice(0, 4)}` : ""}
+                </div>
+              </div>
+              <RemoveButton
+                label={`Remove ${edu.credential}`}
+                onRemove={() => deleteEducation(edu.id)}
+              />
+            </div>
+          ))}
+          {(brain.education ?? []).length === 0 && (
+            <span className="text-sm text-muted">No education added yet.</span>
+          )}
+        </div>
+        <form action={eduAction} className="grid gap-2 sm:grid-cols-2">
+          <input name="credential" className="input" placeholder="Degree / credential" />
+          <input name="institution" className="input" placeholder="Institution" />
+          <input name="field_of_study" className="input" placeholder="Field of study (optional)" />
+          <input name="end_date" type="date" className="input" />
+          <div className="sm:col-span-2">
+            <SubmitButton>Add education</SubmitButton>
+          </div>
+        </form>
+        <FormError state={eduState} />
+      </section>
+
+      <section className="card mt-4 p-6">
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-muted">Certifications</h2>
+        <div className="mb-4 space-y-2">
+          {(brain.certifications ?? []).map((cert) => (
+            <div
+              key={cert.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-ink/40 p-3"
+            >
+              <div>
+                <span className="font-medium">{cert.name}</span>
+                {cert.issuer && <span className="ml-2 text-sm text-muted">{cert.issuer}</span>}
+              </div>
+              <RemoveButton
+                label={`Remove ${cert.name}`}
+                onRemove={() => deleteCertification(cert.id)}
+              />
+            </div>
+          ))}
+          {(brain.certifications ?? []).length === 0 && (
+            <span className="text-sm text-muted">No certifications added yet.</span>
+          )}
+        </div>
+        <form action={certAction} className="grid gap-2 sm:grid-cols-2">
+          <input name="name" className="input" placeholder="Certification (e.g. Google Ads)" />
+          <input name="issuer" className="input" placeholder="Issuer (optional)" />
+          <div className="sm:col-span-2">
+            <SubmitButton>Add certification</SubmitButton>
+          </div>
+        </form>
+        <FormError state={certState} />
       </section>
     </FadeIn>
   );

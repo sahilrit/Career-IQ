@@ -76,6 +76,21 @@ class ExperienceCreateRequest(BaseModel):
     description: str = ""
 
 
+class EducationCreateRequest(BaseModel):
+    institution: str = Field(min_length=1)
+    credential: str = Field(min_length=1)
+    field_of_study: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+class CertificationCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    issuer: str | None = None
+    issued_date: str | None = None
+    credential_url: str | None = None
+
+
 class PreferencesUpdateRequest(BaseModel):
     """Partial update — only fields the client sends are applied."""
 

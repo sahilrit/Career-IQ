@@ -301,3 +301,43 @@ def test_invalid_focus_is_422(client, auth_headers):
     _make_brain(client, headers)
     r = client.patch("/brain/preferences", headers=headers, json={"focus": "vacation"})
     assert r.status_code == 422
+
+
+# --- Education & certifications (more CV sections) ----------------------------
+
+
+def test_add_and_remove_education(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/education",
+        headers=headers,
+        json={"institution": "IIT", "credential": "B.Tech", "end_date": "2019-06-01"},
+    ).json()
+    assert brain["education"][0]["institution"] == "IIT"
+    edu_id = brain["education"][0]["id"]
+    r = client.delete(f"/brain/education/{edu_id}", headers=headers)
+    assert r.status_code == 200 and r.json()["education"] == []
+    assert client.delete(f"/brain/education/{edu_id}", headers=headers).status_code == 404
+
+
+def test_add_and_remove_certification(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    brain = client.post(
+        "/brain/certifications",
+        headers=headers,
+        json={"name": "Google Ads", "issuer": "Google"},
+    ).json()
+    assert brain["certifications"][0]["name"] == "Google Ads"
+    cert_id = brain["certifications"][0]["id"]
+    assert client.delete(f"/brain/certifications/{cert_id}", headers=headers).status_code == 200
+
+
+def test_education_requires_fields(client, auth_headers):
+    headers = auth_headers()
+    _make_brain(client, headers)
+    assert (
+        client.post("/brain/education", headers=headers, json={"institution": "X"}).status_code
+        == 422
+    )
