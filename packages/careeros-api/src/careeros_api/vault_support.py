@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
 from typing import Any
 
@@ -17,26 +18,33 @@ from careeros_credentials import (
     credential_permission,
 )
 
+_logger = logging.getLogger("careeros.vault")
 _REQUESTER = "careeros-app"
 
 
-_DEV_ENVS = {"dev", "test", "local", "ci"}
+_STRICT_ENVS = {"production", "prod", "staging"}
 
 
 def cipher() -> SecretCipher:
     # Derive a valid Fernet key from CAREEROS_SECRET_KEY (Render's generated
-    # random value works). FAIL CLOSED outside dev: without the env var the
-    # at-rest key would fall back to a source-derivable constant, so every
-    # stored AI key / OAuth token could be decrypted by anyone with the repo.
+    # random value works). Without the env var the at-rest key falls back to a
+    # source-derivable constant — so every stored AI key / OAuth token could be
+    # decrypted by anyone with the repo. We HARD-FAIL when CAREEROS_ENV declares
+    # production/staging, and otherwise loudly warn and use the weak fallback
+    # (so an existing deploy keeps working while the operator sets the key).
     raw = os.environ.get("CAREEROS_SECRET_KEY")
     if not raw:
-        if os.environ.get("CAREEROS_ENV", "").lower() in _DEV_ENVS:
-            raw = "careeros-dev-secret"
-        else:
+        if os.environ.get("CAREEROS_ENV", "").lower() in _STRICT_ENVS:
             raise RuntimeError(
-                "CAREEROS_SECRET_KEY must be set (secrets are encrypted with it). "
-                "Set CAREEROS_ENV=dev to allow the insecure dev fallback locally."
+                "CAREEROS_SECRET_KEY must be set in production — stored secrets are "
+                "encrypted with it and the fallback key is public in the repo."
             )
+        _logger.warning(
+            "CAREEROS_SECRET_KEY is not set; encrypting secrets with an INSECURE "
+            "repo-derivable key. Set CAREEROS_SECRET_KEY (and CAREEROS_ENV=production) "
+            "before storing real API keys."
+        )
+        raw = "careeros-dev-secret"
     key = base64.urlsafe_b64encode(hashlib.sha256(raw.encode("utf-8")).digest()).decode()
     return SecretCipher(key)
 
