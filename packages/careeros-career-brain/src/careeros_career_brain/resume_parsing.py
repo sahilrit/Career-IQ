@@ -144,7 +144,22 @@ def _looks_like_name(line: str) -> bool:
     return 1 < len(words) <= 5 and all(w[:1].isalpha() for w in words) and "@" not in line
 
 
+_MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def _normalize_numeric_dates(text: str) -> str:
+    """Rewrite "05/2024" / "05-2024" to "May 2024" so numeric résumé dates flow
+    through the same month-name logic."""
+
+    def repl(match: re.Match[str]) -> str:
+        month = int(match.group(1))
+        return f"{_MONTH_ABBR[month - 1]} {match.group(2)}"
+
+    return re.sub(r"\b(0?[1-9]|1[0-2])[/.]((?:19|20)\d{2})\b", repl, text)
+
+
 def parse_resume(text: str) -> ParsedResume:
+    text = _normalize_numeric_dates(text)
     lines = [line.strip() for line in text.splitlines()]
     non_empty = [line for line in lines if line]
     parsed = ParsedResume()

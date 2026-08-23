@@ -268,7 +268,8 @@ def test_import_resume_merges_experiences(client, auth_headers, monkeypatch):
             ParsedExperience(title="Senior Marketer", company="Acme", start_date=date(2021, 1, 1))
         ],
     )
-    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+    monkeypatch.setattr(brain_router, "extract_text_from_pdf", lambda data: "resume text")
+    monkeypatch.setattr(brain_router, "parse_resume", lambda text: fake)
     r = client.post(
         "/brain/import-resume",
         headers=headers,
@@ -413,7 +414,8 @@ def test_reimport_replaces_resume_roles_keeps_manual(client, auth_headers, monke
             ParsedExperience(title="Senior Marketer", company="Acme", start_date=date(2021, 1, 1))
         ]
     )
-    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+    monkeypatch.setattr(brain_router, "extract_text_from_pdf", lambda data: "resume text")
+    monkeypatch.setattr(brain_router, "parse_resume", lambda text: fake)
 
     def upload():
         return client.post(
@@ -447,7 +449,8 @@ def test_import_resume_merges_education_and_certifications(client, auth_headers,
         ],
         certifications=[ParsedCertification(name="Digital Marketing", issuer="HubSpot")],
     )
-    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+    monkeypatch.setattr(brain_router, "extract_text_from_pdf", lambda data: "resume text")
+    monkeypatch.setattr(brain_router, "parse_resume", lambda text: fake)
     body = client.post(
         "/brain/import-resume",
         headers=headers,

@@ -87,3 +87,16 @@ def test_extracts_certifications_name_and_issuer():
     certs = parse_resume(txt).certifications
     assert (certs[0].name, certs[0].issuer) == ("Digital Marketing", "HubSpot Academy")
     assert (certs[1].name, certs[1].issuer) == ("SEO", "Google")
+
+
+def test_numeric_month_year_dates_are_parsed():
+    txt = (
+        "PROFESSIONAL EXPERIENCE\n"
+        "PPC Manager\n"
+        "Presha Trading | 05/2024 - 05/2025 | Delhi\n"
+        "\x7f Grew orders 650%.\n"
+        "EDUCATION\n"
+    )
+    exp = parse_resume(txt).experiences[0]
+    assert exp.start_date.year == 2024 and exp.start_date.month == 5
+    assert exp.end_date.year == 2025 and exp.end_date.month == 5

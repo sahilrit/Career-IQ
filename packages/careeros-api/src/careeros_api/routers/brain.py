@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from pydantic import ValidationError
 
+from careeros_api import ai_support, resume_ai
 from careeros_api.dependencies import Context
 from careeros_api.schemas import (
     AwardCreateRequest,
@@ -22,7 +23,12 @@ from careeros_api.schemas import (
     SkillCreateRequest,
     SummaryUpdateRequest,
 )
-from careeros_career_brain import CareerBrain, CareerBrainRepository, parse_resume_pdf
+from careeros_career_brain import (
+    CareerBrain,
+    CareerBrainRepository,
+    extract_text_from_pdf,
+    parse_resume,
+)
 from careeros_career_brain.models import (
     Award,
     Certification,
@@ -313,11 +319,20 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "please upload a PDF résumé")
 
     try:
-        parsed = parse_resume_pdf(data)
+        resume_text = extract_text_from_pdf(data)
     except Exception as error:  # pypdf raises assorted errors on bad PDFs
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "couldn't read that PDF — try another file"
         ) from error
+
+    # Prefer LLM parsing when a key is set (robust on messy layouts); always fall
+    # back to the free heuristic so an import never depends on AI.
+    parsed = None
+    client = ai_support.resolve_ai_client(context.store, context.account.workspace_id)
+    if client is not None:
+        parsed = resume_ai.ai_parse_resume(resume_text, client)
+    if parsed is None:
+        parsed = parse_resume(resume_text)
 
     if not any(
         (
