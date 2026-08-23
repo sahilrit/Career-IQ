@@ -14,6 +14,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from careeros_api.rate_limit import RateLimitMiddleware
 from careeros_api.routers import (
     account,
     admin,
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RateLimitMiddleware)
 
     @app.get("/health", tags=["meta"])
     def health() -> dict[str, str]:
