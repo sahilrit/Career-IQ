@@ -92,6 +92,28 @@ class DocumentStore:
         ).fetchall()
         return [json.loads(row[0]) for row in rows]
 
+    def list_prefixed(self, prefix: str) -> dict[str, list[dict[str, Any]]]:
+        """Every document whose entity_type starts with ``prefix``, grouped by
+        entity_type — used for a tenant-scoped data export."""
+        rows = self._conn.execute(
+            "SELECT entity_type, data FROM documents WHERE entity_type LIKE ? "
+            "ORDER BY entity_type, updated_at",
+            (prefix + "%",),
+        ).fetchall()
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for entity_type, data in rows:
+            grouped.setdefault(entity_type, []).append(json.loads(data))
+        return grouped
+
+    def purge_prefix(self, prefix: str) -> int:
+        """Delete every document whose entity_type starts with ``prefix``.
+        Returns the number of rows removed (tenant erasure)."""
+        cursor = self._conn.execute(
+            "DELETE FROM documents WHERE entity_type LIKE ?", (prefix + "%",)
+        )
+        self._conn.commit()
+        return cursor.rowcount
+
     def close(self) -> None:
         self._conn.close()
 

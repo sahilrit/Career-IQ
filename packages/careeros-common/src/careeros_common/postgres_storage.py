@@ -85,6 +85,25 @@ class PostgresDocumentStore:
             ).fetchall()
         return [row[0] for row in rows]
 
+    def list_prefixed(self, prefix: str) -> dict[str, list[dict[str, Any]]]:
+        with self._pool.connection() as conn:
+            rows = conn.execute(
+                "SELECT entity_type, data FROM documents WHERE entity_type LIKE %s "
+                "ORDER BY entity_type, updated_at",
+                (prefix + "%",),
+            ).fetchall()
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for entity_type, data in rows:
+            grouped.setdefault(entity_type, []).append(data)
+        return grouped
+
+    def purge_prefix(self, prefix: str) -> int:
+        with self._pool.connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM documents WHERE entity_type LIKE %s", (prefix + "%",)
+            )
+            return cursor.rowcount
+
     def close(self) -> None:
         self._pool.close()
 

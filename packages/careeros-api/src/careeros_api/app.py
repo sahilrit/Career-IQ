@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from careeros_api.routers import (
+    account,
     admin,
     applications,
     audit,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(auth.router)
+    app.include_router(account.router)
     app.include_router(brain.router)
     app.include_router(applications.router)
     app.include_router(documents.router)

@@ -45,3 +45,19 @@ class TenantScopedDocumentStore:
 
     def list(self, entity_type: str) -> list[dict[str, Any]]:
         return self._store.list(self._scoped_type(entity_type))
+
+    def _prefix(self) -> str:
+        return f"tenant:{self._tenant_id}:"
+
+    def export_all(self) -> dict[str, list[dict[str, Any]]]:
+        """Every document owned by this tenant, keyed by (unscoped) entity type
+        — the payload for a GDPR data export."""
+        prefix = self._prefix()
+        return {
+            entity_type[len(prefix) :]: rows
+            for entity_type, rows in self._store.list_prefixed(prefix).items()
+        }
+
+    def purge(self) -> int:
+        """Erase all of this tenant's documents. Returns rows removed."""
+        return self._store.purge_prefix(self._prefix())
