@@ -37,6 +37,10 @@ class InvoiceRepository:
     def save(self, invoice: Invoice) -> None:
         self._store.put(_ENTITY_TYPE, invoice.id, invoice.model_dump(mode="json"))
 
+    def get_or_none(self, invoice_id: str) -> Invoice | None:
+        data = self._store.get_or_none(_ENTITY_TYPE, invoice_id)
+        return Invoice.model_validate(data) if data else None
+
     def list_for_contract(self, contract_id: str) -> list[Invoice]:
         return [
             Invoice.model_validate(data)

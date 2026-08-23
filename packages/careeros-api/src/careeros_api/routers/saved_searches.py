@@ -82,15 +82,27 @@ def run_search(search_id: str, body: RunRequest, context: Context) -> dict[str, 
         for brain in CareerBrainRepository(context.store).list_all()
         for application in brain.applications
     ]
+
+    # Only applications that actually match THIS search's keywords count — an
+    # empty keyword list matches everything (the user saved a catch-all).
+    terms = [k.strip().lower() for k in search.keywords if k.strip()]
+
+    def matches_search(application: Any) -> bool:
+        if not terms:
+            return True
+        haystack = f"{application.job_title} {application.company_name}".lower()
+        return any(term in haystack for term in terms)
+
+    relevant = [a for a in applications if matches_search(a)]
     seen = set(search.seen_application_ids)
     new_matches = sorted(
-        (a for a in applications if a.id not in seen),
+        (a for a in relevant if a.id not in seen),
         key=lambda a: a.match_score or 0,
         reverse=True,
     )
 
-    # Everything is now "seen" for the next digest.
-    search.seen_application_ids = [a.id for a in applications]
+    # Only the relevant ones are marked seen for this search's next digest.
+    search.seen_application_ids = sorted({*search.seen_application_ids, *(a.id for a in relevant)})
     repo.save(search)
 
     emailed = False

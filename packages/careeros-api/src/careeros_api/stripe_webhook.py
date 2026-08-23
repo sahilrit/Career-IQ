@@ -17,6 +17,7 @@ from typing import Any
 
 from careeros_billing import Subscription, SubscriptionRepository
 from careeros_billing.plan import PlanTier
+from careeros_billing.subscription import SubscriptionStatus
 from careeros_common import DocumentStore
 from careeros_tenancy import TenancyRepository
 
@@ -60,26 +61,20 @@ def _tier_from_session(session: dict[str, Any]) -> PlanTier | None:
     return _AMOUNT_TO_TIER.get(amount) if amount is not None else None
 
 
-def activate_from_event(store: DocumentStore, event: dict[str, Any]) -> str:
-    """Apply a parsed Stripe event. Returns a human-readable outcome."""
-    if event.get("type") != "checkout.session.completed":
-        return f"ignored event type {event.get('type')}"
-    session = (event.get("data") or {}).get("object") or {}
-    email = (
+def _email_of(obj: dict[str, Any]) -> str:
+    return (
         (
-            session.get("customer_email")
-            or (session.get("customer_details") or {}).get("email")
+            obj.get("customer_email")
+            or (obj.get("customer_details") or {}).get("email")
+            or (obj.get("metadata") or {}).get("email")
             or ""
         )
         .strip()
         .lower()
     )
-    if not email:
-        raise WebhookError("event has no customer email")
-    tier = _tier_from_session(session)
-    if tier is None:
-        raise WebhookError("could not determine plan tier from event")
 
+
+def _workspace_for_email(store: DocumentStore, email: str) -> str:
     tenancy = TenancyRepository(store)
     user = tenancy.find_user_by_email(email)
     if user is None:
@@ -87,15 +82,60 @@ def activate_from_event(store: DocumentStore, event: dict[str, Any]) -> str:
     memberships = tenancy.workspaces_for_user(user.id)
     if not memberships:
         raise WebhookError(f"{email} has no workspace")
-    workspace_id = memberships[0].workspace_id
+    return memberships[0].workspace_id
 
+
+def _apply(store: DocumentStore, workspace_id: str, **changes: Any) -> Subscription:
     subscriptions = SubscriptionRepository(store)
     subscription = subscriptions.load_or_none(workspace_id) or Subscription(
-        workspace_id=workspace_id, plan_tier=tier
+        workspace_id=workspace_id, plan_tier=PlanTier.FREE
     )
-    subscription.plan_tier = tier
+    for field, value in changes.items():
+        setattr(subscription, field, value)
     subscriptions.save(subscription)
-    return f"activated {tier.value} for {email}"
+    return subscription
+
+
+def activate_from_event(store: DocumentStore, event: dict[str, Any]) -> str:
+    """Apply a parsed Stripe event. Returns a human-readable outcome."""
+    event_type = event.get("type")
+    obj = (event.get("data") or {}).get("object") or {}
+
+    if event_type == "checkout.session.completed":
+        email = _email_of(obj)
+        if not email:
+            raise WebhookError("event has no customer email")
+        tier = _tier_from_session(obj)
+        if tier is None:
+            raise WebhookError("could not determine plan tier from event")
+        _apply(
+            store,
+            _workspace_for_email(store, email),
+            plan_tier=tier,
+            status=SubscriptionStatus.ACTIVE,
+        )
+        return f"activated {tier.value} for {email}"
+
+    if event_type in ("customer.subscription.deleted", "customer.subscription.canceled"):
+        email = _email_of(obj)
+        if not email:
+            return "ignored subscription cancellation with no email"
+        _apply(
+            store,
+            _workspace_for_email(store, email),
+            plan_tier=PlanTier.FREE,
+            status=SubscriptionStatus.CANCELED,
+        )
+        return f"canceled subscription for {email}"
+
+    if event_type == "invoice.payment_failed":
+        email = _email_of(obj)
+        if not email:
+            return "ignored payment failure with no email"
+        _apply(store, _workspace_for_email(store, email), status=SubscriptionStatus.PAST_DUE)
+        return f"marked past_due for {email}"
+
+    return f"ignored event type {event_type}"
 
 
 def parse_event(payload: bytes) -> dict[str, Any]:

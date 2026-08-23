@@ -37,6 +37,7 @@ class VariantCreateRequest(BaseModel):
 class OutcomeCreateRequest(BaseModel):
     variant_id: str = Field(min_length=1)
     outcome_type: str = Field(min_length=1)
+    value: float = Field(default=1.0, ge=0)
 
 
 def _division(context: Context) -> LearningLabDivision:
@@ -104,6 +105,6 @@ def record_outcome(body: OutcomeCreateRequest, context: Context) -> dict[str, An
     except ValueError as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown outcome") from error
     _division(context).record_outcome(
-        OutcomeEvent(variant_id=body.variant_id, outcome_type=outcome_type)
+        OutcomeEvent(variant_id=body.variant_id, outcome_type=outcome_type, value=body.value)
     )
     return {"ok": True}

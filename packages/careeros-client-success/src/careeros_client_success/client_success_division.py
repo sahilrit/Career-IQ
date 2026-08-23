@@ -41,6 +41,14 @@ class ClientSuccessDivision:
     def add_invoice(self, invoice: Invoice) -> None:
         self._invoices.save(invoice)
 
+    def update_invoice_status(self, invoice_id: str, new_status) -> Invoice | None:
+        invoice = self._invoices.get_or_none(invoice_id)
+        if invoice is None:
+            return None
+        invoice.status = new_status
+        self._invoices.save(invoice)
+        return invoice
+
     def record_referral(self, referral: ReferralRecord) -> None:
         self._referrals.save(referral)
 

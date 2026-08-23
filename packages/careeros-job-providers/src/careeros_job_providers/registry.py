@@ -76,4 +76,7 @@ class JobProviderRegistry:
 
         filtered = filter_postings(all_postings, query)
         deduped = deduplicate(filtered)
-        return JobSearchResult(postings=deduped)
+        # Honour the caller's limit — otherwise every provider's whole page is
+        # aggregated and persisted, ignoring query.limit.
+        limited = deduped[: query.limit] if getattr(query, "limit", None) else deduped
+        return JobSearchResult(postings=limited)

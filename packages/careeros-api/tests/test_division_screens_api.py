@@ -283,3 +283,72 @@ def test_interview_practice_requires_answer(client, auth_headers):
         json={"question": "Q", "answer": ""},
     )
     assert response.status_code == 422
+
+
+# --- Cycle-1 audit fixes: money validation + invoice status -------------------
+
+
+def test_invoice_negative_amount_is_422(client, auth_headers):
+    headers = auth_headers()
+    created = client.post("/clients", headers=headers, json={"name": "Acme"})
+    contract = client.post(
+        "/clients/contracts",
+        headers=headers,
+        json={
+            "client_id": created.json()["id"],
+            "title": "T",
+            "rate": 100,
+            "start_date": "2026-01-01",
+        },
+    ).json()
+    r = client.post(
+        "/clients/invoices",
+        headers=headers,
+        json={"contract_id": contract["id"], "amount": -50, "due_date": "2026-02-01"},
+    )
+    assert r.status_code == 422
+
+
+def test_invoice_status_paid_zeroes_outstanding(client, auth_headers):
+    headers = auth_headers()
+    cid = client.post("/clients", headers=headers, json={"name": "Acme Shop"}).json()["id"]
+    contract = client.post(
+        "/clients/contracts",
+        headers=headers,
+        json={"client_id": cid, "title": "Retainer", "rate": 2000, "start_date": "2026-08-01"},
+    ).json()
+    invoice = client.post(
+        "/clients/invoices",
+        headers=headers,
+        json={"contract_id": contract["id"], "amount": 500, "due_date": "2026-09-01"},
+    ).json()
+    assert client.get("/clients", headers=headers).json()[0]["contracts"][0]["outstanding"] == 500
+
+    r = client.patch(f"/clients/invoices/{invoice['id']}", headers=headers, json={"status": "paid"})
+    assert r.status_code == 200 and r.json()["status"] == "paid"
+    assert client.get("/clients", headers=headers).json()[0]["contracts"][0]["outstanding"] == 0
+
+
+def test_invoice_bad_status_is_422(client, auth_headers):
+    headers = auth_headers()
+    cid = client.post("/clients", headers=headers, json={"name": "X"}).json()["id"]
+    contract = client.post(
+        "/clients/contracts",
+        headers=headers,
+        json={"client_id": cid, "title": "T", "start_date": "2026-01-01"},
+    ).json()
+    invoice = client.post(
+        "/clients/invoices",
+        headers=headers,
+        json={"contract_id": contract["id"], "amount": 100, "due_date": "2026-02-01"},
+    ).json()
+    assert (
+        client.patch(
+            f"/clients/invoices/{invoice['id']}", headers=headers, json={"status": "hmm"}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.patch("/clients/invoices/nope", headers=headers, json={"status": "paid"}).status_code
+        == 404
+    )

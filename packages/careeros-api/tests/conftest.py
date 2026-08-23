@@ -11,6 +11,7 @@ from careeros_api import app, dependencies
 @pytest.fixture(autouse=True)
 def isolate_store(tmp_path, monkeypatch):
     monkeypatch.setenv("CAREEROS_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("CAREEROS_ENV", "test")  # allow the dev cipher fallback
     monkeypatch.delenv("CAREEROS_ADMIN_EMAILS", raising=False)
     monkeypatch.delenv("CAREEROS_STRIPE_WEBHOOK_SECRET", raising=False)
     dependencies.get_store.cache_clear()

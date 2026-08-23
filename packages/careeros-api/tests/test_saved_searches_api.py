@@ -50,9 +50,10 @@ def test_run_reports_only_new_matches(client, auth_headers):
         "id"
     ]
 
-    # First run: both are new, ranked by score.
+    # Only "Growth Lead" matches the search's keyword — "PPC Manager" is not
+    # reported as a match for a "growth" search.
     first = client.post(f"/saved-searches/{sid}/run", headers=headers, json={}).json()
-    assert first["new_count"] == 2
+    assert first["new_count"] == 1
     assert first["new_matches"][0]["job_title"] == "Growth Lead"
 
     # Second run with nothing added: no new matches.

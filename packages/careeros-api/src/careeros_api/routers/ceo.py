@@ -23,7 +23,7 @@ router = APIRouter(prefix="/ceo", tags=["ceo"])
 class PerformanceRequest(BaseModel):
     category: str = Field(min_length=1)
     metric_name: str = Field(min_length=1)
-    value: float
+    value: float = Field(ge=0)
 
 
 def _division(context: Context) -> CEOAgentDivision:

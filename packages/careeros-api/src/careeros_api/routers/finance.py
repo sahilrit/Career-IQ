@@ -23,9 +23,9 @@ router = APIRouter(prefix="/finance", tags=["finance"])
 class IncomeCreateRequest(BaseModel):
     source: str = Field(min_length=1)
     source_name: str = Field(min_length=1)
-    amount: float
+    amount: float = Field(gt=0)
     received_date: str = Field(min_length=1)
-    hours_worked: float | None = None
+    hours_worked: float | None = Field(default=None, ge=0)
 
 
 def _division(context: Context) -> FinancialIntelligenceDivision:

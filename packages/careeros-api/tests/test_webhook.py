@@ -99,3 +99,39 @@ def test_stripe_endpoint_rejects_bad_signature_when_secret_set(client, auth_head
         json={"type": "checkout.session.completed", "data": {"object": {}}},
     )
     assert response.status_code == 400
+
+
+# --- Cycle-1 audit fix: cancellation & payment-failure events -----------------
+
+
+def test_subscription_deleted_downgrades_to_free(client, auth_headers):
+    auth_headers()  # ada@example.com
+    store = dependencies.get_store()
+    activate_from_event(store, _completed_event(plan="agency"))
+    workspace_id = _workspace_id_for(store, "ada@example.com")
+    assert SubscriptionRepository(store).load_or_none(workspace_id).plan_tier == PlanTier.AGENCY
+
+    outcome = activate_from_event(
+        store,
+        {
+            "type": "customer.subscription.deleted",
+            "data": {"object": {"customer_email": "ada@example.com"}},
+        },
+    )
+    assert "canceled" in outcome
+    sub = SubscriptionRepository(store).load_or_none(workspace_id)
+    assert sub.plan_tier == PlanTier.FREE
+
+
+def test_payment_failed_marks_past_due(client, auth_headers):
+    auth_headers()
+    store = dependencies.get_store()
+    activate_from_event(store, _completed_event(plan="pro"))
+    outcome = activate_from_event(
+        store,
+        {
+            "type": "invoice.payment_failed",
+            "data": {"object": {"customer_email": "ada@example.com"}},
+        },
+    )
+    assert "past_due" in outcome

@@ -33,13 +33,13 @@ class ClientCreateRequest(BaseModel):
 class ContractCreateRequest(BaseModel):
     client_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
-    rate: float = 0.0
+    rate: float = Field(default=0.0, ge=0)
     start_date: str = Field(min_length=1)
 
 
 class InvoiceCreateRequest(BaseModel):
     contract_id: str = Field(min_length=1)
-    amount: float
+    amount: float = Field(gt=0)
     due_date: str = Field(min_length=1)
 
 
@@ -120,4 +120,25 @@ def add_invoice(body: InvoiceCreateRequest, context: Context) -> dict[str, Any]:
         status=InvoiceStatus.SENT,
     )
     _division(context).add_invoice(invoice)
-    return {"id": invoice.id, "amount": invoice.amount}
+    return {"id": invoice.id, "amount": invoice.amount, "status": invoice.status.value}
+
+
+class InvoiceStatusRequest(BaseModel):
+    status: str = Field(min_length=1, description="draft | sent | paid | overdue")
+
+
+@router.patch("/invoices/{invoice_id}")
+def update_invoice_status(
+    invoice_id: str, body: InvoiceStatusRequest, context: Context
+) -> dict[str, Any]:
+    try:
+        new_status = InvoiceStatus(body.status)
+    except ValueError as error:
+        valid = sorted(s.value for s in InvoiceStatus)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"status must be one of {valid}"
+        ) from error
+    invoice = _division(context).update_invoice_status(invoice_id, new_status)
+    if invoice is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "invoice not found")
+    return {"id": invoice.id, "amount": invoice.amount, "status": invoice.status.value}
