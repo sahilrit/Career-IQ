@@ -392,3 +392,38 @@ def test_new_sections_require_fields(client, auth_headers):
     assert client.post("/brain/projects", headers=headers, json={}).status_code == 422
     assert client.post("/brain/languages", headers=headers, json={}).status_code == 422
     assert client.post("/brain/awards", headers=headers, json={}).status_code == 422
+
+
+def test_reimport_replaces_resume_roles_keeps_manual(client, auth_headers, monkeypatch):
+    from datetime import date
+
+    from careeros_api.routers import brain as brain_router
+    from careeros_career_brain import ParsedExperience, ParsedResume
+
+    headers = auth_headers()
+    _make_brain(client, headers)
+    # a hand-typed role that must survive re-imports
+    client.post(
+        "/brain/experience",
+        headers=headers,
+        json={"company_name": "Manual Co", "title": "Manual Role", "start_date": "2020-01-01"},
+    )
+    fake = ParsedResume(
+        experiences=[
+            ParsedExperience(title="Senior Marketer", company="Acme", start_date=date(2021, 1, 1))
+        ]
+    )
+    monkeypatch.setattr(brain_router, "parse_resume_pdf", lambda data: fake)
+
+    def upload():
+        return client.post(
+            "/brain/import-resume",
+            headers=headers,
+            files={"file": ("cv.pdf", b"%PDF-x", "application/pdf")},
+        )
+
+    upload()
+    body = upload().json()  # re-import
+    titles = sorted(e["title"] for e in body["brain"]["experiences"])
+    # manual kept, résumé role present exactly once (not duplicated)
+    assert titles == ["Manual Role", "Senior Marketer"]

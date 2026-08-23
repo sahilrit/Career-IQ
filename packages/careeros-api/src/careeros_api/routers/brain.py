@@ -363,8 +363,11 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
             existing.add(name.strip().lower())
             added_skills += 1
 
-    # Best-effort experience import — deduped by (title, company). The parser
-    # only emits roles it could anchor to a date, and users can edit/remove.
+    # Re-import replaces only the previously résumé-sourced roles — anything the
+    # user typed by hand ("manual") is kept. Then merge the fresh parse, deduped
+    # against remaining entries so an import never duplicates a manual role.
+    if parsed.experiences:
+        brain.experiences = [exp for exp in brain.experiences if exp.source != "resume"]
     existing_exp = {
         (exp.title.strip().lower(), exp.company_name.strip().lower()) for exp in brain.experiences
     }
@@ -379,6 +382,7 @@ async def import_resume(context: Context, file: Annotated[UploadFile, File(...)]
                 title=parsed_exp.title,
                 start_date=parsed_exp.start_date,
                 end_date=parsed_exp.end_date,
+                source="resume",
             )
         )
         existing_exp.add(key)

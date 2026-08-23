@@ -97,6 +97,9 @@ class Experience(BaseModel):
     description: str = ""
     achievements: list[Achievement] = Field(default_factory=list)
     skills_used: list[str] = Field(default_factory=list)
+    # Where this entry came from — "manual" (typed by the user) or "resume"
+    # (auto-imported). Re-importing a résumé replaces only the "resume" ones.
+    source: str = "manual"
 
     @model_validator(mode="after")
     def _end_not_before_start(self) -> Experience:
