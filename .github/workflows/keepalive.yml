@@ -13,7 +13,11 @@ name: Keep-alive
 
 on:
   schedule:
-    - cron: "*/14 * * * *" # every 14 minutes
+    # Every 10 min. Render free tier sleeps after ~15 min idle, and GitHub's
+    # scheduled runs are often delayed several minutes — 10 leaves margin so a
+    # slipped run still lands before the 15-min spin-down. (Private repos: this
+    # is ~4300 Actions-min/mo, over the 2000 free minutes; widen if that bites.)
+    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 jobs:
