@@ -13,12 +13,20 @@ spend a round-trip fetching each body.
 from __future__ import annotations
 
 import base64
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import httpx
 
 from careeros_api.integrations_google import GoogleError, _access_token
+from careeros_common import get_logger
 from careeros_reply_tracking import EmailMessage
+
+logger = get_logger(__name__)
+
+#: Concurrent message fetches. Bounded so a large inbox does not open 100
+#: sockets at once, but wide enough that the round-trips overlap.
+_FETCH_WORKERS = 8
 
 _GMAIL_LIST_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages"
 _GMAIL_GET_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}"
@@ -98,6 +106,23 @@ class GmailMailbox:
             raise GoogleError(f"Gmail read failed ({response.status_code}): {response.text[:200]}")
         return response.json()
 
+    def _fetch_one(self, message_id: str) -> EmailMessage | None:
+        """One message, or None if its fetch failed — a single bad message must
+        not abort the whole scan."""
+        try:
+            full = self._get(_GMAIL_GET_URL.format(id=message_id), params={"format": "full"})
+        except Exception as exc:
+            # Any single message failing must not abort the whole scan.
+            logger.warning("Gmail message %s could not be fetched: %s", message_id, exc)
+            return None
+        payload = full.get("payload", {})
+        return EmailMessage(
+            id=message_id,
+            sender=_header(payload, "From"),
+            subject=_header(payload, "Subject"),
+            body=_extract_body(payload) or full.get("snippet", ""),
+        )
+
     def recent_messages(self, *, days: int, max_messages: int) -> list[EmailMessage]:
         listing = self._get(
             _GMAIL_LIST_URL,
@@ -106,19 +131,12 @@ class GmailMailbox:
                 "maxResults": str(max_messages),
             },
         )
-        messages: list[EmailMessage] = []
-        for stub in listing.get("messages", []):
-            message_id = stub.get("id")
-            if not message_id:
-                continue
-            full = self._get(_GMAIL_GET_URL.format(id=message_id), params={"format": "full"})
-            payload = full.get("payload", {})
-            messages.append(
-                EmailMessage(
-                    id=message_id,
-                    sender=_header(payload, "From"),
-                    subject=_header(payload, "Subject"),
-                    body=_extract_body(payload) or full.get("snippet", ""),
-                )
-            )
-        return messages
+        ids = [stub["id"] for stub in listing.get("messages", []) if stub.get("id")]
+        if not ids:
+            return []
+
+        # Fetch the bodies concurrently: serially, 100 messages meant 100
+        # sequential round-trips in one request and a likely gateway timeout.
+        with ThreadPoolExecutor(max_workers=min(_FETCH_WORKERS, len(ids))) as pool:
+            fetched = pool.map(self._fetch_one, ids)
+        return [message for message in fetched if message is not None]

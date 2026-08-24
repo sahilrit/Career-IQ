@@ -199,3 +199,60 @@ def test_check_only_touches_the_requested_company(store, repo):
     check_watchlist(store, fetch=fetch, event_bus=EventBus(), only=(ATS.LEVER, "widgetco"))
 
     assert calls == ["widgetco"]
+
+
+# --- seen-set bounding (regression: unbounded growth) ------------------------
+
+
+def _seen_size(repo, ats, token) -> int:
+    company = repo.get(ats, token)
+    return len(repo.seen_ids(company))
+
+
+def test_seen_set_stays_bounded_as_a_board_churns(store, repo):
+    """A long-lived watch on a churning board must not accumulate every id ever
+    seen. Current postings are always kept; departed ones are capped."""
+    from careeros_watchlist.check import MAX_DEPARTED_RETAINED
+
+    repo.watch(ATS.GREENHOUSE, "acme", display_name="Acme")
+    board = {"acme": [_posting("0")]}
+    fetch = _fetcher(board)
+    check_watchlist(store, fetch=fetch, event_bus=EventBus())  # baseline
+
+    # Each cycle fully replaces the board with one fresh posting; the previous
+    # one departs. Over many cycles the departed set must stay capped.
+    for i in range(1, MAX_DEPARTED_RETAINED + 50):
+        board["acme"] = [_posting(str(i))]
+        check_watchlist(store, fetch=fetch, event_bus=EventBus())
+
+    seen = _seen_size(repo, ATS.GREENHOUSE, "acme")
+    # current (1) + at most the departed cap.
+    assert seen <= MAX_DEPARTED_RETAINED + 1
+
+
+def test_a_recently_departed_posting_does_not_re_alert(store, repo):
+    repo.watch(ATS.GREENHOUSE, "acme", display_name="Acme")
+    board = {"acme": [_posting("1"), _posting("2")]}
+    fetch = _fetcher(board)
+    check_watchlist(store, fetch=fetch, event_bus=EventBus())  # baseline {1,2}
+
+    board["acme"] = [_posting("1")]  # 2 departs
+    check_watchlist(store, fetch=fetch, event_bus=EventBus())
+    board["acme"] = [_posting("1"), _posting("2")]  # 2 comes right back
+    result = check_watchlist(store, fetch=fetch, event_bus=EventBus())
+
+    # 2 was seen recently, so its return is not a new job.
+    assert result.new_postings == []
+
+
+def test_current_postings_are_always_retained(store, repo):
+    """However big the board, every currently-listed posting stays in seen, so
+    no current posting is ever wrongly re-alerted."""
+    from careeros_watchlist.check import MAX_DEPARTED_RETAINED
+
+    repo.watch(ATS.GREENHOUSE, "acme", display_name="Acme")
+    big_board = [_posting(str(i)) for i in range(MAX_DEPARTED_RETAINED + 200)]
+    fetch = _fetcher({"acme": big_board})
+    check_watchlist(store, fetch=fetch, event_bus=EventBus())  # baseline
+    result = check_watchlist(store, fetch=fetch, event_bus=EventBus())
+    assert result.new_postings == []

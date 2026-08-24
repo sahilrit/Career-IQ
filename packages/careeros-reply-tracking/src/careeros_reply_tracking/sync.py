@@ -191,8 +191,10 @@ def sync_replies(
     summary = ReplySyncSummary()
     changed = False
 
+    current_ids: set[str] = set()
     for message in mailbox.recent_messages(days=days, max_messages=max_messages):
         summary.scanned += 1
+        current_ids.add(message.id)
         if message.id in seen_ids:
             summary.already_seen += 1
             continue
@@ -244,6 +246,10 @@ def sync_replies(
 
     if changed:
         repository.save(brain)
-    store.put(_SEEN_ENTITY, identity_id, _SeenState(message_ids=sorted(seen_ids)).model_dump())
+    # Persist only ids still inside the lookback window. Gmail will never
+    # return an aged-out message again, so retaining its id forever would
+    # grow the set unbounded; dropping it is safe.
+    retained = seen_ids & current_ids
+    store.put(_SEEN_ENTITY, identity_id, _SeenState(message_ids=sorted(retained)).model_dump())
 
     return summary

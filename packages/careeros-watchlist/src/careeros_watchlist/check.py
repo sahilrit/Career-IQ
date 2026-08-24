@@ -26,6 +26,11 @@ from careeros_watchlist.repository import WatchlistRepository
 
 logger = get_logger(__name__)
 
+#: How many no-longer-listed posting ids to retain past the current board,
+#: so a recently pulled-and-relisted role does not re-alert. Bounds the
+#: stored set to current-board-size + this, instead of growing forever.
+MAX_DEPARTED_RETAINED = 500
+
 BoardFetcher = Callable[[WatchedCompany], list[JobPosting]]
 
 
@@ -85,9 +90,12 @@ def _check_one(
             )
         )
 
-    # Remember the union: a posting taken down and re-listed should not alert
-    # a second time.
-    repo.record_seen(company, seen | current_ids)
+    # Keep every current posting, plus a capped tail of departed ids so a
+    # recently pulled-and-relisted role does not re-alert. Without the cap the
+    # union grows unbounded over the life of a watch.
+    departed = seen - current_ids
+    retained_departed = set(sorted(departed)[:MAX_DEPARTED_RETAINED])
+    repo.record_seen(company, current_ids | retained_departed)
 
 
 def check_watchlist(

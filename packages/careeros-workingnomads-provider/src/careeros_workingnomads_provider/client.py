@@ -38,7 +38,10 @@ def build_search_body(*, keywords: list[str], size: int) -> dict[str, Any]:
     the request becomes "most recent N" — matching what the old feed did.
     """
     body: dict[str, Any] = {"size": max(1, min(size, MAX_SIZE))}
-    terms = [term.strip() for term in keywords if term.strip()]
+    # Strip embedded double quotes: a term is a phrase to quote, and an inner
+    # quote would break the query_string wrapping into malformed syntax that
+    # Elasticsearch rejects, silently dropping the term.
+    terms = [cleaned for term in keywords if (cleaned := " ".join(term.replace('"', " ").split()))]
     if not terms:
         body["sort"] = [{"pub_date": {"order": "desc"}}]
         return body

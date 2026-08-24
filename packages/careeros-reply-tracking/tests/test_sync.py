@@ -231,3 +231,56 @@ def test_a_multiword_company_matches_when_all_tokens_are_present(store):
     )
     summary = sync_replies(store, brain.identity.id, mailbox, event_bus=EventBus())
     assert summary.transitioned == 1
+
+
+# --- seen-set bounding (regression: unbounded growth) ------------------------
+
+
+def _read_seen(store, identity_id) -> list[str]:
+    from careeros_reply_tracking.sync import _SEEN_ENTITY
+
+    raw = store.get_or_none(_SEEN_ENTITY, identity_id)
+    return raw["message_ids"] if raw else []
+
+
+def test_seen_ids_are_pruned_to_the_current_window(store, brain_with_application):
+    """Gmail only returns messages inside the lookback window, so an id that
+    ages out can never recur — keeping it forever grows the set unbounded."""
+    identity_id = brain_with_application.identity.id
+    bus = EventBus()
+
+    sync_replies(
+        store, identity_id, FakeMailbox([_msg(id="old", body="thanks for applying")]), event_bus=bus
+    )
+    assert _read_seen(store, identity_id) == ["old"]
+
+    # Next run: 'old' has aged out of the window, a new message appears.
+    sync_replies(store, identity_id, FakeMailbox([_msg(id="new", body="thanks")]), event_bus=bus)
+    seen = _read_seen(store, identity_id)
+    assert "old" not in seen
+    assert seen == ["new"]
+
+
+def test_seen_set_stays_bounded_across_many_runs(store, brain_with_application):
+    identity_id = brain_with_application.identity.id
+    bus = EventBus()
+    for i in range(50):
+        sync_replies(
+            store, identity_id, FakeMailbox([_msg(id=f"m{i}", body="thanks")]), event_bus=bus
+        )
+    # Each run's window holds one message, so seen never accumulates the past 49.
+    assert len(_read_seen(store, identity_id)) == 1
+
+
+def test_a_still_in_window_message_is_not_reprocessed(store, brain_with_application):
+    """Bounding must not break idempotency: a message still in the window on the
+    next run is remembered and not acted on twice."""
+    identity_id = brain_with_application.identity.id
+    bus = EventBus()
+    mailbox = FakeMailbox([_msg(id="m1")])
+
+    first = sync_replies(store, identity_id, mailbox, event_bus=bus)
+    second = sync_replies(store, identity_id, mailbox, event_bus=bus)
+    assert first.transitioned == 1
+    assert second.already_seen == 1
+    assert second.transitioned == 0

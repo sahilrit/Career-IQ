@@ -24,6 +24,19 @@ def test_parse_strips_html_and_keeps_tags(search_docs):
     assert "ASSOCIATE (Entry-Level)" in posting.description
 
 
+def test_parse_captures_the_direct_apply_url(search_docs):
+    # WorkingNomads carries the employer's real ATS link alongside its slug page.
+    posting = parse_job_entry(search_docs[0])
+    assert (
+        posting.apply_url
+        == "https://reflexmediainc.applytojob.com/apply/uTEp2lGf4Y/Marketing-Associate"
+    )
+    # The listing URL stays the WorkingNomads slug page.
+    assert posting.url.startswith("https://www.workingnomads.com/jobs/")
+    # A doc without apply_url yields None.
+    assert parse_job_entry(search_docs[1]).apply_url is None
+
+
 def test_parse_reads_the_publish_date(search_docs):
     posting = parse_job_entry(search_docs[0])
     assert posting.posted_at is not None
@@ -104,3 +117,26 @@ def test_health_check_asks_for_a_single_document(fake_transport_cls):
     transport = fake_transport_cls()
     WorkingNomadsProvider(transport).health_check()
     assert transport.search_calls[0]["size"] == 1
+
+
+# --- query building (regression: a quote in a keyword broke the query) --------
+
+
+def test_a_keyword_with_a_double_quote_does_not_break_the_query():
+    """An unescaped double quote in a term produced malformed query_string
+    syntax that Elasticsearch rejects, silently dropping that term's results."""
+    from careeros_workingnomads_provider import build_search_body
+
+    body = build_search_body(keywords=['data "scientist"'], size=10)
+    query = body["query"]["bool"]["must"][0]["query_string"]["query"]
+    # The wrapping quotes are the only quotes; no stray inner quotes remain.
+    assert query.count('"') == 2
+    assert "scientist" in query and "data" in query
+
+
+def test_query_building_is_unaffected_for_ordinary_keywords():
+    from careeros_workingnomads_provider import build_search_body
+
+    body = build_search_body(keywords=["performance marketing", "ppc"], size=10)
+    query = body["query"]["bool"]["must"][0]["query_string"]["query"]
+    assert query == '"performance marketing" OR "ppc"'

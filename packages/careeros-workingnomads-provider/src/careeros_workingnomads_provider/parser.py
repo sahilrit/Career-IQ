@@ -105,6 +105,10 @@ def parse_job_entry(doc: dict[str, Any]) -> JobPosting:
         title=str(doc.get("title") or "").strip(),
         company_name=str(doc.get("company") or doc.get("company_name") or "").strip(),
         url=_url(doc),
+        # The employer's own apply link (a real ATS such as applytojob.com),
+        # which WorkingNomads carries alongside its listing-page slug. Kept so
+        # the autopilot can reach the actual form, not just the listing.
+        apply_url=str(doc.get("apply_url") or "") or None,
         location=_location(doc),
         remote=True,
         salary=_salary(doc),

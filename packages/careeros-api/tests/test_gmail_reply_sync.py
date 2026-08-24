@@ -138,3 +138,43 @@ def test_the_readonly_scope_is_requested(scope):
     from careeros_api.integrations_google import SCOPES
 
     assert scope in SCOPES
+
+
+# --- concurrent, fault-isolated message fetch (regression: serial N+1) --------
+
+
+def test_messages_are_fetched_and_one_failure_does_not_sink_the_batch(monkeypatch):
+    """Up to 100 messages were fetched serially in one request; one failing GET
+    also aborted the whole scan. Fetch is now concurrent and per-message
+    failures are isolated."""
+
+    def fake_get(self, url, params=None):
+        if url.endswith("/messages"):
+            return {"messages": [{"id": "ok1"}, {"id": "boom"}, {"id": "ok2"}]}
+        if "boom" in url:
+            raise RuntimeError("500 on that message")
+        mid = url.rstrip("/").split("/")[-1]
+        return {
+            "snippet": "s",
+            "payload": {
+                "headers": [
+                    {"name": "From", "value": f"recruiting@{mid}.com"},
+                    {"name": "Subject", "value": "hi"},
+                ],
+                "mimeType": "text/plain",
+                "body": {"data": _b64("body")},
+            },
+        }
+
+    monkeypatch.setattr(GmailMailbox, "_get", fake_get)
+    messages = GmailMailbox(store=None, workspace_id="w1").recent_messages(days=90, max_messages=10)
+
+    # The two good messages come back; the failing one is skipped, not fatal.
+    assert {m.id for m in messages} == {"ok1", "ok2"}
+
+
+def test_an_empty_listing_yields_no_messages(monkeypatch):
+    monkeypatch.setattr(GmailMailbox, "_get", lambda self, url, params=None: {"messages": []})
+    assert (
+        GmailMailbox(store=None, workspace_id="w1").recent_messages(days=90, max_messages=10) == []
+    )

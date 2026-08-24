@@ -12,6 +12,7 @@ that fails to load never discards what we already knew.
 
 from careeros_watchlist.boards import fetch_board
 from careeros_watchlist.check import (
+    MAX_DEPARTED_RETAINED,
     BoardFetcher,
     WatchlistCheckResult,
     check_watchlist,
@@ -21,6 +22,7 @@ from careeros_watchlist.repository import WatchlistRepository
 
 __all__ = [
     "ATS",
+    "MAX_DEPARTED_RETAINED",
     "BoardFetcher",
     "WatchedCompany",
     "WatchlistCheckResult",
