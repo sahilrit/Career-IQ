@@ -37,6 +37,15 @@ esac
 export CAREEROS_DATABASE_URL="$DB_URL"
 
 echo
+echo "Optional: paste your Google Gemini key (AIza…) to have the AI write each"
+echo "cover letter, or just press Enter to use built-in templates."
+printf "Gemini key (optional): "
+read -r AI_KEY
+if [ -n "$AI_KEY" ]; then
+  export CAREEROS_AI_KEY="$AI_KEY"
+fi
+
+echo
 echo "Making sure the browser is installed (one-time, safe to repeat)..."
 uv run playwright install chromium >/dev/null 2>&1 || true
 

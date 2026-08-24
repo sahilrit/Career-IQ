@@ -15,7 +15,7 @@ def test_high_scoring_posting_is_qualified(
 
     summary = agent.run_cycle(brain_with_python_skills.identity.id, JobSearchQuery())
 
-    assert summary == {"discovered": 1, "qualified": 1}
+    assert (summary.discovered, summary.qualified) == (1, 1)
     reloaded = repository.load(brain_with_python_skills.identity.id)
     assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
 
@@ -28,7 +28,7 @@ def test_low_scoring_posting_stays_discovered(
 
     summary = agent.run_cycle(brain_with_python_skills.identity.id, JobSearchQuery())
 
-    assert summary == {"discovered": 1, "qualified": 0}
+    assert (summary.discovered, summary.qualified) == (1, 0)
     reloaded = repository.load(brain_with_python_skills.identity.id)
     assert reloaded.applications[0].status == ApplicationStatus.DISCOVERED
 
@@ -67,7 +67,7 @@ def test_second_cycle_with_same_postings_discovers_nothing_new(
     agent.run_cycle(brain_with_python_skills.identity.id, JobSearchQuery())
     second = agent.run_cycle(brain_with_python_skills.identity.id, JobSearchQuery())
 
-    assert second == {"discovered": 0, "qualified": 0}
+    assert (second.discovered, second.qualified) == (0, 0)
 
 
 def test_mixed_batch_qualifies_only_the_high_scoring_posting(
@@ -83,4 +83,4 @@ def test_mixed_batch_qualifies_only_the_high_scoring_posting(
 
     summary = agent.run_cycle(brain_with_python_skills.identity.id, JobSearchQuery())
 
-    assert summary == {"discovered": 2, "qualified": 1}
+    assert (summary.discovered, summary.qualified) == (2, 1)

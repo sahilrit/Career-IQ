@@ -84,9 +84,25 @@ def resolve_cover_letter_generator(scoped: Any, workspace_id: str) -> Any | None
     failures fall back to templates. None when there's no key or it can't be
     decrypted (then the cycle uses templates).
 
-    Decryption needs CAREEROS_SECRET_KEY to match the value the live app used
-    to store the key — set the same one here, or leave both unset (dev default).
+    Simplest path: set CAREEROS_AI_KEY (your Gemini AIza… key) and we use it
+    directly — no vault, no CAREEROS_SECRET_KEY juggling. Otherwise we read the
+    key the live app stored, which needs CAREEROS_SECRET_KEY here to MATCH the
+    value the live app encrypted it with.
     """
+    direct_key = os.environ.get("CAREEROS_AI_KEY", "").strip()
+    if direct_key:
+        try:
+            from careeros_ai import build_client
+            from careeros_application_engine import AICoverLetterGenerator
+
+            model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
+            ai_generator = AICoverLetterGenerator(build_client(direct_key, model))
+        except Exception as error:
+            print(f"AI cover letters: off ({type(error).__name__}: {error}) — using templates")
+            return None
+        print("AI cover letters: ON (CAREEROS_AI_KEY) — written by your AI model")
+        return _ResilientCoverLetter(ai_generator, TemplateCoverLetterGenerator())
+
     try:
         from careeros_api import ai_support
 
@@ -111,6 +127,11 @@ def main() -> None:
     parser.add_argument(
         "--show-browser", action="store_true", help="run the browser visibly instead of headless"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="reach and map each form but never click submit (safe validation)",
+    )
     arguments = parser.parse_args()
 
     keywords = [keyword.strip() for keyword in arguments.keywords.split(",") if keyword.strip()]
@@ -129,6 +150,8 @@ def main() -> None:
         )
     scoped = TenantScopedDocumentStore(store, arguments.workspace_id)
     cover_letter_generator = resolve_cover_letter_generator(scoped, arguments.workspace_id)
+    if arguments.dry_run:
+        print("DRY RUN — will reach and map forms but NEVER submit.")
 
     while True:
         try:
@@ -138,6 +161,7 @@ def main() -> None:
                 keywords=keywords,
                 headless=not arguments.show_browser,
                 cover_letter_generator=cover_letter_generator,
+                submit_enabled=not arguments.dry_run,
             )
             print(
                 f"[{report['ran_at']}] discovered={report['discovered']} "

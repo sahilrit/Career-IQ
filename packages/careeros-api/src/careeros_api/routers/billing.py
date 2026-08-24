@@ -1,5 +1,12 @@
 """Billing endpoint: the workspace's current plan and every tier, with
-Stripe Payment Link checkout URLs for upgrades."""
+Stripe Payment Link checkout URLs for upgrades.
+
+While open access is on — the default today, CareerOS is free for all —
+this still reports the real recorded tier, but every plan's usable
+feature set is the Agency one and no checkout link is offered. Nothing
+about the subscription record changes, so switching enforcement back on
+later is a single environment variable.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +16,8 @@ from fastapi import APIRouter
 
 from careeros_api.dependencies import Context
 from careeros_api.schemas import BillingResponse, PlanInfo
-from careeros_billing import PLANS, PlanTier, Subscription, SubscriptionRepository
+from careeros_billing import PLANS, PlanTier, Subscription, SubscriptionRepository, get_plan
+from careeros_billing.open_access import effective_tier, open_access_enabled
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -31,6 +39,8 @@ def get_billing(context: Context) -> BillingResponse:
     ) or Subscription(workspace_id=context.account.workspace_id, plan_tier=PlanTier.FREE)
     current = subscription.plan_tier
     current_price = PLANS[current].monthly_price_usd
+    is_open = open_access_enabled()
+    available = get_plan(effective_tier(current)).features
 
     plans = [
         PlanInfo(
@@ -38,12 +48,19 @@ def get_billing(context: Context) -> BillingResponse:
             name=plan.name,
             monthly_price_usd=plan.monthly_price_usd,
             features=plan.features,
+            available_features=available,
             is_current=tier == current,
-            # Only offer checkout for a strictly higher tier than the current one.
-            checkout_url=(_checkout_url(tier) if plan.monthly_price_usd > current_price else None),
+            # No upsell while everything is free. Otherwise, only offer
+            # checkout for a strictly higher tier than the current one.
+            checkout_url=(
+                None if is_open or plan.monthly_price_usd <= current_price else _checkout_url(tier)
+            ),
         )
         for tier, plan in PLANS.items()
     ]
     return BillingResponse(
-        current_tier=current.value, status=subscription.status.value, plans=plans
+        current_tier=current.value,
+        status=subscription.status.value,
+        open_access=is_open,
+        plans=plans,
     )

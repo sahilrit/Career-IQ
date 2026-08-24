@@ -11,11 +11,56 @@ this pipeline knowing who's listening.
 
 from __future__ import annotations
 
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 from careeros_career_brain import Application, CareerBrainRepository
 from careeros_event_bus import Event, EventBus
+from careeros_job_discovery.llm_scoring import LlmJobScorer, apply_patches
 from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
+
+#: How many postings a single run will LLM-score, at most. One API call each.
+DEFAULT_MAX_LLM_SCORED = 40
+
+
+def _profile_summary(brain) -> str:
+    """A compact plain-text profile for the scoring prompt.
+
+    Deliberately small: the whole Career Brain would dominate the context
+    window, and the model only needs enough to judge fit.
+    """
+    preferences = brain.preferences
+    lines = [
+        f"Name: {brain.identity.full_name}",
+        f"Skills: {', '.join(skill.name for skill in brain.skills) or 'not stated'}",
+    ]
+    if preferences.desired_titles:
+        lines.append(f"Target roles: {', '.join(preferences.desired_titles)}")
+    if preferences.desired_locations:
+        lines.append(f"Preferred locations: {', '.join(preferences.desired_locations)}")
+    if preferences.min_salary is not None:
+        lines.append(f"Minimum salary: {preferences.min_salary}")
+    if preferences.remote_only:
+        lines.append("Remote only: yes")
+    for experience in brain.experiences[:5]:
+        lines.append(f"Experience: {experience.title} at {experience.company_name}")
+    return "\n".join(lines)
+
+
+class DiscoveryRun(BaseModel):
+    """What one discovery cycle produced.
+
+    ``source_errors`` carries the reason any provider contributed nothing —
+    rate limited, timed out, blocked. A run that quietly returns fewer results
+    because a source broke is indistinguishable from a slow week in the market,
+    so these travel with the applications rather than only reaching the log.
+    """
+
+    applications: list[Application] = Field(default_factory=list)
+    source_errors: list[str] = Field(default_factory=list)
 
 
 class JobDiscoveryPipeline:
@@ -25,13 +70,32 @@ class JobDiscoveryPipeline:
         career_brain_repository: CareerBrainRepository,
         event_bus: EventBus,
         posting_repository: JobPostingRepository | None = None,
+        *,
+        llm_scorer: LlmJobScorer | None = None,
+        max_llm_scored: int = DEFAULT_MAX_LLM_SCORED,
     ) -> None:
         self._providers = provider_registry
         self._repository = career_brain_repository
         self._bus = event_bus
         self._postings = posting_repository
+        # Optional second-pass scorer. Without one, discovery behaves exactly
+        # as it always has: cheap arithmetic against the Career Brain.
+        self._llm_scorer = llm_scorer
+        # LLM scoring is one API call per posting, so it is capped per run and
+        # spent on the highest heuristic-scoring candidates. The rest keep
+        # their heuristic score. Without a cap a broad first search could fire
+        # hundreds of serial LLM calls.
+        self._max_llm_scored = max(0, max_llm_scored)
 
-    def run(self, identity_id: str, query: JobSearchQuery) -> list[Application]:
+    def _select_llm_targets(self, scored: list[tuple[Any, float]]) -> set[str]:
+        """The URLs of the postings that get an LLM call this run: the highest
+        heuristic-scoring ones, up to the cap. Empty when there is no scorer."""
+        if self._llm_scorer is None or self._max_llm_scored == 0:
+            return set()
+        ranked = sorted(scored, key=lambda item: item[1], reverse=True)
+        return {posting.url for posting, _ in ranked[: self._max_llm_scored]}
+
+    def run(self, identity_id: str, query: JobSearchQuery) -> DiscoveryRun:
         """Discover, score, and store new applications for one user's Career Brain.
 
         Postings already recorded (matched by job URL) are skipped, so
@@ -40,16 +104,23 @@ class JobDiscoveryPipeline:
         brain = self._repository.load(identity_id)
         result = self._providers.search_all(query)
 
-        new_applications: list[Application] = []
+        profile_summary = _profile_summary(brain)
+
+        # Score every new posting cheaply first, then spend the capped LLM budget
+        # on the highest-scoring ones. A broad first search can surface hundreds
+        # of postings; LLM-scoring all of them would be minutes of serial calls
+        # and real token cost.
+        scored: list[tuple[Any, float]] = []
         for posting in result.postings:
-            # Cache the full posting so generation/submission can read it
-            # back by URL instead of re-crawling every provider.
-            if self._postings is not None:
-                self._postings.save(posting)
-
             if brain.find_application_by_job_url(posting.url) is not None:
+                # Already recorded; still nothing to re-cache or re-score.
                 continue
+            scored.append((posting, score_posting(posting, brain)))
 
+        llm_targets = self._select_llm_targets(scored)
+
+        new_applications: list[Application] = []
+        for posting, score in scored:
             self._bus.publish(
                 Event(
                     event_type="job.discovered",
@@ -58,7 +129,20 @@ class JobDiscoveryPipeline:
                 )
             )
 
-            score = score_posting(posting, brain)
+            if posting.url in llm_targets and self._llm_scorer is not None:
+                llm_result = self._llm_scorer.score(posting, profile_summary=profile_summary)
+                if llm_result is not None:
+                    # Corrections first, so the cached posting and the score
+                    # both reflect the same facts.
+                    posting = apply_patches(posting, llm_result.patches)
+                    # The model answers 0-100; the rest of CareerOS works in
+                    # 0.0-1.0, and the two must stay comparable.
+                    score = llm_result.score / 100.0
+
+            # Cache the full posting so generation/submission can read it
+            # back by URL instead of re-crawling every provider.
+            if self._postings is not None:
+                self._postings.save(posting)
             application = Application(
                 job_title=posting.title,
                 company_name=posting.company_name,
@@ -94,4 +178,4 @@ class JobDiscoveryPipeline:
         if new_applications:
             self._repository.save(brain)
 
-        return new_applications
+        return DiscoveryRun(applications=new_applications, source_errors=result.source_errors)

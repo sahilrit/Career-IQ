@@ -17,11 +17,12 @@ from careeros_browser import BrowserSession
 from careeros_human_in_the_loop import SelectorAppearsDetector
 from careeros_job_providers import JobPosting
 
-# Hosts whose URLs are themselves application forms.
+# Hosts whose URLs are themselves application forms. Lever serves EU postings
+# from jobs.eu.lever.co; JazzHR uses <company>.applytojob.com.
 _ATS_HOST_RE = re.compile(
-    r"(boards\.greenhouse\.io|job-boards\.greenhouse\.io|jobs\.lever\.co|"
+    r"(boards\.greenhouse\.io|job-boards\.greenhouse\.io|jobs\.(eu\.)?lever\.co|"
     r"jobs\.ashbyhq\.com|apply\.workable\.com|jobs\.smartrecruiters\.com|"
-    r"\.recruitee\.com|jobs\.jobvite\.com|\.bamboohr\.com)",
+    r"\.recruitee\.com|jobs\.jobvite\.com|\.bamboohr\.com|\.applytojob\.com)",
     re.IGNORECASE,
 )
 
@@ -110,7 +111,8 @@ def ats_apply_url(posting_url: str) -> str | None:
         return None
     if "jobs.ashbyhq.com" in base and not base.endswith("/application"):
         return f"{base}/application"
-    if "jobs.lever.co" in base and not base.endswith("/apply"):
+    # Lever serves some postings from jobs.eu.lever.co; both take /apply.
+    if re.search(r"jobs\.(eu\.)?lever\.co", base) and not base.endswith("/apply"):
         return f"{base}/apply"
     return None
 
@@ -178,6 +180,21 @@ def detect_form_mapping(session: BrowserSession) -> FormFieldMapping | None:
     )
 
 
+def _settle_for_form(session: BrowserSession, url: str) -> None:
+    """On a known ATS host, give a client-rendered form (Ashby/Greenhouse are
+    React apps) a moment to appear before we inspect the page. No-op on other
+    hosts, so aggregator pages that will never hold a form add no latency.
+    """
+    if not _ATS_HOST_RE.search(url or ""):
+        return
+    try:
+        # Any core field appearing means the form has rendered. The fake test
+        # session raises immediately when absent, so this only waits for real.
+        session.wait_for_selector("input[type='email']", timeout_ms=6000)
+    except Exception:
+        return
+
+
 def prepare_application_page(session: BrowserSession, posting: JobPosting) -> str | None:
     """Navigate to the posting and onward to its application form.
 
@@ -185,25 +202,30 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
     is loaded. Never creates accounts or works around access walls —
     those are reported via the problem detectors afterwards.
     """
+    # Go straight to the employer's real apply form when the provider gave us
+    # one (RemoteOK/WorkingNomads), instead of the aggregator listing page.
+    target = posting.apply_url or posting.url
     try:
-        session.goto(posting.url)
+        session.goto(target)
     except Exception as exc:
-        return f"could not open {posting.url}: {exc}"
+        return f"could not open {target}: {exc}"
 
     if _first_visible(session, _BOT_PROTECTION_SELECTORS) is not None:
         return "the site is showing a bot-protection challenge — a human must apply here"
 
+    _settle_for_form(session, target)
     if detect_form_mapping(session) is not None:
         return None  # the posting page itself is the form
 
     # Prefer a real apply link on the page; otherwise derive the conventional
     # form URL for known ATS hosts (Ashby/Lever route the form to a subpath the
     # posting page has no crawlable <a> to).
-    apply_url = find_apply_url(session) or ats_apply_url(posting.url)
+    apply_url = find_apply_url(session) or ats_apply_url(target)
     if apply_url is None:
         return "no application form or apply link found on the posting page"
     try:
         session.goto(apply_url)
     except Exception as exc:
         return f"could not open apply link {apply_url}: {exc}"
+    _settle_for_form(session, apply_url)
     return None

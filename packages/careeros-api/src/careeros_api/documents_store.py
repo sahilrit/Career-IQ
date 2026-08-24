@@ -73,23 +73,14 @@ class DocumentRepository:
         return document
 
 
-def _latin1(text: str) -> str:
-    # FPDF's core fonts are latin-1; replace anything outside it so a stray
-    # em-dash or accented name never crashes the export.
-    return text.encode("latin-1", "replace").decode("latin-1")
-
-
 def render_document_pdf(document: GeneratedDocument) -> bytes:
-    from fpdf import FPDF
-    from fpdf.enums import XPos, YPos
+    """A typeset PDF of one generated document.
 
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Helvetica", style="B", size=15)
-    pdf.multi_cell(0, 9, _latin1(document.title), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln(3)
-    pdf.set_font("Helvetica", size=11)
-    for line in document.content.split("\n"):
-        pdf.multi_cell(0, 6, _latin1(line) or " ", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    return bytes(pdf.output())
+    The résumé/cover-letter content is Markdown (see the application engine's
+    renderers), so the export lays it out as a structured CV rather than a
+    flat text dump. See ``resume_pdf`` for the layout and the non-latin text
+    handling.
+    """
+    from careeros_api.resume_pdf import render_markdown_pdf
+
+    return render_markdown_pdf(document.title, document.content)

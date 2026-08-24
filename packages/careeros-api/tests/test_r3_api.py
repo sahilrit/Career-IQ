@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from careeros_api import dependencies
+from careeros_billing.open_access import OPEN_ACCESS_ENV_VAR
 from careeros_tenancy import TenantScopedDocumentStore
 
 
@@ -17,11 +18,40 @@ def test_billing_defaults_to_free(client, auth_headers):
 
 
 def test_billing_upgrade_link_from_env(client, auth_headers, monkeypatch):
+    monkeypatch.setenv(OPEN_ACCESS_ENV_VAR, "0")
     monkeypatch.setenv("CAREEROS_STRIPE_LINK_PRO", "https://buy.stripe.com/pro")
     headers = auth_headers()
     plans = client.get("/billing", headers=headers).json()["plans"]
     pro = next(p for p in plans if p["tier"] == "pro")
     assert pro["checkout_url"] == "https://buy.stripe.com/pro"
+
+
+def test_billing_reports_open_access_and_unlocks_every_feature(client, auth_headers, monkeypatch):
+    monkeypatch.setenv(OPEN_ACCESS_ENV_VAR, "1")
+    headers = auth_headers()
+    body = client.get("/billing", headers=headers).json()
+    assert body["open_access"] is True
+    # Everything the Agency tier lists is available on the free plan.
+    free = next(p for p in body["plans"] if p["tier"] == "free")
+    agency = next(p for p in body["plans"] if p["tier"] == "agency")
+    assert set(agency["features"]) <= set(free["available_features"])
+
+
+def test_billing_hides_checkout_while_open_access_is_on(client, auth_headers, monkeypatch):
+    monkeypatch.setenv(OPEN_ACCESS_ENV_VAR, "1")
+    monkeypatch.setenv("CAREEROS_STRIPE_LINK_PRO", "https://buy.stripe.com/pro")
+    headers = auth_headers()
+    plans = client.get("/billing", headers=headers).json()["plans"]
+    assert all(p["checkout_url"] is None for p in plans)
+
+
+def test_billing_reports_open_access_off_when_disabled(client, auth_headers, monkeypatch):
+    monkeypatch.setenv(OPEN_ACCESS_ENV_VAR, "0")
+    headers = auth_headers()
+    body = client.get("/billing", headers=headers).json()
+    assert body["open_access"] is False
+    free = next(p for p in body["plans"] if p["tier"] == "free")
+    assert "autonomous_workflows" not in free["available_features"]
 
 
 def test_billing_requires_auth(client):

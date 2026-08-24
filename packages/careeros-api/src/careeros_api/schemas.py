@@ -127,6 +127,9 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     discovered: int
     qualified: int
+    # Why a source contributed nothing — rate limited, timed out, blocked.
+    # Shown to the user so a partial search never looks like a complete one.
+    source_errors: list[str] = Field(default_factory=list)
 
 
 class GenerateRequest(BaseModel):
@@ -198,6 +201,10 @@ class PlanInfo(BaseModel):
     name: str
     monthly_price_usd: float
     features: list[str]
+    # What this workspace can actually use on this plan today. Identical to
+    # ``features`` under normal tier enforcement; the full Agency list while
+    # open access is on.
+    available_features: list[str]
     is_current: bool
     checkout_url: str | None
 
@@ -205,6 +212,8 @@ class PlanInfo(BaseModel):
 class BillingResponse(BaseModel):
     current_tier: str
     status: str
+    # True while CareerOS is free for all — the UI shows no prices or upsells.
+    open_access: bool
     plans: list[PlanInfo]
 
 

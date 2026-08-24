@@ -13,50 +13,88 @@ export default async function BillingPage() {
     billing = null;
   }
 
+  const openAccess = billing?.open_access ?? false;
+  const unlocked = billing?.plans.find((p) => p.is_current)?.available_features ?? [];
+
   return (
     <Shell account={account}>
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Billing</h1>
-      {billing && (
-        <p className="mb-6 text-muted">
-          Current plan: <span className="text-white">{billing.current_tier}</span> ·{" "}
-          {billing.status}
-        </p>
-      )}
+      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Plan</h1>
+
       {!billing ? (
         <div className="card p-6 text-muted">Billing is unavailable right now.</div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {billing.plans.map((plan) => (
-            <div
-              key={plan.tier}
-              className={`card p-6 ${plan.is_current ? "ring-1 ring-accent" : ""}`}
-            >
-              <div className="text-lg font-medium">{plan.name}</div>
-              <div className="mb-3 text-2xl font-semibold">
-                ${plan.monthly_price_usd.toLocaleString()}
-                <span className="text-sm font-normal text-muted">/mo</span>
-              </div>
-              <ul className="mb-4 space-y-1 text-sm text-muted">
-                {plan.features.map((feature) => (
-                  <li key={feature}>{feature.replace(/_/g, " ")}</li>
-                ))}
-              </ul>
-              {plan.is_current ? (
-                <span className="text-sm text-emerald-400">Your plan</span>
-              ) : plan.checkout_url ? (
-                <a href={plan.checkout_url} className="btn w-full" target="_blank" rel="noreferrer">
-                  Upgrade to {plan.name}
-                </a>
-              ) : plan.monthly_price_usd > 0 ? (
-                <span className="text-sm text-muted">Contact us to upgrade</span>
-              ) : null}
+      ) : openAccess ? (
+        /* Free for all. No prices, no tiers, no upsell — just what's unlocked. */
+        <>
+          <p className="mb-6 max-w-2xl text-muted">
+            Everything in CareerOS is free while we&apos;re building it out. No card, no limits per
+            tier, no feature held back. We&apos;ll give you plenty of notice before that changes.
+          </p>
+          <div className="card p-6">
+            <div className="mb-1 flex items-center gap-3">
+              <span className="text-lg font-medium text-white">Everything, unlocked</span>
+              <span className="chip border-accent/40 text-accent">Free</span>
             </div>
-          ))}
-        </div>
+            <p className="mb-5 text-sm text-muted">
+              Your workspace has access to every capability we ship.
+            </p>
+            <ul className="grid gap-x-8 gap-y-2 text-sm text-muted sm:grid-cols-2">
+              {unlocked.map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
+                  <span className="mt-[2px] text-accent">·</span>
+                  {feature.replace(/_/g, " ")}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="mt-6 text-sm text-muted">
+            Using CareerOS shapes what we build next. If something is missing, tell us — that&apos;s
+            the trade.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mb-6 text-muted">
+            Current plan: <span className="text-white">{billing.current_tier}</span> ·{" "}
+            {billing.status}
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {billing.plans.map((plan) => (
+              <div
+                key={plan.tier}
+                className={`card p-6 ${plan.is_current ? "ring-1 ring-accent" : ""}`}
+              >
+                <div className="text-lg font-medium">{plan.name}</div>
+                <div className="mb-3 text-2xl font-semibold">
+                  ${plan.monthly_price_usd.toLocaleString()}
+                  <span className="text-sm font-normal text-muted">/mo</span>
+                </div>
+                <ul className="mb-4 space-y-1 text-sm text-muted">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature.replace(/_/g, " ")}</li>
+                  ))}
+                </ul>
+                {plan.is_current ? (
+                  <span className="text-sm text-emerald-400">Your plan</span>
+                ) : plan.checkout_url ? (
+                  <a
+                    href={plan.checkout_url}
+                    className="btn w-full"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Upgrade to {plan.name}
+                  </a>
+                ) : plan.monthly_price_usd > 0 ? (
+                  <span className="text-sm text-muted">Contact us to upgrade</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-muted">
+            Payments are handled by Stripe. After paying, your plan activates automatically.
+          </p>
+        </>
       )}
-      <p className="mt-6 text-sm text-muted">
-        Payments are handled by Stripe. After paying, your plan activates automatically.
-      </p>
     </Shell>
   );
 }

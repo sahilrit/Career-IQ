@@ -33,15 +33,24 @@ def make_posting(**overrides) -> JobPosting:
 
 
 class FakeProvider(JobProvider):
-    def __init__(self, provider_id: str, postings: list[JobPosting]) -> None:
+    def __init__(
+        self,
+        provider_id: str,
+        postings: list[JobPosting] | None = None,
+        *,
+        raise_on_search: bool = False,
+    ) -> None:
         self._provider_id = provider_id
-        self._postings = postings
+        self._postings = postings or []
+        self._raise_on_search = raise_on_search
 
     @property
     def provider_id(self) -> str:
         return self._provider_id
 
     def search(self, query: JobSearchQuery) -> JobSearchResult:
+        if self._raise_on_search:
+            raise RuntimeError("429 rate limited")
         return JobSearchResult(postings=list(self._postings))
 
 

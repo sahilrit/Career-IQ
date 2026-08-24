@@ -48,10 +48,13 @@ const SUITE = [
   "CEO agent",
 ];
 
-const PLANS = [
-  { name: "Free", price: "$0", note: "Everything to run your search", points: ["Career Brain", "Discovery", "AI applications & pitch kits"], featured: false },
-  { name: "Pro", price: "$29", note: "For people who mean it", points: ["Everything in Free", "Autopilot", "Freelance engine", "Analytics"], featured: true },
-  { name: "Agency", price: "$99", note: "Run a whole roster", points: ["Everything in Pro", "Multiple workspaces", "Team members", "API access"], featured: false },
+// Free for all while we learn what people actually use. The old three-tier
+// grid is gone rather than greyed out — a struck-through price still reads as
+// a sales page. Grouped by what you get, not by what you'd pay.
+const INCLUDED = [
+  { group: "Find the work", points: ["Career Brain", "Discovery across every board", "Saved searches & alerts"] },
+  { group: "Win the work", points: ["AI applications & pitch kits", "Autopilot", "Interview intelligence", "Offer negotiation"] },
+  { group: "Run the work", points: ["Freelance engine", "Analytics", "Multiple workspaces", "API access"] },
 ];
 
 // A refined, cursor-tilting glass panel — the small product moment.
@@ -339,42 +342,48 @@ export function Landing() {
             >
               <div className="font-mono text-xs uppercase tracking-[0.28em] text-accent">Pricing</div>
               <h2 className="mx-auto mt-5 max-w-2xl font-display text-3xl font-medium tracking-tight sm:text-4xl">
-                Start free. Upgrade when it's already paid for itself.
+                It&apos;s free. All of it.
               </h2>
+              <p className="mx-auto mt-5 max-w-xl text-white/60">
+                Every capability, no tiers, no card. We&apos;d rather learn what actually helps
+                people get hired than charge for guesses. When that changes, you&apos;ll hear it
+                from us first.
+              </p>
             </motion.div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {PLANS.map((plan, i) => (
-                <motion.div
-                  key={plan.name}
-                  initial={{ opacity: 0, y: 40 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "0px 0px -10% 0px" }}
-                  transition={{ duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  className={`rounded-2xl border p-7 backdrop-blur-xl ${plan.featured ? "border-accent/50 bg-accent/[0.06]" : "border-white/12 bg-white/[0.03]"}`}
-                >
-                  {plan.featured && <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">Most popular</div>}
-                  <div className="font-display text-lg font-medium">{plan.name}</div>
-                  <div className="mb-1 mt-1 font-display text-4xl font-semibold tracking-tight">
-                    {plan.price}
-                    <span className="text-base font-normal text-white/50">/mo</span>
-                  </div>
-                  <div className="mb-6 text-xs text-white/50">{plan.note}</div>
-                  <ul className="mb-7 space-y-2 text-sm text-white/70">
-                    {plan.points.map((p) => (
-                      <li key={p} className="flex items-start gap-2">
-                        <span className="mt-1 text-accent">·</span>
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href="/signup"
-                    className={`block rounded-full py-3 text-center text-sm font-medium transition ${plan.featured ? "bg-accent text-accentInk hover:brightness-105" : "border border-white/20 bg-white/5 hover:bg-white/10"}`}
+            <div className="rounded-3xl border border-accent/40 bg-accent/[0.05] p-8 backdrop-blur-xl sm:p-10">
+              <div className="mb-8 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+                <span className="font-display text-5xl font-semibold tracking-tight">$0</span>
+                <span className="text-white/60">for everything below, for everyone</span>
+              </div>
+              <div className="grid gap-8 sm:grid-cols-3">
+                {INCLUDED.map((column, i) => (
+                  <motion.div
+                    key={column.group}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+                    transition={{ duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    Get started
-                  </Link>
-                </motion.div>
-              ))}
+                    <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+                      {column.group}
+                    </div>
+                    <ul className="space-y-2 text-sm text-white/70">
+                      {column.points.map((point) => (
+                        <li key={point} className="flex items-start gap-2">
+                          <span className="mt-1 text-accent">·</span>
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                ))}
+              </div>
+              <Link
+                href="/signup"
+                className="mt-10 block rounded-full bg-accent py-3.5 text-center text-sm font-medium text-accentInk transition hover:brightness-105 sm:mx-auto sm:max-w-xs"
+              >
+                Create your account
+              </Link>
             </div>
           </section>
 

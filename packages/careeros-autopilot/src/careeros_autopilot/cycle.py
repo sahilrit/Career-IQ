@@ -59,6 +59,7 @@ def run_autopilot_cycle(
     work_dir: str | Path = ".careeros/autopilot",
     browser_session: BrowserSession | None = None,
     cover_letter_generator: Any | None = None,
+    submit_enabled: bool = True,
 ) -> dict[str, Any]:
     """Run one full cycle for the store's Career Brain; returns the
     persisted run report as a dict."""
@@ -153,6 +154,7 @@ def run_autopilot_cycle(
             prepare_page=paced_prepare,
             resolve_form_mapping_live=lambda session, application: detect_form_mapping(session),
             cover_letter_generator=cover_letter_generator,
+            submit_enabled=submit_enabled,
         )
 
         def execute(session: BrowserSession) -> None:

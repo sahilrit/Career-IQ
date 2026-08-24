@@ -16,8 +16,8 @@ def test_run_search_discovers_and_qualifies_a_matching_posting(context):
 
     summary = run_search(context, brain.identity.id, JobSearchQuery())
 
-    assert summary["discovered"] == 1
-    assert summary["qualified"] == 1
+    assert summary.discovered == 1
+    assert summary.qualified == 1
 
 
 def test_run_search_a_second_time_finds_nothing_new(context):
@@ -27,4 +27,4 @@ def test_run_search_a_second_time_finds_nothing_new(context):
     run_search(context, brain.identity.id, JobSearchQuery())
     second = run_search(context, brain.identity.id, JobSearchQuery())
 
-    assert second == {"discovered": 0, "qualified": 0}
+    assert (second.discovered, second.qualified) == (0, 0)

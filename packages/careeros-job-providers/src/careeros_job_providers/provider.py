@@ -29,6 +29,11 @@ class JobSearchResult(BaseModel):
     postings: list[JobPosting] = Field(default_factory=list)
     has_more: bool = False
     next_page: int | None = None
+    #: Human-readable reasons individual sources contributed nothing to this
+    #: result — one entry per provider that failed, timed out, or was down.
+    #: A partial result is normal; a silent one is a bug, so callers should
+    #: surface these rather than let a source disappear without explanation.
+    source_errors: list[str] = Field(default_factory=list)
 
 
 class JobProvider(ABC):

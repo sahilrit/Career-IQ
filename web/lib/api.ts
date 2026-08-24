@@ -146,11 +146,19 @@ export type PlanInfo = {
   name: string;
   monthly_price_usd: number;
   features: string[];
+  /** What this workspace can use today — the full list while open access is on. */
+  available_features: string[];
   is_current: boolean;
   checkout_url: string | null;
 };
 
-export type Billing = { current_tier: string; status: string; plans: PlanInfo[] };
+export type Billing = {
+  current_tier: string;
+  status: string;
+  /** True while CareerOS is free for all: no prices, no upsells. */
+  open_access: boolean;
+  plans: PlanInfo[];
+};
 
 export type AiStatus = { has_key: boolean; model: string };
 
@@ -158,6 +166,26 @@ export type OnboardingStep = { key: string; label: string; href: string; done: b
 export type Onboarding = { steps: OnboardingStep[]; complete: boolean };
 
 export type GoogleStatus = { configured: boolean; connected: boolean; email: string | null };
+export type WatchedCompany = { ats: string; board_token: string; display_name: string };
+export type WatchlistNewPosting = {
+  external_id: string;
+  title: string;
+  company_name: string;
+  url: string;
+};
+export type WatchlistCheck = {
+  checked: number;
+  errored: number;
+  baselined: number;
+  new_postings: WatchlistNewPosting[];
+};
+export type ReplySyncSummary = {
+  scanned: number;
+  transitioned: number;
+  already_seen: number;
+  skipped_illegal: number;
+  unmatched: number;
+};
 export type CalendarEvent = { summary: string; start: string; html_link: string };
 
 export type StarPrompt = { question: string; achievement_description: string; metric: string | null };
@@ -357,6 +385,8 @@ export const api = {
     request<{ connected: boolean }>("/integrations/google", { token, method: "DELETE" }),
   gmailSend: (token: string, body: { to: string; subject: string; body: string }) =>
     request<{ sent: boolean }>("/integrations/gmail/send", { token, method: "POST", body }),
+  gmailSyncReplies: (token: string) =>
+    request<ReplySyncSummary>("/integrations/gmail/sync-replies", { token, method: "POST" }),
   calendarEvents: (token: string) =>
     request<CalendarEvent[]>("/integrations/calendar/events", { token }),
   calendarCreate: (
@@ -468,11 +498,11 @@ export const api = {
   searchJobs: (
     token: string,
     body: { keywords: string[]; remote_only: boolean; limit?: number },
-  ) => request<{ discovered: number; qualified: number }>("/opportunities/search", {
-    token,
-    method: "POST",
-    body,
-  }),
+  ) =>
+    request<{ discovered: number; qualified: number; source_errors: string[] }>(
+      "/opportunities/search",
+      { token, method: "POST", body },
+    ),
   generatePackage: (token: string, job_url: string) =>
     request<{
       resume_text: string;
@@ -566,4 +596,17 @@ export const api = {
   careerIntel: (token: string) => request<CareerIntel>("/career-intel", { token }),
   addSignal: (token: string, body: { category: string; subject: string; score: number }) =>
     request<{ ok: boolean }>("/career-intel/signals", { token, method: "POST", body }),
+
+  watchlist: (token: string) => request<WatchedCompany[]>("/watchlist", { token }),
+  watchCompany: (
+    token: string,
+    body: { ats: string; board_token: string; display_name?: string },
+  ) => request<WatchedCompany>("/watchlist", { token, method: "POST", body }),
+  unwatchCompany: (token: string, ats: string, board_token: string) =>
+    request<{ removed: boolean }>(`/watchlist/${ats}/${board_token}`, {
+      token,
+      method: "DELETE",
+    }),
+  checkWatchlist: (token: string) =>
+    request<WatchlistCheck>("/watchlist/check", { token, method: "POST" }),
 };

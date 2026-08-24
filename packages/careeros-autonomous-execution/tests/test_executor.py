@@ -50,6 +50,37 @@ def test_qualified_application_is_submitted_and_transitioned_to_applied(
     assert reloaded.applications[0].status == ApplicationStatus.APPLIED
 
 
+def test_dry_run_reaches_the_form_but_never_submits(
+    repository,
+    autonomy_policy,
+    application_runner,
+    event_bus,
+    session,
+    posting,
+    form_mapping,
+    brain_with_qualified_application,
+):
+    session.set_visible(form_mapping.submit_selector)
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: posting,
+        resolve_form_mapping=lambda application: form_mapping,
+        submit_enabled=False,
+    )
+
+    run = executor.run_for_identity(brain_with_qualified_application.identity.id, session)
+
+    assert run.submitted_count == 0
+    assert "DRY RUN" in run.outcomes[0].reason
+    # Nothing was clicked, and the application stays QUALIFIED (not APPLIED).
+    assert session.clicked_selectors == []
+    reloaded = repository.load(brain_with_qualified_application.identity.id)
+    assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
+
+
 def test_submission_publishes_the_autonomously_submitted_event(
     repository,
     autonomy_policy,

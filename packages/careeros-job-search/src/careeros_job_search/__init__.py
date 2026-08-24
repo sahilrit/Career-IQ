@@ -6,6 +6,7 @@ the FastAPI backend call, so provider wiring lives in exactly one place.
 
 from __future__ import annotations
 
+from careeros_adzuna_provider import AdzunaProvider
 from careeros_application_engine import (
     ApplicationPackage,
     CoverLetterGenerator,
@@ -18,11 +19,15 @@ from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
-from careeros_job_agent import JobAgent
+from careeros_hiringcafe_provider import HiringCafeProvider
+from careeros_job_agent import CycleSummary, JobAgent
 from careeros_job_discovery import JobDiscoveryPipeline, JobPostingRepository
+from careeros_job_discovery.llm_scoring import LlmJobScorer
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
+from careeros_job_search.optional_providers import linkedin_enabled
 from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
+from careeros_linkedin_provider import LinkedInProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_themuse_provider import TheMuseProvider
 from careeros_weworkremotely_provider import WeWorkRemotelyProvider
@@ -44,11 +49,19 @@ def default_provider_registry() -> JobProviderRegistry:
     registry.register(WorkingNomadsProvider())
     registry.register(WeWorkRemotelyProvider())
     registry.register(TheMuseProvider())
+    registry.register(HiringCafeProvider())
+    # Adzuna needs a free developer key; without one it reports itself
+    # unavailable and the rest of discovery carries on unaffected.
+    registry.register(AdzunaProvider())
     # Open-form ATS boards last: their postings link to application forms
     # with no login/captcha — the ones the autopilot can actually submit.
     registry.register(GreenhouseProvider())
     registry.register(AshbyProvider())
     registry.register(LeverProvider())
+    # LinkedIn reads the site rather than an API, so unlike the others it can
+    # be switched off with CAREEROS_ENABLE_LINKEDIN=0 — see optional_providers.
+    if linkedin_enabled():
+        registry.register(LinkedInProvider())
     return registry
 
 
@@ -60,13 +73,16 @@ def search_for_jobs(
     remote_only: bool,
     limit: int,
     provider_registry: JobProviderRegistry | None = None,
-) -> dict[str, int]:
+    llm_scorer: LlmJobScorer | None = None,
+) -> CycleSummary:
     registry = provider_registry or default_provider_registry()
     repository = CareerBrainRepository(store)
     bus = EventBus()
     # Cache discovered postings so generation reads them back by URL
     # instead of re-crawling every provider.
-    pipeline = JobDiscoveryPipeline(registry, repository, bus, JobPostingRepository(store))
+    pipeline = JobDiscoveryPipeline(
+        registry, repository, bus, JobPostingRepository(store), llm_scorer=llm_scorer
+    )
     agent = JobAgent(pipeline, repository, bus)
     query = JobSearchQuery(keywords=keywords, remote_only=remote_only, limit=limit)
     return agent.run_cycle(identity_id, query)

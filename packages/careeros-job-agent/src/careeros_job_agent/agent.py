@@ -11,11 +11,21 @@ site or fabricates anything about the opportunity.
 
 from __future__ import annotations
 
+from pydantic import BaseModel, Field
+
 from careeros_career_brain import ApplicationStatus, CareerBrainRepository
 from careeros_event_bus import Event, EventBus
 from careeros_job_agent.policy import QualificationPolicy
 from careeros_job_discovery import JobDiscoveryPipeline
 from careeros_job_providers import JobSearchQuery
+
+
+class CycleSummary(BaseModel):
+    """The outcome of one discovery cycle, including why sources went quiet."""
+
+    discovered: int = 0
+    qualified: int = 0
+    source_errors: list[str] = Field(default_factory=list)
 
 
 class JobAgent:
@@ -32,14 +42,15 @@ class JobAgent:
         self._bus = event_bus
         self._policy = policy or QualificationPolicy()
 
-    def run_cycle(self, identity_id: str, query: JobSearchQuery) -> dict[str, int]:
+    def run_cycle(self, identity_id: str, query: JobSearchQuery) -> CycleSummary:
         """Discover new opportunities, then qualify the ones worth pursuing.
 
         Returns a summary of how many were discovered and qualified this cycle.
         """
-        new_applications = self._pipeline.run(identity_id, query)
+        run = self._pipeline.run(identity_id, query)
+        new_applications = run.applications
         if not new_applications:
-            return {"discovered": 0, "qualified": 0}
+            return CycleSummary(source_errors=run.source_errors)
 
         brain = self._repository.load(identity_id)
         qualified_count = 0
@@ -69,4 +80,8 @@ class JobAgent:
         if qualified_count:
             self._repository.save(brain)
 
-        return {"discovered": len(new_applications), "qualified": qualified_count}
+        return CycleSummary(
+            discovered=len(new_applications),
+            qualified=qualified_count,
+            source_errors=run.source_errors,
+        )

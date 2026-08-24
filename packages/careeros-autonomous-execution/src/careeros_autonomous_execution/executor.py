@@ -78,6 +78,7 @@ class AutonomousApplicationExecutor:
         prepare_page: PagePreparer | None = None,
         resolve_form_mapping_live: LiveFormMappingResolver | None = None,
         cover_letter_generator: CoverLetterGenerator | None = None,
+        submit_enabled: bool = True,
     ) -> None:
         self._repository = repository
         self._autonomy = autonomy_policy
@@ -89,6 +90,8 @@ class AutonomousApplicationExecutor:
         self._resolve_form_mapping_live = resolve_form_mapping_live
         # None -> build_application_package uses its template generator.
         self._cover_letter_generator = cover_letter_generator
+        # False -> reach + map the form but never click submit (dry run).
+        self._submit_enabled = submit_enabled
 
     def run_for_identity(
         self,
@@ -187,6 +190,15 @@ class AutonomousApplicationExecutor:
                 answer = answerer.answer(field.question)
                 if answer.answerable and answer.text:
                     question_answers[field.selector] = answer.text
+
+        if not self._submit_enabled:
+            # Dry run: we reached a fillable form and built the mapping/package,
+            # which is the whole point of validation — just don't click submit.
+            return ExecutionOutcome(
+                application.id,
+                submitted=False,
+                reason="DRY RUN — reached a fillable form; would submit",
+            )
 
         result = self._runner.submit(
             session,

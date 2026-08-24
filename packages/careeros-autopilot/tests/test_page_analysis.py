@@ -113,6 +113,11 @@ def test_ats_apply_url_derivation():
         ats_apply_url("https://jobs.lever.co/spotify/abc")
         == "https://jobs.lever.co/spotify/abc/apply"
     )
+    # Lever's EU subdomain (seen live via WorkingNomads) must also derive /apply.
+    assert (
+        ats_apply_url("https://jobs.eu.lever.co/creatio/052b5080")
+        == "https://jobs.eu.lever.co/creatio/052b5080/apply"
+    )
     # Greenhouse is inline; already-suffixed URLs are left alone; unknown -> None.
     assert ats_apply_url("https://boards.greenhouse.io/acme/jobs/1") is None
     assert ats_apply_url("https://jobs.ashbyhq.com/openai/123/application") is None
@@ -127,10 +132,45 @@ def test_prepare_navigates_to_derived_ashby_apply_form():
     assert session.current_url == "https://jobs.ashbyhq.com/openai/123/application"
 
 
+def test_direct_apply_url_is_used_instead_of_the_listing_page():
+    """When a provider supplies apply_url (RemoteOK/WorkingNomads), go straight
+    to the employer's form, not the aggregator listing at posting.url."""
+    session = FakeBrowserSession()
+    session.set_visible("input[type='email']")
+    session.set_visible("button[type='submit']")
+    posting = make_posting(url="https://www.workingnomads.com/jobs/marketing-associate").model_copy(
+        update={"apply_url": "https://reflexmediainc.applytojob.com/apply/uTEp2lGf4Y"}
+    )
+    assert prepare_application_page(session, posting) is None
+    assert session.current_url == "https://reflexmediainc.applytojob.com/apply/uTEp2lGf4Y"
+
+
+def test_ashby_rendered_form_is_detected_inline_without_navigating():
+    """After the SPA settles, the Ashby form fields are present on the page, so
+    it's used in place — no bogus 'no form found'."""
+    session = FakeBrowserSession()
+    session.set_visible("input[type='email']")
+    session.set_visible("button[type='submit']")
+    posting = make_posting(url="https://jobs.ashbyhq.com/openai/123")
+    assert prepare_application_page(session, posting) is None
+    assert session.current_url == "https://jobs.ashbyhq.com/openai/123"
+
+
 def test_application_suffix_link_is_found():
     session = FakeBrowserSession()
     session.set_query_all_results("a", [{"href": "https://jobs.ashbyhq.com/acme/1/application"}])
     assert find_apply_url(session) == "https://jobs.ashbyhq.com/acme/1/application"
+
+
+def test_eu_lever_and_applytojob_are_recognized_as_ats_hosts():
+    """Live WorkingNomads apply_urls use jobs.eu.lever.co and *.applytojob.com."""
+    for href in (
+        "https://jobs.eu.lever.co/creatio/052b5080",
+        "https://marketmymarket.applytojob.com/apply/WjEliaC30w/PPC-Specialist",
+    ):
+        session = FakeBrowserSession()
+        session.set_query_all_results("a", [{"href": href}])
+        assert find_apply_url(session) == href
 
 
 def test_bot_protection_challenge_is_reported_not_bypassed():

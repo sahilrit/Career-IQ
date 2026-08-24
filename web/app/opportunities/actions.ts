@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { getToken } from "@/lib/session";
 
 type SearchResult =
-  | { ok: true; discovered: number; qualified: number }
+  | { ok: true; discovered: number; qualified: number; source_errors: string[] }
   | { ok: false; error: string };
 
 export async function runSearch(_prev: unknown, formData: FormData): Promise<SearchResult> {
