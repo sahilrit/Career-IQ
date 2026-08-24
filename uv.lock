@@ -53,6 +53,7 @@ members = [
     "careeros-financial-intelligence",
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
+    "careeros-golangjobs-provider",
     "careeros-greenhouse-provider",
     "careeros-himalayas-provider",
     "careeros-hiringcafe-provider",
@@ -1032,6 +1033,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "careeros-golangjobs-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-golangjobs-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
 name = "careeros-greenhouse-provider"
 version = "0.1.0"
 source = { editable = "packages/careeros-greenhouse-provider" }
@@ -1204,6 +1222,7 @@ dependencies = [
     { name = "careeros-career-brain" },
     { name = "careeros-common" },
     { name = "careeros-event-bus" },
+    { name = "careeros-golangjobs-provider" },
     { name = "careeros-greenhouse-provider" },
     { name = "careeros-himalayas-provider" },
     { name = "careeros-hiringcafe-provider" },
@@ -1228,6 +1247,7 @@ requires-dist = [
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
+    { name = "careeros-golangjobs-provider", editable = "packages/careeros-golangjobs-provider" },
     { name = "careeros-greenhouse-provider", editable = "packages/careeros-greenhouse-provider" },
     { name = "careeros-himalayas-provider", editable = "packages/careeros-himalayas-provider" },
     { name = "careeros-hiringcafe-provider", editable = "packages/careeros-hiringcafe-provider" },

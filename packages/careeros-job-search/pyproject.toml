@@ -11,6 +11,7 @@ dependencies = [
     "careeros-career-brain",
     "careeros-common",
     "careeros-event-bus",
+    "careeros-golangjobs-provider",
     "careeros-greenhouse-provider",
     "careeros-hiringcafe-provider",
     "careeros-himalayas-provider",
@@ -34,6 +35,7 @@ careeros-ashby-provider = { workspace = true }
 careeros-career-brain = { workspace = true }
 careeros-common = { workspace = true }
 careeros-event-bus = { workspace = true }
+careeros-golangjobs-provider = { workspace = true }
 careeros-greenhouse-provider = { workspace = true }
 careeros-hiringcafe-provider = { workspace = true }
 careeros-himalayas-provider = { workspace = true }
