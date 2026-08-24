@@ -316,6 +316,16 @@ export type AutopilotRun = {
   outcomes: { job_title: string; company_name: string; submitted: boolean; reason: string }[];
 };
 
+export type PreparedApplication = {
+  id: string;
+  job_title: string;
+  company_name: string;
+  apply_url: string;
+  cover_letter: string;
+  match_score: number | null;
+  prepared_at: string;
+};
+
 export type Customer = {
   name: string;
   email: string;
@@ -537,6 +547,14 @@ export const api = {
     request<Prospect>("/freelance/prospects", { token, method: "POST", body }),
   billing: (token: string) => request<Billing>("/billing", { token }),
   autopilotRuns: (token: string) => request<AutopilotRun[]>("/autopilot/runs", { token }),
+  reviewPrepared: (token: string) =>
+    request<PreparedApplication[]>("/review/prepared", { token }),
+  reviewUpdate: (token: string, id: string, status: "submitted" | "dismissed") =>
+    request<{ message: string }>(`/review/prepared/${id}`, {
+      token,
+      method: "PATCH",
+      body: { status },
+    }),
   adminOverview: (token: string) => request<AdminOverview>("/admin/overview", { token }),
   adminActivate: (token: string, body: { workspace_id: string; tier: string }) =>
     request<AdminOverview>("/admin/activate", { token, method: "POST", body }),
