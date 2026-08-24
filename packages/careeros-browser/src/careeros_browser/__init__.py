@@ -9,17 +9,31 @@ from careeros_browser.health import check_browser_health
 from careeros_browser.launcher import launch_browser_session
 from careeros_browser.models import BrowserHealth, BrowserHealthStatus
 from careeros_browser.playwright_session import PlaywrightBrowserSession
+from careeros_browser.resilience import (
+    CF_CHALLENGE_MARKERS,
+    CookieJar,
+    PersistentCookieStore,
+    is_challenge_html,
+    is_challenge_status,
+    retry_with_backoff,
+)
 from careeros_browser.session import BrowserSession
 
 __all__ = [
+    "CF_CHALLENGE_MARKERS",
     "BrowserError",
     "BrowserHealth",
     "BrowserHealthStatus",
     "BrowserSession",
+    "CookieJar",
     "DownloadError",
     "FakeBrowserSession",
+    "PersistentCookieStore",
     "PlaywrightBrowserSession",
     "SelectorTimeoutError",
     "check_browser_health",
+    "is_challenge_html",
+    "is_challenge_status",
     "launch_browser_session",
+    "retry_with_backoff",
 ]
