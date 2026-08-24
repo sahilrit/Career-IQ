@@ -19,6 +19,7 @@ the open ATS forms (Greenhouse/Ashby/Lever) and holds the rest.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import time
 from typing import Any
@@ -132,6 +133,12 @@ def main() -> None:
         action="store_true",
         help="reach and map each form but never click submit (safe validation)",
     )
+    parser.add_argument(
+        "--review",
+        action="store_true",
+        help="fill each reachable form (incl. captcha-gated) but never submit; "
+        "pause on a visible browser so you solve the captcha and click submit",
+    )
     arguments = parser.parse_args()
 
     keywords = [keyword.strip() for keyword in arguments.keywords.split(",") if keyword.strip()]
@@ -153,15 +160,33 @@ def main() -> None:
     if arguments.dry_run:
         print("DRY RUN — will reach and map forms but NEVER submit.")
 
+    def on_prepared(application: Any, posting: Any) -> None:
+        # Called with the form already filled and a visible browser open.
+        print("\n" + "=" * 70)
+        print(f"✋ READY TO REVIEW: {application.job_title} @ {application.company_name}")
+        print(f"   Form: {posting.apply_url or posting.url}")
+        print("   I've filled everything I can. In the browser window: solve any")
+        print("   captcha, check the fields, and click submit if you want to apply.")
+        print("=" * 70)
+        with contextlib.suppress(EOFError):
+            input("   Press Enter for the next one (Ctrl-C to stop)... ")
+
+    review = arguments.review
+    if review:
+        print("REVIEW MODE — filling forms for you to finish. A browser will open.")
+
     while True:
         try:
             report = run_autopilot_cycle(
                 scoped,
                 provider_registry=build_registry(),
                 keywords=keywords,
-                headless=not arguments.show_browser,
+                # Review needs a visible browser so you can finish each form.
+                headless=(not arguments.show_browser) and not review,
                 cover_letter_generator=cover_letter_generator,
                 submit_enabled=not arguments.dry_run,
+                prepare_only=review,
+                on_prepared=on_prepared if review else None,
             )
             print(
                 f"[{report['ran_at']}] discovered={report['discovered']} "

@@ -46,12 +46,22 @@ if [ -n "$AI_KEY" ]; then
 fi
 
 echo
+echo "Choose a mode:"
+echo "  [1] Auto-submit — apply automatically to open forms (skips captcha jobs)"
+echo "  [2] Prepare & review — fill every form (incl. captcha ones) and pause so"
+echo "      you solve the captcha and click submit yourself"
+printf "Mode [1/2, default 1]: "
+read -r MODE
+
+echo
 echo "Making sure the browser is installed (one-time, safe to repeat)..."
 uv run playwright install chromium >/dev/null 2>&1 || true
 
 echo
-echo "Running one cycle for workspace $WORKSPACE_ID."
-echo "A Chrome window will open — you can watch it work. Applied jobs print as"
-echo "APPLIED, and login/captcha jobs print as 'held' with a reason."
+echo "Running one cycle for workspace $WORKSPACE_ID. A Chrome window will open."
 echo
-uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --show-browser
+if [ "$MODE" = "2" ]; then
+  uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --review
+else
+  uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --show-browser
+fi

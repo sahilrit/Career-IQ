@@ -60,6 +60,8 @@ def run_autopilot_cycle(
     browser_session: BrowserSession | None = None,
     cover_letter_generator: Any | None = None,
     submit_enabled: bool = True,
+    prepare_only: bool = False,
+    on_prepared: Any | None = None,
 ) -> dict[str, Any]:
     """Run one full cycle for the store's Career Brain; returns the
     persisted run report as a dict."""
@@ -152,9 +154,13 @@ def run_autopilot_cycle(
             resolve_posting=resolve_posting,
             resolve_form_mapping=lambda application: None,
             prepare_page=paced_prepare,
-            resolve_form_mapping_live=lambda session, application: detect_form_mapping(session),
+            resolve_form_mapping_live=lambda session, application: detect_form_mapping(
+                session, require_submit=not prepare_only
+            ),
             cover_letter_generator=cover_letter_generator,
             submit_enabled=submit_enabled,
+            prepare_only=prepare_only,
+            on_prepared=on_prepared,
         )
 
         def execute(session: BrowserSession) -> None:

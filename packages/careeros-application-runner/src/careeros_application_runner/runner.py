@@ -82,7 +82,31 @@ class ApplicationRunner:
         screenshots.append(self._screenshot(session, f"{application_id}-success"))
         return SubmissionResult(success=True, attempts=attempts, screenshots=screenshots)
 
+    def prepare(
+        self,
+        session: BrowserSession,
+        package: ApplicationPackage,
+        mapping: FormFieldMapping,
+        *,
+        resume_file_path: str | None = None,
+        question_answers: dict[str, str] | None = None,
+        application_id: str = "application",
+    ) -> Path:
+        """Fill the form but never submit — for prepare-and-review, where a
+        human solves the captcha and clicks submit. Returns a screenshot of the
+        filled form. Filling is best-effort: a field that rejects input is
+        skipped, since the human can finish it."""
+        fill_application_form(
+            session,
+            package,
+            mapping,
+            resume_file_path=resume_file_path,
+            question_answers=question_answers,
+        )
+        return self._screenshot(session, f"{application_id}-prepared")
+
     def _screenshot(self, session: BrowserSession, name: str) -> Path:
+        self._screenshot_dir.mkdir(parents=True, exist_ok=True)
         return session.screenshot(self._screenshot_dir / f"{name}.png")
 
     def health(self) -> BrowserHealth:

@@ -81,6 +81,80 @@ def test_dry_run_reaches_the_form_but_never_submits(
     assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
 
 
+def test_prepare_only_fills_a_captcha_gated_form_and_hands_off(
+    repository,
+    autonomy_policy,
+    application_runner,
+    event_bus,
+    session,
+    posting,
+    form_mapping,
+    brain_with_qualified_application,
+):
+    # A captcha is present, and the form is reachable/fillable.
+    session.set_visible("iframe[src*='recaptcha']")
+    prepared: list[str] = []
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: posting,
+        resolve_form_mapping=lambda application: form_mapping,
+        prepare_only=True,
+        on_prepared=lambda application, post: prepared.append(application.id),
+    )
+
+    run = executor.run_for_identity(
+        brain_with_qualified_application.identity.id,
+        session,
+        detectors=[SelectorAppearsDetector("iframe[src*='recaptcha']", kind="captcha")],
+    )
+
+    # The captcha did NOT block preparation — we filled and handed off.
+    assert run.submitted_count == 0
+    assert "Prepared for review" in run.outcomes[0].reason
+    assert len(prepared) == 1
+    assert session.clicked_selectors == []  # never submitted
+    reloaded = repository.load(brain_with_qualified_application.identity.id)
+    assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
+
+
+def test_prepare_only_still_hands_off_a_login_wall(
+    repository,
+    autonomy_policy,
+    application_runner,
+    event_bus,
+    session,
+    posting,
+    form_mapping,
+    brain_with_qualified_application,
+):
+    # A login wall means there is no fillable form to prepare — still hand off.
+    session.set_visible("input[type='password']")
+    prepared: list[str] = []
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: posting,
+        resolve_form_mapping=lambda application: form_mapping,
+        prepare_only=True,
+        on_prepared=lambda application, post: prepared.append(application.id),
+    )
+
+    run = executor.run_for_identity(
+        brain_with_qualified_application.identity.id,
+        session,
+        detectors=[SelectorAppearsDetector("input[type='password']", kind="login_required")],
+    )
+
+    assert run.submitted_count == 0
+    assert "Handed off" in run.outcomes[0].reason
+    assert prepared == []
+
+
 def test_submission_publishes_the_autonomously_submitted_event(
     repository,
     autonomy_policy,
