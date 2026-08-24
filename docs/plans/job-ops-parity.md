@@ -115,11 +115,96 @@ wrap it **in-process** — strictly simpler than their subprocess + CSV round-tr
 
 ## 3. Implementation plan
 
-### Week 1 — close the source gap (15 sources vs their 16, no browser scrapers)
-- `careeros-jobspy-provider` — in-process `python-jobspy`, exposes LinkedIn + Indeed (+ Glassdoor when upstream recovers).
-- `careeros-hiringcafe-provider` — httpx GET + `__NEXT_DATA__` regex.
-- Upgrade `careeros-workingnomads-provider` to `/jobsapi/_search` (~40 lines) for ranked results + full descriptions.
-- `careeros-adzuna-provider` — free key, multi-country.
+> **Progress log — 2026-08-24.** Items marked DONE are built, unit-tested,
+> linted and live-verified against the real services. Workspace test count:
+> 1,635 -> 1,773.
+
+### Deviations from the original plan, and why
+
+**We did not wrap `python-jobspy`.** The audit's own headline finding was that
+JobOps' scraping edge is one unmaintained dependency they do not control.
+Wrapping it inherits exactly that, plus a compatibility risk against our pinned
+`pandas==3.0.5`. Both endpoints were verified by hand during the audit, so
+LinkedIn is implemented natively in ~450 lines of httpx plus a stdlib
+`html.parser` walk: no new third-party dependency, no subprocess, no CSV
+round-trip, and we own the failure mode.
+
+**Indeed is not built.** Its mobile GraphQL API is gated behind a static key
+extracted from Indeed's iOS app. Calling it means presenting Indeed's own app
+credentials to obtain access they have not granted third parties — a different
+act from reading LinkedIn's unauthenticated public endpoint, and one that would
+ship inside a publicly distributed product. `careeros-adzuna-provider` covers
+comparable volume legitimately. If a key we are entitled to use appears (Indeed
+Publisher/Partner), the provider drops into the same interface.
+
+### Week 1 — close the source gap
+
+- **DONE `careeros-linkedin-provider`** — native, no jobspy. Guest search
+  endpoint paged 25 at a time, stops on an empty page, 1 req/sec throttle,
+  description fetches capped at 40 per search
+  (`CAREEROS_LINKEDIN_FETCH_DESCRIPTIONS=0` disables them). Registered by
+  default; `CAREEROS_ENABLE_LINKEDIN=0` switches the provider off. 27 tests.
+  Live-verified: 5/5 real postings, descriptions 1.7k-12k chars.
+- **DONE `careeros-hiringcafe-provider`** — SSR `__NEXT_DATA__` harvesting,
+  follows the `hiring.cafe` -> `hiringcafe.com` 308. Cloudflare challenges are
+  detected by content marker and raised as a distinct `HiringCafeChallengeError`
+  so "blocked" stays distinguishable from "broken". Descriptions are composed
+  from Hiring Cafe's own structured extraction (requirements, activities, tools)
+  rather than costing a second request per job. 27 tests. Live-verified: 6/6
+  postings with descriptions and publish dates.
+- **DONE Working Nomads upgraded** to `/jobsapi/_search`. The old
+  `/api/exposed_jobs/` feed had no salary, no publish date and no relevance
+  ranking — we pulled the whole catalogue and filtered locally. Now split into
+  client/parser/provider with salary, publish date, employment type, tags and
+  experience level. 15 tests. Live-verified: salary on 4/5, dates on 5/5.
+- **DONE `careeros-adzuna-provider`** — official API, free developer key,
+  20+ countries. Country is part of Adzuna's URL path rather than a filter, so
+  the provider infers it from the requested location (countries checked before
+  cities, so "Birmingham, United States" doesn't resolve to GB). Adzuna fills in
+  an *estimated* salary when the advert states none and flags it with
+  `salary_is_predicted`; we drop those rather than let a guess satisfy a
+  candidate's minimum-salary filter. Without `ADZUNA_APP_ID`/`ADZUNA_APP_KEY`
+  the provider reports itself DOWN with a registration link instead of failing
+  every search. 27 tests.
+
+### Shared-layer fixes found while doing the above
+
+- **DONE `filter_postings(..., applied_server_side={...})`.** LinkedIn, Hiring
+  Cafe and Working Nomads all match keywords against full job text at the
+  source. Our local haystack is only the fields we parsed — and for LinkedIn,
+  descriptions are not even fetched at filter time. Re-applying the keyword
+  filter silently discarded most real matches. Providers now declare which
+  filters the source already honoured; everything else (salary floor,
+  employment type, remote) is still enforced locally. Caught by a test, not in
+  production.
+- **DONE cheap health checks.** `registry.search_all()` health-checks every
+  provider before every search, and the reference implementation answered by
+  fetching the entire feed. The new providers answer with a single-document
+  request instead.
+- **DONE failing sources are reported, never hidden.** `search_all` used to
+  swallow a provider exception into an empty list, so a rate-limited or blocked
+  source just quietly shrank the result count. `JobSearchResult.source_errors`
+  now carries one entry per provider that failed, timed out or was down, and it
+  travels all the way to the UI: `DiscoveryRun` -> `CycleSummary` ->
+  `SearchResponse.source_errors` -> an amber notice on the search form. The
+  Streamlit dashboard, CLI (`careeros search`) and autopilot report the same.
+- **DONE per-provider timeouts.** `JobProviderRegistry(search_timeout_seconds=,
+  health_timeout_seconds=)`, defaulting to 120s and 15s. The first attempt only
+  bounded result *collection*: exiting a `ThreadPoolExecutor` context manager
+  joins every worker, so a hung provider put its full duration straight back
+  into the caller's wall-clock. A timing test caught it; the pool is now
+  released with `shutdown(wait=False, cancel_futures=True)`. That test dropped
+  from 30.2s to 0.3s.
+
+### Free for all
+
+- **DONE `careeros_billing.open_access`.** `CAREEROS_OPEN_ACCESS` defaults on;
+  every gate resolves through `effective_tier()`, so every workspace is treated
+  as Agency. Subscriptions, Stripe webhooks and plan records keep working
+  untouched — they just stop deciding anything, and `CAREEROS_OPEN_ACCESS=0`
+  restores tier enforcement. `/billing` reports `open_access` and suppresses
+  every checkout link; the billing page and the landing pricing section show
+  what is included instead of what it costs. 18 new tests.
 
 ### Week 2 — LLM scoring
 Keep `careeros_job_discovery.scoring` as the cheap first pass; add an LLM stage for postings
