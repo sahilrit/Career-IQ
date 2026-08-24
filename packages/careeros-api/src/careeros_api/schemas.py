@@ -233,6 +233,21 @@ class AutopilotRunResponse(BaseModel):
     outcomes: list[AutopilotOutcome]
 
 
+class PreparedApplicationResponse(BaseModel):
+    id: str
+    job_title: str
+    company_name: str
+    apply_url: str
+    cover_letter: str
+    match_score: float | None = None
+    prepared_at: str
+
+
+class PreparedStatusRequest(BaseModel):
+    # "submitted" once you've applied, or "dismissed" to drop it from the queue.
+    status: str = Field(pattern="^(submitted|dismissed)$")
+
+
 class CustomerResponse(BaseModel):
     name: str
     email: str

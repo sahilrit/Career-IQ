@@ -22,6 +22,7 @@ import argparse
 import contextlib
 import os
 import time
+from datetime import UTC, datetime
 from typing import Any
 
 from careeros_application_engine import TemplateCoverLetterGenerator
@@ -160,13 +161,27 @@ def main() -> None:
     if arguments.dry_run:
         print("DRY RUN — will reach and map forms but NEVER submit.")
 
-    def on_prepared(application: Any, posting: Any) -> None:
-        # Called with the form already filled and a visible browser open.
+    def on_prepared(application: Any, posting: Any, package: Any) -> None:
+        # Persist to the workspace's review queue so it shows in the web app,
+        # then (on a visible browser) pause so the human can finish this one.
+        record = {
+            "id": application.id,
+            "application_id": application.id,
+            "job_title": application.job_title,
+            "company_name": application.company_name,
+            "apply_url": posting.apply_url or posting.url,
+            "cover_letter": package.cover_letter,
+            "match_score": application.match_score,
+            "prepared_at": datetime.now(UTC).isoformat(),
+            "status": "pending",
+        }
+        with contextlib.suppress(Exception):
+            scoped.put("prepared_application", application.id, record)
         print("\n" + "=" * 70)
         print(f"✋ READY TO REVIEW: {application.job_title} @ {application.company_name}")
         print(f"   Form: {posting.apply_url or posting.url}")
-        print("   I've filled everything I can. In the browser window: solve any")
-        print("   captcha, check the fields, and click submit if you want to apply.")
+        print("   Saved to your Review queue in the web app. In the browser window:")
+        print("   solve any captcha, check the fields, and click submit to apply.")
         print("=" * 70)
         with contextlib.suppress(EOFError):
             input("   Press Enter for the next one (Ctrl-C to stop)... ")

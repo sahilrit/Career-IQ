@@ -102,7 +102,7 @@ def test_prepare_only_fills_a_captcha_gated_form_and_hands_off(
         resolve_posting=lambda application: posting,
         resolve_form_mapping=lambda application: form_mapping,
         prepare_only=True,
-        on_prepared=lambda application, post: prepared.append(application.id),
+        on_prepared=lambda application, post, package: prepared.append(application.id),
     )
 
     run = executor.run_for_identity(
@@ -141,7 +141,7 @@ def test_prepare_only_still_hands_off_a_login_wall(
         resolve_posting=lambda application: posting,
         resolve_form_mapping=lambda application: form_mapping,
         prepare_only=True,
-        on_prepared=lambda application, post: prepared.append(application.id),
+        on_prepared=lambda application, post, package: prepared.append(application.id),
     )
 
     run = executor.run_for_identity(

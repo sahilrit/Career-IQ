@@ -21,6 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from careeros_application_engine import (
+    ApplicationPackage,
     CoverLetterGenerator,
     QuestionAnswerer,
     build_application_package,
@@ -80,7 +81,7 @@ class AutonomousApplicationExecutor:
         cover_letter_generator: CoverLetterGenerator | None = None,
         submit_enabled: bool = True,
         prepare_only: bool = False,
-        on_prepared: Callable[[Application, JobPosting], None] | None = None,
+        on_prepared: Callable[[Application, JobPosting, ApplicationPackage], None] | None = None,
     ) -> None:
         self._repository = repository
         self._autonomy = autonomy_policy
@@ -215,7 +216,7 @@ class AutonomousApplicationExecutor:
                 question_answers=question_answers,
             )
             if self._on_prepared is not None:
-                self._on_prepared(application, posting)
+                self._on_prepared(application, posting, package)
             return ExecutionOutcome(
                 application.id,
                 submitted=False,
