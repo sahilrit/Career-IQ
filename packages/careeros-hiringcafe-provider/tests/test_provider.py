@@ -139,6 +139,16 @@ def test_search_stops_at_the_last_page(fake_transport_cls):
     assert len(transport.calls) == 2
 
 
+def test_each_keyword_is_searched_separately(fake_transport_cls):
+    # Hiring Cafe free-text is effectively AND, so one blob of many keywords
+    # matches nothing. We issue a search per keyword instead.
+    transport = fake_transport_cls()
+    HiringCafeProvider(transport).search(JobSearchQuery(keywords=["meta ads", "ppc"], limit=500))
+    queries = [call["search_state"]["searchQuery"] for call in transport.calls]
+    assert "meta ads" in queries
+    assert "ppc" in queries
+
+
 def test_search_respects_the_limit(fake_transport_cls):
     result = HiringCafeProvider(fake_transport_cls()).search(JobSearchQuery(limit=1))
     assert len(result.postings) == 1
