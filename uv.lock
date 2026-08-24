@@ -79,6 +79,7 @@ members = [
     "careeros-plugin-marketplace",
     "careeros-plugin-sdk",
     "careeros-remoteok-provider",
+    "careeros-reply-tracking",
     "careeros-runtime",
     "careeros-self-hosted",
     "careeros-skill-marketplace",
@@ -256,6 +257,7 @@ dependencies = [
     { name = "careeros-common" },
     { name = "careeros-credentials" },
     { name = "careeros-crm" },
+    { name = "careeros-event-bus" },
     { name = "careeros-financial-intelligence" },
     { name = "careeros-interview-intelligence" },
     { name = "careeros-job-discovery" },
@@ -264,6 +266,7 @@ dependencies = [
     { name = "careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence" },
     { name = "careeros-personal-brand" },
+    { name = "careeros-reply-tracking" },
     { name = "careeros-tenancy" },
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
@@ -289,6 +292,7 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-credentials", editable = "packages/careeros-credentials" },
     { name = "careeros-crm", editable = "packages/careeros-crm" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
     { name = "careeros-financial-intelligence", editable = "packages/careeros-financial-intelligence" },
     { name = "careeros-interview-intelligence", editable = "packages/careeros-interview-intelligence" },
     { name = "careeros-job-discovery", editable = "packages/careeros-job-discovery" },
@@ -297,6 +301,7 @@ requires-dist = [
     { name = "careeros-offer-negotiation", editable = "packages/careeros-offer-negotiation" },
     { name = "careeros-opportunity-intelligence", editable = "packages/careeros-opportunity-intelligence" },
     { name = "careeros-personal-brand", editable = "packages/careeros-personal-brand" },
+    { name = "careeros-reply-tracking", editable = "packages/careeros-reply-tracking" },
     { name = "careeros-tenancy", editable = "packages/careeros-tenancy" },
     { name = "fastapi", specifier = ">=0.110" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1" },
@@ -1481,6 +1486,23 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
+name = "careeros-reply-tracking"
+version = "0.1.0"
+source = { editable = "packages/careeros-reply-tracking" }
+dependencies = [
+    { name = "careeros-career-brain" },
+    { name = "careeros-common" },
+    { name = "careeros-event-bus" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-event-bus", editable = "packages/careeros-event-bus" },
 ]
 
 [[package]]

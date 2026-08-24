@@ -12,6 +12,10 @@ from pydantic import BaseModel, Field
 
 from careeros_api import integrations_google as google
 from careeros_api.dependencies import Context
+from careeros_api.gmail_reply_sync import GmailMailbox
+from careeros_career_brain import CareerBrainRepository
+from careeros_event_bus import EventBus
+from careeros_reply_tracking import sync_replies
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -127,3 +131,27 @@ def calendar_create(body: CreateEventRequest, context: Context) -> dict[str, Any
             attendees=body.attendees,
         )
     )
+
+
+@router.post("/gmail/sync-replies")
+def gmail_sync_replies(context: Context) -> dict[str, int]:
+    """Read recent recruiter email and advance any application it answers.
+
+    Idempotent: a message already acted on is skipped, so this is safe to
+    call on a schedule. Requires a connected Google account and a Career
+    Brain to match applications against.
+    """
+    brains = CareerBrainRepository(context.store).list_all()
+    if not brains:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "create a Career Brain first")
+
+    mailbox = GmailMailbox(context.store, context.account.workspace_id)
+    summary = _google_call(
+        lambda: sync_replies(
+            context.store,
+            brains[0].identity.id,
+            mailbox,
+            event_bus=EventBus(),
+        )
+    )
+    return summary.model_dump()

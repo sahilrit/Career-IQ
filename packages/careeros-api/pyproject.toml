@@ -20,6 +20,8 @@ dependencies = [
     "careeros-financial-intelligence",
     "careeros-interview-intelligence",
     "careeros-job-discovery",
+    "careeros-event-bus",
+    "careeros-reply-tracking",
     "careeros-job-search",
     "careeros-learning-lab",
     "careeros-offer-negotiation",
@@ -52,6 +54,8 @@ careeros-crm = { workspace = true }
 careeros-financial-intelligence = { workspace = true }
 careeros-interview-intelligence = { workspace = true }
 careeros-job-discovery = { workspace = true }
+careeros-event-bus = { workspace = true }
+careeros-reply-tracking = { workspace = true }
 careeros-job-search = { workspace = true }
 careeros-learning-lab = { workspace = true }
 careeros-offer-negotiation = { workspace = true }

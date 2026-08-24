@@ -166,6 +166,13 @@ export type OnboardingStep = { key: string; label: string; href: string; done: b
 export type Onboarding = { steps: OnboardingStep[]; complete: boolean };
 
 export type GoogleStatus = { configured: boolean; connected: boolean; email: string | null };
+export type ReplySyncSummary = {
+  scanned: number;
+  transitioned: number;
+  already_seen: number;
+  skipped_illegal: number;
+  unmatched: number;
+};
 export type CalendarEvent = { summary: string; start: string; html_link: string };
 
 export type StarPrompt = { question: string; achievement_description: string; metric: string | null };
@@ -365,6 +372,8 @@ export const api = {
     request<{ connected: boolean }>("/integrations/google", { token, method: "DELETE" }),
   gmailSend: (token: string, body: { to: string; subject: string; body: string }) =>
     request<{ sent: boolean }>("/integrations/gmail/send", { token, method: "POST", body }),
+  gmailSyncReplies: (token: string) =>
+    request<ReplySyncSummary>("/integrations/gmail/sync-replies", { token, method: "POST" }),
   calendarEvents: (token: string) =>
     request<CalendarEvent[]>("/integrations/calendar/events", { token }),
   calendarCreate: (

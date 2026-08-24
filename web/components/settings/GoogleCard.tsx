@@ -13,6 +13,7 @@ export function GoogleCard({ initial }: { initial: GoogleStatus }) {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [email, setEmail] = useState({ to: "", subject: "", body: "" });
   const [sent, setSent] = useState(false);
+  const [replyResult, setReplyResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (!status.connected) return;
@@ -66,6 +67,28 @@ export function GoogleCard({ initial }: { initial: GoogleStatus }) {
         setSent(true);
         setEmail({ to: "", subject: "", body: "" });
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function syncReplies() {
+    setBusy(true);
+    setError(null);
+    setReplyResult(null);
+    try {
+      const response = await fetch("/api/integrations/gmail/sync-replies", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "Couldn't check your inbox for replies.");
+        return;
+      }
+      setReplyResult(
+        data.transitioned > 0
+          ? `Updated ${data.transitioned} application(s) from ${data.scanned} recent email(s).`
+          : `No new updates — scanned ${data.scanned} recent email(s).`,
+      );
+      router.refresh();
     } finally {
       setBusy(false);
     }
@@ -132,6 +155,19 @@ export function GoogleCard({ initial }: { initial: GoogleStatus }) {
                 </button>
                 {sent && <p className="text-sm text-emerald-400">Sent.</p>}
               </div>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-line bg-ink/40 p-4">
+              <div className="eyebrow mb-2">Track recruiter replies</div>
+              <p className="mb-3 text-sm text-muted">
+                Scan your recent inbox and move applications forward automatically — an interview
+                invite advances the job to Interviewing, a rejection marks it Rejected. Read-only;
+                nothing in your inbox is changed.
+              </p>
+              <button className="btn-ghost text-sm" disabled={busy} onClick={syncReplies}>
+                {busy ? "Checking…" : "Check inbox for replies"}
+              </button>
+              {replyResult && <p className="mt-2 text-sm text-emerald-400">{replyResult}</p>}
             </div>
 
             <div className="rounded-xl border border-line bg-ink/40 p-4">
