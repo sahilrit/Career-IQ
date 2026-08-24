@@ -2,23 +2,30 @@
 jobs, qualify them against the Career Brain, and autonomously submit
 applications — captchas and login walls are handed off, never bypassed.
 
-Usage:
-    uv run python scripts/autopilot_daemon.py --workspace-id <ID> \
+Usage (apply against your LIVE account):
+    export CAREEROS_DATABASE_URL="postgres://…"   # Render → API service → the
+                                                  # database's *External* URL
+    uv run playwright install chromium            # one-time browser install
+    uv run python scripts/autopilot_daemon.py --workspace-id <ID> --once
         [--keywords "performance marketing,ppc,..."] \
-        [--interval-hours 6] [--once] [--show-browser]
+        [--interval-hours 6] [--show-browser]
 
-Every cycle's outcomes are visible on the dashboard's Autopilot page.
+Without CAREEROS_DATABASE_URL it runs against a local SQLite file (offline
+testing). Every cycle's outcomes are visible on the app's Autopilot page.
+Captchas and login walls are handed off, never bypassed — so it submits to
+the open ATS forms (Greenhouse/Ashby/Lever) and holds the rest.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import time
 
 from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
-from careeros_common import DocumentStore
+from careeros_common import DocumentStore, open_store
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
@@ -67,7 +74,19 @@ def main() -> None:
     arguments = parser.parse_args()
 
     keywords = [keyword.strip() for keyword in arguments.keywords.split(",") if keyword.strip()]
-    store = DocumentStore(f"{arguments.data_dir}/careeros.db")
+    # Apply against the SAME database as the live app: set CAREEROS_DATABASE_URL
+    # to your Render Postgres (its *External* connection string) so the daemon
+    # sees your real Career Brain and qualified jobs. Without it, fall back to a
+    # local SQLite file under --data-dir for offline testing.
+    if os.environ.get("CAREEROS_DATABASE_URL", "").strip():
+        store = open_store()
+        print(f"Store: Postgres (CAREEROS_DATABASE_URL) — workspace {arguments.workspace_id}")
+    else:
+        store = DocumentStore(f"{arguments.data_dir}/careeros.db")
+        print(
+            "Store: local SQLite at "
+            f"{arguments.data_dir}/careeros.db — set CAREEROS_DATABASE_URL to use your live account"
+        )
     scoped = TenantScopedDocumentStore(store, arguments.workspace_id)
 
     while True:
