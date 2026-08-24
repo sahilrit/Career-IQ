@@ -55,6 +55,47 @@ copy its signing secret into `CAREEROS_STRIPE_WEBHOOK_SECRET`. On
 `checkout.session.completed` the plan activates automatically (no manual
 Admin step). Keep the Payment Links in the dashboard's billing env vars.
 
+## Optional job-source keys
+
+Most discovery providers are free public APIs that need no configuration.
+Two sources take optional environment variables; set them on the **API**
+service (the same place as `CAREEROS_DATABASE_URL`).
+
+### Adzuna (official multi-country jobs API)
+
+Adzuna is the highest-volume legitimate source in the pool, covering 20+
+countries. It stays dormant until both keys are present — with neither, the
+provider reports itself unavailable and the other sources carry on, so an
+install that never sets these loses nothing.
+
+1. Register a free application at <https://developer.adzuna.com>. The
+   dashboard shows your **Application ID** and **Application Key**.
+2. On the `careeros-api` service, add:
+
+   | Variable | Value |
+   |---|---|
+   | `ADZUNA_APP_ID` | your Application ID |
+   | `ADZUNA_APP_KEY` | your Application Key |
+
+3. Save. Render (or your platform) redeploys the API, and Adzuna joins the
+   next search automatically — no code change.
+
+**Verify:** run one Opportunities search for a real city (e.g. "London",
+"New York"). Adzuna results should appear alongside the others. If it stays
+quiet, the search form's amber "a source didn't respond" notice reports
+exactly what Adzuna returned, so a wrong key surfaces plainly rather than
+failing silently. The provider infers the Adzuna country from the searched
+location (defaulting to Great Britain when none is given).
+
+### LinkedIn (public logged-out search)
+
+LinkedIn is **on by default** and reads the public guest search endpoint
+from whichever host runs the search — so on a hosted deploy the traffic
+comes from your server's IP. It is throttled (~1 request/second) and caps
+description fetches per search. If you ever see rate limiting, set
+`CAREEROS_ENABLE_LINKEDIN=0` on the API service to switch it off; the other
+sources are unaffected.
+
 ## Migrating existing SQLite data to Postgres
 
 A tiny one-time copy (both stores share the schema): read every row from
