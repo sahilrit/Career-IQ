@@ -1,11 +1,13 @@
 # Scope: browser-gated job sources (Naukri, Gradcracker, UK Visa Jobs)
 
-Status: **scoping only — not started.** Written 2026-08-24.
+Status: **shared layer + Naukri + Gradcracker shipped. UK Visa Jobs investigated,
+not built — see §7.** Written 2026-08-24, updated same day after execution.
 
-These are the JobOps sources CareerOS has not built, because unlike LinkedIn,
+These are the JobOps sources CareerOS had not built, because unlike LinkedIn,
 Hiring Cafe, Adzuna, Working Nomads and Golang Jobs, they cannot be reached
 with a plain HTTP request. They need a real, anti-detect browser. This document
-scopes what that takes before any code is written.
+scoped what that takes before any code was written (§1-6 below, unchanged from
+the original scoping pass); §7 records what actually happened once it was built.
 
 ---
 
@@ -153,3 +155,97 @@ CareerOS's hosted API scrape these sites, and shouldn't.
 If the goal is "more real coverage for the most users," **the sponsor-register
 visa project and Naukri (local-daemon)** are the two worth doing, in that order.
 Building a hosted browser-worker platform for three job boards is not.
+
+---
+
+## 7. What actually got built (2026-08-24)
+
+The shared layer, Naukri and Gradcracker were built same-day, test-first,
+local-daemon-only exactly as recommended above. UK Visa Jobs was investigated
+and deliberately not built. Details below.
+
+### Shared anti-detect layer — DONE
+
+`careeros_browser.resilience` already had the pure-Python pieces (challenge
+detection, UA-pinned cookie jar, retry). Added on top:
+
+- `launch_camoufox_session()` — an anti-detect Firefox launch alongside the
+  existing vanilla-Chromium one. Verified against Camoufox's own source (not
+  guessed) that it wraps Playwright's context manager and hands back a real
+  `Browser`, so `PlaywrightBrowserSession` — built against Playwright's `Page`
+  interface — wraps a Camoufox page exactly as it wraps a Chromium one; no new
+  session class needed. `camoufox` is an optional dependency; importing
+  `careeros_browser` never requires it, only calling the launcher does.
+- `BrowserSession.capture_response_after()` — run an action, return the body
+  of the first network response matching a URL pattern. This is what makes
+  Naukri's XHR-interception approach possible without extending the protocol
+  further than one method.
+- `BrowserSession.query_all_html()` — outer HTML of matching elements, for
+  markup too irregular for `query_all`'s flat sub-selector map (Gradcracker's
+  dt/dd label/value pairs).
+- `FakeBrowserSession` gained matching test doubles plus `set_click_failure()`
+  for simulating "no more pages."
+
+**A real bug was caught before shipping**, not after: the first pagination
+draft clicked "Next" *before* starting to listen for the response, which races
+real navigation (the request can fire and complete before listening begins).
+Caught by writing a parity test asserting the fake and real sessions behave
+identically when the action itself fails — the test failed, which is what
+surfaced the bug. Fixed in both the provider and the fake.
+
+75 tests (careeros-browser package). No browser binary or camoufox install
+required to run them.
+
+### Naukri — DONE
+
+Naukri's `/jobapi/v3/search` returns HTTP 406 "recaptcha required" to a plain
+request (verified live). The provider drives Camoufox to the search page and
+reads the JSON response via `capture_response_after` rather than scraping
+rendered markup. The row shape (`jdURL`, `placeholders[]`, `salaryDetail`,
+`tagsAndSkills`, ...) is grounded in a working scraper's verified source, not
+guessed. A hidden salary (`salaryDetail.hideSalary=true`) is never surfaced.
+A blocked keyword reports itself through `source_errors` rather than silently
+contributing nothing. 40 tests.
+
+### Gradcracker — DONE
+
+A plain request returns HTTP 403 (verified live). The provider drives Camoufox
+to each role x region search page (Gradcracker has no keyword search — its
+taxonomy is role slugs crossed with UK regions) and parses the rendered
+`article[wire\:key]` cards via a small stdlib-only HTML-to-tree parser
+(`htmltree.py`), needed because the dt/dd label/value structure doesn't fit a
+flat sub-selector map. **The card fixture used to test the parser is an
+honest reconstruction, not a capture** — Gradcracker is Cloudflare-blocked, so
+unlike Naukri's JSON API there was no way to inspect real production HTML from
+this environment. It's built from verified Playwright locators in a working
+scraper's source, documented as such rather than presented as a real capture.
+A run where every combination is blocked reports itself; one blocked
+combination among several that work does not (that's an ordinary empty
+region, not a sign of being blocked). 38 tests.
+
+### UK Visa Jobs — investigated, not built
+
+Unlike Naukri and Gradcracker, UK Visa Jobs is **not** Cloudflare/anti-bot
+gated — a plain request to its internal API returned `{"error": "Invalid
+token"}`, a pure auth problem. That should have made it the *easiest* of the
+three. It wasn't, because the real login endpoint could not be responsibly
+determined from this environment:
+
+- The site is a client-rendered SPA; the login POST target is not present as
+  a literal string in its ~2.5MB minified JS bundle (likely built at runtime
+  from concatenated route fragments).
+- Probing plausible REST paths (`/signin`, `/login`, `/auth/login`, ...)
+  found one that returns HTTP 200 for *any* body — but its response turned
+  out to be generic CMS page content for the sign-in page, not an
+  authentication result. It is not the real login endpoint; it only looks
+  like a match by returning 200.
+- Guessing further and shipping an integration against an unverified endpoint
+  would risk silently-wrong code (or worse, probing behavior indistinguishable
+  from credential-stuffing against a real auth endpoint) — the kind of thing
+  the security posture in this session's operating rules exists to prevent.
+
+This isn't a capability gap the shared anti-detect layer would fix — no
+browser challenge stands in the way, only an SPA whose real API surface needs
+a live network inspector to observe. It also confirms §6's original call: UK
+Visa Jobs was already the one to deprioritise, and the sponsor-register
+project remains the better way to deliver the same visa-sponsorship signal.
