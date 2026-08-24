@@ -86,31 +86,34 @@ export function AiKeyForm({ initial }: { initial: AiStatus }) {
           type="password"
           className="input"
           placeholder={
-            status.has_key ? "•••••••• (leave blank to keep)" : "sk-ant-… / sk-or-… / sk-… / nvapi-…"
+            status.has_key
+              ? "•••••••• (leave blank to keep)"
+              : "AIza… / sk-ant-… / sk-or-… / sk-… / nvapi-…"
           }
           value={key}
           onChange={(event) => setKey(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Works with Anthropic (sk-ant-…), OpenRouter (sk-or-…), OpenAI (sk-…), or{" "}
-          <span className="text-white/80">NVIDIA (nvapi-…)</span>. We detect the provider from the
-          key. Stored encrypted; never shown again.
+          Works with <span className="text-white/80">Google Gemini (AIza…)</span>, Anthropic
+          (sk-ant-…), OpenRouter (sk-or-…), OpenAI (sk-…), or NVIDIA (nvapi-…). We detect the
+          provider from the key. Stored encrypted; never shown again.
         </p>
 
         <label className="label mt-4">Model (optional)</label>
         <input
           className="input"
-          placeholder="e.g. meta/llama-3.3-70b-instruct"
+          placeholder="e.g. gemini-2.0-flash"
           value={model}
           onChange={(event) => setModel(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Leave blank for the provider default. <span className="text-white/80">NVIDIA</span> is the
-          most reliable free option — its default (
-          <span className="text-white/80">meta/llama-3.3-70b-instruct</span>) runs on NVIDIA&apos;s
-          free tier. Browse models at build.nvidia.com (or openrouter.ai/models).
+          Leave blank for the provider default. <span className="text-white/80">Gemini</span> is a
+          great free option — grab a key at{" "}
+          <span className="text-white/80">aistudio.google.com/apikey</span> and we default to{" "}
+          <span className="text-white/80">gemini-2.0-flash</span>, which runs on Google&apos;s free
+          tier. (NVIDIA&apos;s meta/llama-3.3-70b-instruct is another free default.)
         </p>
 
         <div className="mt-4 flex gap-2">

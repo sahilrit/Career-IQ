@@ -19,6 +19,7 @@ def test_provider_detection():
     assert provider_for_key("sk-ant-abc") == "anthropic"
     assert provider_for_key("sk-or-v1-abc") == "openrouter"
     assert provider_for_key("nvapi-abc123") == "nvidia"
+    assert provider_for_key("AIzaSyAbc123") == "gemini"
     assert provider_for_key("sk-abc123") == "openai"
 
 
@@ -26,7 +27,19 @@ def test_build_client_picks_the_right_client():
     assert isinstance(build_client("sk-ant-xxxxxxxxxxxx"), AnthropicClient)
     assert isinstance(build_client("sk-or-v1-xxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("nvapi-xxxxxxxxxxxx"), OpenAICompatibleClient)
+    assert isinstance(build_client("AIzaSyxxxxxxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("sk-openai-xxxxxxxx"), OpenAICompatibleClient)
+
+
+def test_gemini_client_hits_google_endpoint_with_free_model():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "generativelanguage.googleapis.com" in str(request.url)
+        assert request.headers["authorization"] == "Bearer AIzaSy-test"
+        assert request.read().count(b"gemini-2.0-flash") == 1  # free-tier default model
+        return httpx.Response(200, json={"choices": [{"message": {"content": "Hi from Gemini"}}]})
+
+    client = build_client("AIzaSy-test", http_client=_transport(handler))
+    assert client.complete(system="s", prompt="p") == "Hi from Gemini"
 
 
 def test_nvidia_client_hits_nvidia_endpoint():
