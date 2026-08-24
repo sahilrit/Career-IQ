@@ -147,6 +147,12 @@ def main() -> None:
         help="fill each reachable form (incl. captcha-gated) but never submit; "
         "pause on a visible browser so you solve the captcha and click submit",
     )
+    parser.add_argument(
+        "--assist",
+        action="store_true",
+        help="auto-submit open forms, but when a captcha appears, fill it and "
+        "pause on a visible browser so you solve the captcha and submit, then continue",
+    )
     arguments = parser.parse_args()
 
     keywords = [keyword.strip() for keyword in arguments.keywords.split(",") if keyword.strip()]
@@ -194,8 +200,17 @@ def main() -> None:
             input("   Press Enter for the next one (Ctrl-C to stop)... ")
 
     review = arguments.review
+    assist = arguments.assist and not review  # review wins if both are passed
     if review:
         print("REVIEW MODE — filling forms for you to finish. A browser will open.")
+    elif assist:
+        print(
+            "ASSIST MODE — auto-submitting open forms; on a captcha I'll fill it and "
+            "pause for you to solve + submit, then continue. A browser will open."
+        )
+
+    # Both review and assist pause on a visible browser for the human.
+    interactive = review or assist
 
     while True:
         try:
@@ -203,12 +218,13 @@ def main() -> None:
                 scoped,
                 provider_registry=build_registry(),
                 keywords=keywords,
-                # Review needs a visible browser so you can finish each form.
-                headless=(not arguments.show_browser) and not review,
+                # Review/assist need a visible browser so you can finish forms.
+                headless=(not arguments.show_browser) and not interactive,
                 cover_letter_generator=cover_letter_generator,
                 submit_enabled=not arguments.dry_run,
                 prepare_only=review,
-                on_prepared=on_prepared if review else None,
+                assist_captcha=assist,
+                on_prepared=on_prepared if interactive else None,
             )
             print(
                 f"[{report['ran_at']}] discovered={report['discovered']} "

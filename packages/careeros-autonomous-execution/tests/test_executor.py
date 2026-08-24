@@ -120,6 +120,81 @@ def test_prepare_only_fills_a_captcha_gated_form_and_hands_off(
     assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
 
 
+def test_assist_auto_submits_a_clean_form(
+    repository,
+    autonomy_policy,
+    application_runner,
+    event_bus,
+    session,
+    posting,
+    form_mapping,
+    brain_with_qualified_application,
+):
+    # No captcha present -> assist mode behaves like normal auto-submit.
+    session.set_visible(form_mapping.submit_selector)
+    session.set_visible(form_mapping.success_selector)
+    prepared: list[str] = []
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: posting,
+        resolve_form_mapping=lambda application: form_mapping,
+        assist_captcha=True,
+        on_prepared=lambda application, post, package: prepared.append(application.id),
+    )
+
+    run = executor.run_for_identity(
+        brain_with_qualified_application.identity.id,
+        session,
+        detectors=[SelectorAppearsDetector("iframe[src*='recaptcha']", kind="captcha")],
+    )
+
+    assert run.submitted_count == 1
+    assert prepared == []  # no pause on a clean form
+    reloaded = repository.load(brain_with_qualified_application.identity.id)
+    assert reloaded.applications[0].status == ApplicationStatus.APPLIED
+
+
+def test_assist_pauses_on_a_captcha_instead_of_submitting(
+    repository,
+    autonomy_policy,
+    application_runner,
+    event_bus,
+    session,
+    posting,
+    form_mapping,
+    brain_with_qualified_application,
+):
+    session.set_visible("iframe[src*='recaptcha']")
+    session.set_visible(form_mapping.submit_selector)
+    prepared: list[str] = []
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: posting,
+        resolve_form_mapping=lambda application: form_mapping,
+        assist_captcha=True,
+        on_prepared=lambda application, post, package: prepared.append(application.id),
+    )
+
+    run = executor.run_for_identity(
+        brain_with_qualified_application.identity.id,
+        session,
+        detectors=[SelectorAppearsDetector("iframe[src*='recaptcha']", kind="captcha")],
+    )
+
+    assert run.submitted_count == 0
+    assert "Prepared for review" in run.outcomes[0].reason
+    assert len(prepared) == 1
+    assert session.clicked_selectors == []  # never auto-submitted the captcha form
+    reloaded = repository.load(brain_with_qualified_application.identity.id)
+    assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
+
+
 def test_prepare_only_still_hands_off_a_login_wall(
     repository,
     autonomy_policy,

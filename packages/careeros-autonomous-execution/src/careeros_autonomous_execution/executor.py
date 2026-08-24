@@ -81,6 +81,7 @@ class AutonomousApplicationExecutor:
         cover_letter_generator: CoverLetterGenerator | None = None,
         submit_enabled: bool = True,
         prepare_only: bool = False,
+        assist_captcha: bool = False,
         on_prepared: Callable[[Application, JobPosting, ApplicationPackage], None] | None = None,
     ) -> None:
         self._repository = repository
@@ -97,8 +98,11 @@ class AutonomousApplicationExecutor:
         self._submit_enabled = submit_enabled
         # True -> fill the form (incl. captcha-gated ones) but never submit;
         # a human reviews, solves any captcha, and submits. on_prepared is
-        # called with (application, posting) once the form is filled.
+        # called with (application, posting, package) once the form is filled.
         self._prepare_only = prepare_only
+        # True -> auto-submit clean forms, but when a captcha is present, fill
+        # and hand off to the human (solve captcha + submit) instead of holding.
+        self._assist_captcha = assist_captcha
         self._on_prepared = on_prepared
 
     def run_for_identity(
@@ -166,11 +170,14 @@ class AutonomousApplicationExecutor:
 
         problem = run_detectors(session, detectors)
         if problem is not None:
-            # In prepare-and-review we WANT captcha-gated forms: fill what we
-            # can and let the human solve the captcha + submit. A login wall,
-            # though, means there's no fillable form to prepare — still hand off.
-            blocking = problem.kind == "login_required" or not self._prepare_only
-            if blocking:
+            # Prepare-and-review and assist-on-captcha both WANT captcha-gated
+            # forms: fill what we can and let the human solve the captcha +
+            # submit. A login wall means there's no fillable form — still hand
+            # off. (Assist auto-submits clean forms; only captchas pause here.)
+            handle_here = (self._prepare_only or self._assist_captcha) and (
+                problem.kind != "login_required"
+            )
+            if not handle_here:
                 handoff.request_takeover(problem)
                 return ExecutionOutcome(
                     application.id,
@@ -204,9 +211,13 @@ class AutonomousApplicationExecutor:
                 if answer.answerable and answer.text:
                     question_answers[field.selector] = answer.text
 
-        if self._prepare_only:
-            # Prepare-and-review: fill the form (best-effort) but never submit.
-            # A human solves any captcha and clicks submit. Stays QUALIFIED.
+        # Pause for a human when we're in review mode (every form), or in
+        # assist mode and this specific form is captcha-gated. Clean forms in
+        # assist mode fall through to auto-submit below.
+        pause_for_human = self._prepare_only or (self._assist_captcha and problem is not None)
+        if pause_for_human:
+            # Fill the form (best-effort) but never submit. A human solves any
+            # captcha and clicks submit. Stays QUALIFIED.
             self._runner.prepare(
                 session,
                 package,

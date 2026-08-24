@@ -47,9 +47,10 @@ fi
 
 echo
 echo "Choose a mode:"
-echo "  [1] Auto-submit — apply automatically to open forms (skips captcha jobs)"
-echo "  [2] Prepare & review — fill every form (incl. captcha ones) and pause so"
-echo "      you solve the captcha and click submit yourself"
+echo "  [1] Auto-apply + assist — auto-submit open forms; on a captcha, fill it"
+echo "      and pause so you solve it and submit, then it continues (recommended)"
+echo "  [2] Prepare & review — fill every form but never submit; you finish each"
+echo "      one and they also appear in your web Review queue"
 printf "Mode [1/2, default 1]: "
 read -r MODE
 
@@ -63,5 +64,5 @@ echo
 if [ "$MODE" = "2" ]; then
   uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --review
 else
-  uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --show-browser
+  uv run python scripts/autopilot_daemon.py --workspace-id "$WORKSPACE_ID" --once --assist
 fi
