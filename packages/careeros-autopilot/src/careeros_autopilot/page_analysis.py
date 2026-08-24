@@ -49,9 +49,13 @@ _FULL_NAME_SELECTORS = [
 ]
 _PHONE_SELECTORS = ["input[type='tel']", "#phone", "input[name*='phone' i]"]
 _RESUME_SELECTORS = ["input[type='file']"]
+# The cover-letter TEXT field — must be a textarea we can type into. A bare
+# "#cover_letter" is dangerous: on Greenhouse that id is an <input type="file">,
+# and typing into a file input throws. Match textareas only; a file-based cover
+# letter is simply left for the resume upload / a human, never force-filled.
 _COVER_LETTER_SELECTORS = [
     "textarea[name*='cover' i]",
-    "#cover_letter",
+    "textarea#cover_letter",
     "textarea[name*='letter' i]",
 ]
 _SUBMIT_SELECTORS = ["#submit_app", "button[type='submit']", "input[type='submit']"]
@@ -89,8 +93,25 @@ def find_apply_url(session: BrowserSession) -> str | None:
         if _ATS_HOST_RE.search(href):
             return href
     for href in hrefs:
-        if href.split("?")[0].rstrip("/").endswith("/apply"):
+        path = href.split("?")[0].rstrip("/")
+        # Lever uses …/apply; Ashby routes the form to …/application.
+        if path.endswith("/apply") or path.endswith("/application"):
             return href
+    return None
+
+
+def ats_apply_url(posting_url: str) -> str | None:
+    """The conventional application-form URL for a known ATS posting, when the
+    posting page routes to a separate form (a React app with no <a> to follow).
+    None for hosts whose form is inline on the posting page (e.g. Greenhouse).
+    """
+    base = posting_url.split("?")[0].rstrip("/")
+    if not base:
+        return None
+    if "jobs.ashbyhq.com" in base and not base.endswith("/application"):
+        return f"{base}/application"
+    if "jobs.lever.co" in base and not base.endswith("/apply"):
+        return f"{base}/apply"
     return None
 
 
@@ -175,7 +196,10 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
     if detect_form_mapping(session) is not None:
         return None  # the posting page itself is the form
 
-    apply_url = find_apply_url(session)
+    # Prefer a real apply link on the page; otherwise derive the conventional
+    # form URL for known ATS hosts (Ashby/Lever route the form to a subpath the
+    # posting page has no crawlable <a> to).
+    apply_url = find_apply_url(session) or ats_apply_url(posting.url)
     if apply_url is None:
         return "no application form or apply link found on the posting page"
     try:

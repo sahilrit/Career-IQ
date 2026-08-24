@@ -4,6 +4,8 @@ FormFieldMapping.
 
 from __future__ import annotations
 
+import contextlib
+
 from careeros_application_engine import ApplicationPackage
 from careeros_application_runner.models import FormFieldMapping
 from careeros_browser import BrowserSession
@@ -33,7 +35,12 @@ def fill_application_form(
     if mapping.resume_upload_selector and resume_file_path:
         session.upload_file(mapping.resume_upload_selector, resume_file_path)
     if mapping.cover_letter_selector:
-        session.fill(mapping.cover_letter_selector, package.cover_letter)
+        # The cover letter is optional on most forms — if this specific field
+        # rejects a text fill (e.g. it turned out to be a file input), skip it
+        # rather than failing the whole application. The résumé + core fields
+        # still submit.
+        with contextlib.suppress(Exception):
+            session.fill(mapping.cover_letter_selector, package.cover_letter)
 
     # Additional application questions, answered from the Career Brain.
     answers = question_answers or {}

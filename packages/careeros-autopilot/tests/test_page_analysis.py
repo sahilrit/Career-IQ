@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from careeros_autopilot import detect_form_mapping, find_apply_url, prepare_application_page
-from careeros_autopilot.page_analysis import detect_question_fields
+from careeros_autopilot.page_analysis import ats_apply_url, detect_question_fields
 from careeros_browser import FakeBrowserSession
 from careeros_job_providers import JobPosting
 
@@ -89,6 +89,48 @@ def test_detect_form_mapping_picks_up_optional_fields():
     assert mapping.phone_selector == "input[type='tel']"
     assert mapping.resume_upload_selector == "input[type='file']"
     assert mapping.cover_letter_selector == "textarea[name*='cover' i]"
+
+
+def test_file_input_is_never_mapped_as_the_text_cover_letter():
+    """Regression: on Greenhouse '#cover_letter' is an <input type=file>. The
+    cover-letter TEXT field must only match a textarea, so a lone file input is
+    mapped as the résumé upload, not force-typed into as a cover letter."""
+    session = FakeBrowserSession()
+    for selector in ("input[type='email']", "button[type='submit']", "input[type='file']"):
+        session.set_visible(selector)
+    mapping = detect_form_mapping(session)
+    assert mapping is not None
+    assert mapping.resume_upload_selector == "input[type='file']"
+    assert mapping.cover_letter_selector is None
+
+
+def test_ats_apply_url_derivation():
+    assert (
+        ats_apply_url("https://jobs.ashbyhq.com/openai/123")
+        == "https://jobs.ashbyhq.com/openai/123/application"
+    )
+    assert (
+        ats_apply_url("https://jobs.lever.co/spotify/abc")
+        == "https://jobs.lever.co/spotify/abc/apply"
+    )
+    # Greenhouse is inline; already-suffixed URLs are left alone; unknown -> None.
+    assert ats_apply_url("https://boards.greenhouse.io/acme/jobs/1") is None
+    assert ats_apply_url("https://jobs.ashbyhq.com/openai/123/application") is None
+    assert ats_apply_url("https://example.com/jobs/1") is None
+
+
+def test_prepare_navigates_to_derived_ashby_apply_form():
+    """An Ashby posting page has no crawlable apply <a>; derive …/application."""
+    session = FakeBrowserSession()
+    posting = make_posting(url="https://jobs.ashbyhq.com/openai/123")
+    assert prepare_application_page(session, posting) is None
+    assert session.current_url == "https://jobs.ashbyhq.com/openai/123/application"
+
+
+def test_application_suffix_link_is_found():
+    session = FakeBrowserSession()
+    session.set_query_all_results("a", [{"href": "https://jobs.ashbyhq.com/acme/1/application"}])
+    assert find_apply_url(session) == "https://jobs.ashbyhq.com/acme/1/application"
 
 
 def test_bot_protection_challenge_is_reported_not_bypassed():
