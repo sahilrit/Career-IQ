@@ -1,167 +1,146 @@
 """Typeset a résumé or cover letter from its Markdown into a structured PDF.
 
-The previous exporter dumped the document as one flat run of Helvetica
-text encoded to latin-1, so an accented name lost its accents, a rupee
-sign vanished, and the page was an undifferentiated wall of lines. This
-reads the predictable Markdown our résumé renderer emits (`#` name,
-`*headline*`, `##` sections, `###` roles, `_dates_`, `-` bullets) and lays
-it out as a real one-column CV: a name header over a hairline rule,
-gold-tinted section labels, roles with right-aligned dates, and indented
-bullets.
+The previous exporter used fpdf2's core fonts, so it had to encode text to
+latin-1: an accented name lost its accents, a rupee sign vanished, and long
+scripts (CJK, Devanagari) had no glyph at all. This reads the predictable
+Markdown our résumé renderer emits (`#` name, `*headline*`, `##` sections,
+`###` roles, `_dates_`, `-` bullets) and typesets it through Typst — a real
+typesetting engine — as a one-column CV: a name header over a hairline
+rule, gold-tinted section labels, roles with dates, and indented bullets.
 
-It stays on fpdf2's core fonts — no binary font to bundle, no Typst
-toolchain in the image, so it ships on Render as-is — and keeps non-latin
-text legible by transliterating it to the nearest ASCII rather than
-replacing each character with "?".
+Typst's own embedded fonts (no system fonts required — the Dockerfile.api
+deploy image ships none) render full Unicode for Latin script (any accent),
+smart punctuation, and currency symbols natively, so none of that needs
+transliterating any more. Only scripts with genuinely no glyph in those
+fonts — CJK ideographs, Hiragana/Katakana, Hangul — still fall back to
+transliteration rather than rendering as an empty box.
 """
 
 from __future__ import annotations
 
+import os
 import re
+import tempfile
 import unicodedata
 
 # Accent colour from the web design system (signal-gold), for section labels.
-_ACCENT = (176, 132, 48)
-_INK = (28, 27, 35)
-_MUTED = (110, 108, 120)
+_ACCENT = "rgb(176, 132, 48)"
+_INK = "rgb(28, 27, 35)"
+_MUTED = "rgb(110, 108, 120)"
 
-# Smart punctuation and common symbols mapped to a latin-1 form before the
-# transliteration fallback, so quotes and dashes read naturally rather than
-# being flattened to nothing.
-_SYMBOLS = {
-    "‘": "'",
-    "’": "'",
-    "“": '"',
-    "”": '"',
-    "–": "-",
-    "—": "--",
-    "…": "...",
-    "•": "-",
-    " ": " ",
-    "₹": "Rs",  # ₹ has no latin-1 form
-    "€": "EUR",  # € is cp1252, not latin-1 — core fonts cannot render it
-    "→": "->",
-}
-
-_SYMBOL_RE = re.compile("|".join(re.escape(k) for k in _SYMBOLS))
+# Characters Typst's markup mode gives special meaning to. Escaping every
+# occurrence with a backslash -- Typst's own escape syntax -- makes them
+# literal wherever they appear, so a resume containing "C# & F#" or "a_b"
+# compiles as plain text instead of failing or being read as markup.
+_TYPST_SPECIAL_RE = re.compile(r"[\\*_#$`<>@\[\]~/-]")
 
 
-def _to_latin1(text: str) -> str:
-    """Make text safe for fpdf2's core fonts without losing information.
+def _escape_typst(text: str) -> str:
+    return _TYPST_SPECIAL_RE.sub(lambda m: "\\" + m.group(), text)
 
-    latin-1 characters (é, ü, £) pass through untouched. Smart
-    punctuation is mapped to its ASCII shape. Anything left — CJK, Devanagari,
-    emoji — is transliterated to the nearest ASCII via Unicode decomposition,
-    so "José" stays "José" but "北京" becomes a romanised stand-in rather than
-    a row of replacement marks.
+
+# Codepoint ranges Typst's embedded fonts (Libertinus Serif, New Computer
+# Modern, DejaVu Sans Mono -- the only fonts guaranteed present in the
+# Dockerfile.api deploy image, which ships no system font packages) cannot
+# render: verified empirically to come back as missing-glyph boxes. Latin
+# (with any accent), Cyrillic, Greek, Arabic, and all common punctuation and
+# currency symbols render natively and are deliberately left off this list.
+_UNRENDERABLE_RANGES = (
+    (0x3040, 0x30FF),  # Hiragana + Katakana
+    (0x3400, 0x4DBF),  # CJK Unified Ideographs Extension A
+    (0x4E00, 0x9FFF),  # CJK Unified Ideographs
+    (0xAC00, 0xD7A3),  # Hangul syllables
+)
+
+
+def _is_unrenderable(char: str) -> bool:
+    codepoint = ord(char)
+    return any(low <= codepoint <= high for low, high in _UNRENDERABLE_RANGES)
+
+
+def _prepare_text(text: str) -> str:
+    """Make text safe to hand to Typst's embedded fonts without losing
+    information for the (common) scripts they can actually render.
+
+    Typst renders full Unicode natively for Latin (with any accent), smart
+    punctuation, and currency symbols -- no substitution needed, unlike the
+    old fpdf2/latin-1 renderer. Only scripts with no glyph in the embedded
+    font set (CJK ideographs, Hiragana/Katakana, Hangul) still need the
+    graceful fallback: transliterate to the nearest ASCII rather than
+    rendering as an empty box.
     """
-    mapped = _SYMBOL_RE.sub(lambda m: _SYMBOLS[m.group()], text)
     out: list[str] = []
-    for char in mapped:
-        try:
-            char.encode("latin-1")
+    for char in text:
+        if _is_unrenderable(char):
+            decomposed = (
+                unicodedata.normalize("NFKD", char).encode("ascii", "ignore").decode("ascii")
+            )
+            out.append(decomposed)
+        else:
             out.append(char)
-            continue
-        except UnicodeEncodeError:
-            pass
-        decomposed = unicodedata.normalize("NFKD", char).encode("ascii", "ignore").decode("ascii")
-        out.append(decomposed)
     return "".join(out)
 
 
-class _ResumePDF:
-    """Thin layout helper over fpdf2 for one document."""
+class _TypstDoc:
+    """Accumulates Typst markup for one document, compiled once at the end."""
 
     def __init__(self) -> None:
-        from fpdf import FPDF
+        self._parts: list[str] = [
+            "#set page(width: 210mm, height: 297mm, margin: (x: 18mm, y: 16mm))\n"
+            f'#set text(font: "Libertinus Serif", size: 10pt, fill: {_INK})\n'
+        ]
 
-        self.pdf = FPDF()
-        self.pdf.set_auto_page_break(auto=True, margin=16)
-        self.pdf.add_page()
-        self.pdf.set_margins(18, 16, 18)
-        self._width = self.pdf.w - 36
-
-    def _text(self, text: str) -> str:
-        return _to_latin1(text)
+    def _content(self, text: str) -> str:
+        return _escape_typst(_prepare_text(text))
 
     def name(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", style="B", size=22)
-        self.pdf.set_text_color(*_INK)
-        self.pdf.multi_cell(0, 10, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self._parts.append(f'#text(size: 22pt, weight: "bold")[{self._content(text)}]\n\n')
 
     def headline(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", style="I", size=12)
-        self.pdf.set_text_color(*_MUTED)
-        self.pdf.multi_cell(0, 6, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    def contact(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", size=10)
-        self.pdf.set_text_color(*_MUTED)
-        self.pdf.multi_cell(0, 5, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    def rule(self) -> None:
-        self.pdf.ln(2)
-        y = self.pdf.get_y()
-        self.pdf.set_draw_color(*_ACCENT)
-        self.pdf.set_line_width(0.4)
-        self.pdf.line(18, y, self.pdf.w - 18, y)
-        self.pdf.ln(3)
-
-    def section(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.ln(2)
-        self.pdf.set_font("Helvetica", style="B", size=11)
-        self.pdf.set_text_color(*_ACCENT)
-        self.pdf.multi_cell(0, 6, self._text(text.upper()), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        self.pdf.set_text_color(*_INK)
-
-    def role(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.ln(1)
-        self.pdf.set_font("Helvetica", style="B", size=11)
-        self.pdf.set_text_color(*_INK)
-        self.pdf.multi_cell(0, 6, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    def dates(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", style="I", size=9)
-        self.pdf.set_text_color(*_MUTED)
-        self.pdf.multi_cell(0, 5, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        self.pdf.set_text_color(*_INK)
-
-    def body(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", size=10)
-        self.pdf.set_text_color(*_INK)
-        self.pdf.multi_cell(0, 5.4, self._text(text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    def bullet(self, text: str) -> None:
-        from fpdf.enums import XPos, YPos
-
-        self.pdf.set_font("Helvetica", size=10)
-        self.pdf.set_text_color(*_INK)
-        x = self.pdf.get_x()
-        self.pdf.set_x(x + 4)
-        self.pdf.multi_cell(
-            self._width - 4,
-            5.4,
-            self._text(f"•  {text}"),
-            new_x=XPos.LMARGIN,
-            new_y=YPos.NEXT,
+        self._parts.append(
+            f'#text(size: 12pt, style: "italic", fill: {_MUTED})[{self._content(text)}]\n\n'
         )
 
+    def contact(self, text: str) -> None:
+        self._parts.append(f"#text(fill: {_MUTED})[{self._content(text)}]\n\n")
+
+    def rule(self) -> None:
+        self._parts.append(f"#line(length: 100%, stroke: 0.4pt + {_ACCENT})\n#v(3pt)\n")
+
+    def section(self, text: str) -> None:
+        label = self._content(text.upper())
+        self._parts.append(
+            f'#v(4pt)#text(size: 11pt, weight: "bold", fill: {_ACCENT})[{label}]\n\n'
+        )
+
+    def role(self, text: str) -> None:
+        self._parts.append(f'#text(size: 11pt, weight: "bold")[{self._content(text)}]\n\n')
+
+    def dates(self, text: str) -> None:
+        self._parts.append(
+            f'#text(size: 9pt, style: "italic", fill: {_MUTED})[{self._content(text)}]\n\n'
+        )
+
+    def body(self, text: str) -> None:
+        self._parts.append(f"{self._content(text)}\n\n")
+
+    def bullet(self, text: str) -> None:
+        self._parts.append(f"- {self._content(text)}\n")
+
+    def blank(self) -> None:
+        self._parts.append("#v(4pt)\n")
+
     def output(self) -> bytes:
-        return bytes(self.pdf.output())
+        import typst
+
+        source = "".join(self._parts)
+        fd, path = tempfile.mkstemp(suffix=".typ")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(source)
+            return typst.compile(path, ignore_system_fonts=True)
+        finally:
+            os.unlink(path)
 
 
 _H1 = re.compile(r"^#\s+(.*)$")
@@ -178,14 +157,14 @@ def render_markdown_pdf(title: str, markdown: str) -> bytes:
     with no headings lays out as clean body text — so it is safe for every
     document kind, not just résumés.
     """
-    doc = _ResumePDF()
+    doc = _TypstDoc()
     seen_first_heading = False
     lines = markdown.split("\n") if markdown else []
 
     for raw in lines:
         line = raw.rstrip()
         if not line.strip():
-            doc.pdf.ln(2)
+            doc.blank()
             continue
 
         if m := _H1.match(line):
@@ -213,7 +192,7 @@ def render_markdown_pdf(title: str, markdown: str) -> bytes:
     # heading so the export is not anonymous.
     if not seen_first_heading and title:
         # Prepend the title by rendering a fresh doc — cheaper to just re-run.
-        titled = _ResumePDF()
+        titled = _TypstDoc()
         titled.name(title)
         titled.rule()
         for raw in lines:
@@ -221,7 +200,7 @@ def render_markdown_pdf(title: str, markdown: str) -> bytes:
             if line.strip():
                 titled.body(line)
             else:
-                titled.pdf.ln(2)
+                titled.blank()
         return titled.output()
 
     return doc.output()

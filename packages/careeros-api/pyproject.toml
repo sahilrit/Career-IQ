@@ -36,6 +36,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "pypdf>=4.0",
     "sentry-sdk>=2.0",
+    "typst>=0.13",
 ]
 
 [tool.uv.sources]
