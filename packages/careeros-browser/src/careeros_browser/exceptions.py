@@ -15,3 +15,9 @@ class SelectorTimeoutError(BrowserError):
 
 class DownloadError(BrowserError):
     """Raised when an expected download never materializes."""
+
+
+class ResponseTimeoutError(BrowserError):
+    """Raised when no network response matching the given URL pattern
+    arrives within the timeout — the page never called the API, or a
+    challenge intercepted the request before it reached the server."""

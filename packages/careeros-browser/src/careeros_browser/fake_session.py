@@ -8,10 +8,15 @@ tests standard (see docs/development/standards.md).
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 
-from careeros_browser.exceptions import DownloadError, SelectorTimeoutError
+from careeros_browser.exceptions import (
+    DownloadError,
+    ResponseTimeoutError,
+    SelectorTimeoutError,
+)
 
 
 class FakeBrowserSession:
@@ -24,6 +29,11 @@ class FakeBrowserSession:
         self._text_content: dict[str, str] = {}
         self._pending_download: Path | None = None
         self._query_all_results: dict[str, list[dict[str, str | None]]] = {}
+        self._html_by_selector: dict[str, list[str]] = {}
+        # Queued per url_contains pattern; capture_response_after pops one per
+        # call, so a page that must be fetched twice needs two queued entries.
+        self._queued_responses: dict[str, deque[str]] = {}
+        self._failing_click_selectors: set[str] = set()
         self.clicked_selectors: list[str] = []
         self.uploaded_files: dict[str, str] = {}
         self.screenshots_taken: list[Path] = []
@@ -54,6 +64,8 @@ class FakeBrowserSession:
         self._field_values[selector] = value
 
     def click(self, selector: str) -> None:
+        if selector in self._failing_click_selectors:
+            raise SelectorTimeoutError(f"Selector {selector!r} did not appear (simulated)")
         self.clicked_selectors.append(selector)
 
     def select_option(self, selector: str, value: str) -> None:
@@ -79,6 +91,24 @@ class FakeBrowserSession:
         # would use; the fake just replays whatever was queued for this
         # top-level selector via set_query_all_results().
         return list(self._query_all_results.get(selector, []))
+
+    def capture_response_after(
+        self,
+        action: Callable[[], None],
+        *,
+        url_contains: str,
+        timeout_ms: int = 10_000,
+    ) -> str:
+        action()
+        queue = self._queued_responses.get(url_contains)
+        if not queue:
+            raise ResponseTimeoutError(
+                f"No response queued for {url_contains!r} (call queue_response() in test setup)"
+            )
+        return queue.popleft()
+
+    def query_all_html(self, selector: str) -> list[str]:
+        return list(self._html_by_selector.get(selector, []))
 
     def download_triggered_by(self, action: Callable[[], None], *, save_to: str | Path) -> Path:
         action()
@@ -116,3 +146,17 @@ class FakeBrowserSession:
     def set_query_all_results(self, selector: str, results: list[dict[str, str | None]]) -> None:
         """Simulate ``selector`` matching a list of elements, for test setup."""
         self._query_all_results[selector] = results
+
+    def set_html_blocks(self, selector: str, htmls: list[str]) -> None:
+        """Simulate ``selector`` matching elements with this outer HTML."""
+        self._html_by_selector[selector] = list(htmls)
+
+    def set_click_failure(self, selector: str) -> None:
+        """Simulate ``selector`` never appearing/being clickable — for
+        testing "no more results / no next button" endings."""
+        self._failing_click_selectors.add(selector)
+
+    def queue_response(self, *, url_contains: str, body: str) -> None:
+        """Queue a response body for the next matching capture_response_after
+        call. Queue more than one to simulate pagination."""
+        self._queued_responses.setdefault(url_contains, deque()).append(body)

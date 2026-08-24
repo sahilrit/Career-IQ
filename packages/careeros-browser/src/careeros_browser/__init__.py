@@ -3,10 +3,15 @@ don't expose a useful free API. Playwright-backed, free and
 open-source — no paid browser-automation service required.
 """
 
-from careeros_browser.exceptions import BrowserError, DownloadError, SelectorTimeoutError
+from careeros_browser.exceptions import (
+    BrowserError,
+    DownloadError,
+    ResponseTimeoutError,
+    SelectorTimeoutError,
+)
 from careeros_browser.fake_session import FakeBrowserSession
 from careeros_browser.health import check_browser_health
-from careeros_browser.launcher import launch_browser_session
+from careeros_browser.launcher import launch_browser_session, launch_camoufox_session
 from careeros_browser.models import BrowserHealth, BrowserHealthStatus
 from careeros_browser.playwright_session import PlaywrightBrowserSession
 from careeros_browser.resilience import (
@@ -30,10 +35,12 @@ __all__ = [
     "FakeBrowserSession",
     "PersistentCookieStore",
     "PlaywrightBrowserSession",
+    "ResponseTimeoutError",
     "SelectorTimeoutError",
     "check_browser_health",
     "is_challenge_html",
     "is_challenge_status",
     "launch_browser_session",
+    "launch_camoufox_session",
     "retry_with_backoff",
 ]

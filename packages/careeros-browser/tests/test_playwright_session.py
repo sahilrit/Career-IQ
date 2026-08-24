@@ -67,6 +67,29 @@ class _StubElement:
         return self._attributes.get(name)
 
 
+class _StubResponse:
+    def __init__(self, url: str, body: str) -> None:
+        self._url = url
+        self._body = body
+
+    def url(self) -> str:
+        return self._url
+
+    def text(self) -> str:
+        return self._body
+
+
+class _ResponseInfo:
+    def __init__(self, response: _StubResponse) -> None:
+        self.value = response
+
+    def __enter__(self) -> _ResponseInfo:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        return None
+
+
 class _StubPage:
     def __init__(self) -> None:
         self.url = "about:blank"
@@ -74,6 +97,8 @@ class _StubPage:
         self.calls: list[tuple] = []
         self._download: _StubDownload | None = None
         self._elements_by_selector: dict[str, list[_StubElement]] = {}
+        self._html_by_selector: dict[str, list[str]] = {}
+        self._queued_response: _StubResponse | None = None
         self.closed = False
 
     def set_query_selector_all(self, selector: str, elements: list[_StubElement]) -> None:
@@ -81,6 +106,20 @@ class _StubPage:
 
     def query_selector_all(self, selector: str) -> list[_StubElement]:
         return self._elements_by_selector.get(selector, [])
+
+    def set_html_blocks(self, selector: str, htmls: list[str]) -> None:
+        self._html_by_selector[selector] = htmls
+
+    def eval_on_selector_all(self, selector: str, _js: str) -> list[str]:
+        return self._html_by_selector.get(selector, [])
+
+    def queue_response(self, url: str, body: str) -> None:
+        self._queued_response = _StubResponse(url, body)
+
+    def expect_response(self, predicate, timeout: int | None = None) -> _ResponseInfo:
+        if self._queued_response is None or not predicate(self._queued_response):
+            raise TimeoutError("no matching response")
+        return _ResponseInfo(self._queued_response)
 
     def goto(self, url: str) -> None:
         self.calls.append(("goto", url))
@@ -217,6 +256,60 @@ def test_close_delegates():
     session = PlaywrightBrowserSession(page)
     session.close()
     assert page.closed is True
+
+
+# --- response capture ---------------------------------------------------
+
+
+def test_capture_response_after_runs_the_action_and_returns_the_body():
+    from careeros_browser import ResponseTimeoutError  # noqa: F401 (import path check)
+
+    page = _StubPage()
+    page.queue_response(url="https://x/jobapi/v3/search?pageNo=1", body='{"jobDetails": []}')
+    session = PlaywrightBrowserSession(page)
+
+    ran = {"called": False}
+    body = session.capture_response_after(
+        lambda: ran.__setitem__("called", True), url_contains="jobapi/v3/search"
+    )
+
+    assert ran["called"] is True
+    assert body == '{"jobDetails": []}'
+
+
+def test_capture_response_after_raises_response_timeout_when_nothing_matches():
+    from careeros_browser import ResponseTimeoutError
+
+    page = _StubPage()  # nothing queued
+    session = PlaywrightBrowserSession(page)
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(lambda: None, url_contains="jobapi")
+
+
+def test_capture_response_after_ignores_a_response_whose_url_does_not_match():
+    from careeros_browser import ResponseTimeoutError
+
+    page = _StubPage()
+    page.queue_response(url="https://x/unrelated", body="nope")
+    session = PlaywrightBrowserSession(page)
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(lambda: None, url_contains="jobapi")
+
+
+# --- outer-HTML extraction ------------------------------------------------
+
+
+def test_query_all_html_delegates_to_eval_on_selector_all():
+    page = _StubPage()
+    page.set_html_blocks("article", ["<article>1</article>", "<article>2</article>"])
+    session = PlaywrightBrowserSession(page)
+    assert session.query_all_html("article") == ["<article>1</article>", "<article>2</article>"]
+
+
+def test_query_all_html_returns_empty_list_when_nothing_matches():
+    page = _StubPage()
+    session = PlaywrightBrowserSession(page)
+    assert session.query_all_html("article") == []
 
 
 def test_query_all_extracts_text_and_href_per_element():
