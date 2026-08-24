@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 # Your workspace (baked in so you don't have to type it). Override by running
 # CAREEROS_WORKSPACE_ID=... bash scripts/apply.sh
-WORKSPACE_ID="${CAREEROS_WORKSPACE_ID:-7fb82ae4-507d-4fd0-b23d-8c0d2afa3c5b}"
+WORKSPACE_ID="${CAREEROS_WORKSPACE_ID:-72c51f62-10b3-4017-9884-99707ab6b8e9}"
 
 echo "CareerOS auto-apply"
 echo "-------------------"
