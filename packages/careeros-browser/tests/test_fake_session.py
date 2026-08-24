@@ -244,3 +244,19 @@ def test_only_the_marked_selector_fails():
     session.set_click_failure("#next")
     session.click("#other")  # unaffected
     assert session.clicked_selectors == ["#other"]
+
+
+def test_capture_response_after_normalizes_an_action_failure():
+    """The real PlaywrightBrowserSession wraps the whole navigate/click-and-
+    wait sequence in one try/except, so a click that fails inside the action
+    surfaces as ResponseTimeoutError, not the raw click error — callers must
+    be able to treat 'response never arrived' and 'the action itself failed'
+    identically without needing two except clauses."""
+    session = FakeBrowserSession()
+    session.set_click_failure("#next")
+
+    def action():
+        session.click("#next")
+
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(action, url_contains="jobapi")

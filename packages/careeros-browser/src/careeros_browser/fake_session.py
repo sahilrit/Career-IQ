@@ -99,13 +99,25 @@ class FakeBrowserSession:
         url_contains: str,
         timeout_ms: int = 10_000,
     ) -> str:
-        action()
-        queue = self._queued_responses.get(url_contains)
-        if not queue:
+        # Mirrors PlaywrightBrowserSession: the whole navigate-or-click-then-
+        # wait sequence is one operation, so a failure anywhere in it — the
+        # action itself, or no matching response arriving — surfaces as one
+        # error. A caller must not need to distinguish "the click failed"
+        # from "the response never came"; both mean "this attempt failed".
+        try:
+            action()
+            queue = self._queued_responses.get(url_contains)
+            if not queue:
+                raise ResponseTimeoutError(
+                    f"No response queued for {url_contains!r} (call queue_response() in test setup)"
+                )
+            return queue.popleft()
+        except ResponseTimeoutError:
+            raise
+        except Exception as exc:
             raise ResponseTimeoutError(
-                f"No response queued for {url_contains!r} (call queue_response() in test setup)"
-            )
-        return queue.popleft()
+                f"Action failed before a response for {url_contains!r} arrived: {exc}"
+            ) from exc
 
     def query_all_html(self, selector: str) -> list[str]:
         return list(self._html_by_selector.get(selector, []))
