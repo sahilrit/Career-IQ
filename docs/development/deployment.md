@@ -96,6 +96,37 @@ description fetches per search. If you ever see rate limiting, set
 `CAREEROS_ENABLE_LINKEDIN=0` on the API service to switch it off; the other
 sources are unaffected.
 
+## Free-tier keep-alive (Render)
+
+Render's free instance type spins down after ~15 min with no incoming
+HTTP traffic, adding a ~50s cold start to the next request. Two
+independent mechanisms cover this:
+
+1. **Render's own Health Check Path** (Settings → Health Checks, per
+   service) — Render polls this path continuously as long as it's set,
+   and that polling itself counts as traffic, so a service with a
+   health check path configured never goes idle. `careeros-api` has
+   this set to `/health` (already exists as a FastAPI route);
+   `careeros-web` has it set to `/api/health`
+   (`web/app/api/health/route.ts`, a trivial `{"ok": true}` handler —
+   Next.js's `next start` has no built-in health route).
+2. **`.github/workflows/keepalive.yml`** — a GitHub Actions cron
+   backstop that curls both services every 10 min. Treat this as
+   secondary: GitHub's scheduled-workflow triggers are best-effort and
+   were observed firing 1–4 hours apart despite the 10-min cron, so it
+   alone is not enough to reliably beat the 15-min spin-down window.
+
+**Verify:** on the service's Logs tab, an instance that's actually
+being kept warm shows either continuous `GET /health` 200s (FastAPI
+logs every request) or, for the Next.js web service — which doesn't
+log requests to stdout — the absence of an
+`npm error ... signal SIGTERM` block for well past 15 minutes of no
+real user traffic. That SIGTERM pattern is npm's `next start` wrapper
+logging a "failure" when Render kills the process; it shows up both on
+ordinary deploy cutovers (harmless — old instance replaced by new) and
+on an idle spin-down (the bug this section fixes) — the deploy-events
+list on the same tab tells you which one you're looking at.
+
 ## Migrating existing SQLite data to Postgres
 
 A tiny one-time copy (both stores share the schema): read every row from
