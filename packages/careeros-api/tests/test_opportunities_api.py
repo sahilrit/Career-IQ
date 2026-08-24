@@ -7,6 +7,7 @@ import types
 
 from careeros_ai import AIError
 from careeros_api.routers import opportunities
+from careeros_job_agent import CycleSummary
 
 
 def _create_brain(client, headers):
@@ -25,7 +26,7 @@ def test_search_returns_summary(client, auth_headers, monkeypatch):
 
     def fake_search(store, identity_id, *, keywords, remote_only, limit):
         assert keywords == ["performance marketing"]
-        return {"discovered": 12, "qualified": 4}
+        return CycleSummary(discovered=12, qualified=4)
 
     monkeypatch.setattr(opportunities, "search_for_jobs", fake_search)
     response = client.post(
@@ -34,7 +35,31 @@ def test_search_returns_summary(client, auth_headers, monkeypatch):
         json={"keywords": ["performance marketing"], "remote_only": True, "limit": 50},
     )
     assert response.status_code == 200
-    assert response.json() == {"discovered": 12, "qualified": 4}
+    assert response.json() == {"discovered": 12, "qualified": 4, "source_errors": []}
+
+
+def test_search_reports_sources_that_did_not_respond(client, auth_headers, monkeypatch):
+    """A search that returned less because a provider broke must say so —
+    otherwise a partial result is indistinguishable from a complete one."""
+    headers = auth_headers()
+    _create_brain(client, headers)
+
+    def fake_search(store, identity_id, *, keywords, remote_only, limit):
+        return CycleSummary(
+            discovered=3,
+            qualified=1,
+            source_errors=["linkedin: search timed out after 120s"],
+        )
+
+    monkeypatch.setattr(opportunities, "search_for_jobs", fake_search)
+    response = client.post(
+        "/opportunities/search",
+        headers=headers,
+        json={"keywords": ["ppc"], "remote_only": False, "limit": 10},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["source_errors"] == ["linkedin: search timed out after 120s"]
 
 
 def test_search_requires_auth(client):

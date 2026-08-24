@@ -33,7 +33,7 @@ def test_run_stores_new_applications_on_the_brain(
     provider = fake_provider_cls("remoteok", [posting_factory()])
     pipeline, _bus = _pipeline(repository, [provider])
 
-    new_applications = pipeline.run(brain.identity.id, JobSearchQuery())
+    new_applications = pipeline.run(brain.identity.id, JobSearchQuery()).applications
 
     assert len(new_applications) == 1
     reloaded = repository.load(brain.identity.id)
@@ -51,7 +51,7 @@ def test_running_twice_does_not_duplicate_the_same_posting(
     pipeline, _bus = _pipeline(repository, [provider])
 
     pipeline.run(brain.identity.id, JobSearchQuery())
-    second_run = pipeline.run(brain.identity.id, JobSearchQuery())
+    second_run = pipeline.run(brain.identity.id, JobSearchQuery()).applications
 
     assert second_run == []
     reloaded = repository.load(brain.identity.id)
@@ -80,7 +80,7 @@ def test_run_with_no_matching_postings_does_not_touch_the_repository(
     provider = fake_provider_cls("remoteok", [])
     pipeline, _bus = _pipeline(repository, [provider])
 
-    new_applications = pipeline.run(brain.identity.id, JobSearchQuery())
+    new_applications = pipeline.run(brain.identity.id, JobSearchQuery()).applications
 
     assert new_applications == []
     assert repository.load(brain.identity.id).applications == []
@@ -106,6 +106,32 @@ def test_run_aggregates_across_multiple_providers(
     )
     pipeline, _bus = _pipeline(repository, [a, b])
 
-    new_applications = pipeline.run(brain.identity.id, JobSearchQuery())
+    new_applications = pipeline.run(brain.identity.id, JobSearchQuery()).applications
 
     assert len(new_applications) == 2
+
+
+def test_run_carries_provider_failures_through_to_the_caller(
+    repository, brain_factory, posting_factory, fake_provider_cls
+):
+    """A source that breaks must not just quietly shrink the result set."""
+    brain = brain_factory()
+    repository.save(brain)
+    working = fake_provider_cls("remoteok", [posting_factory()])
+    broken = fake_provider_cls("linkedin", raise_on_search=True)
+    pipeline, _bus = _pipeline(repository, [working, broken])
+
+    run = pipeline.run(brain.identity.id, JobSearchQuery())
+
+    assert len(run.applications) == 1
+    assert any("linkedin" in error for error in run.source_errors)
+
+
+def test_run_reports_no_errors_when_every_provider_works(
+    repository, brain_factory, posting_factory, fake_provider_cls
+):
+    brain = brain_factory()
+    repository.save(brain)
+    pipeline, _bus = _pipeline(repository, [fake_provider_cls("remoteok", [posting_factory()])])
+
+    assert pipeline.run(brain.identity.id, JobSearchQuery()).source_errors == []

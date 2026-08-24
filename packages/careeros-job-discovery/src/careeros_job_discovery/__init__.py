@@ -3,8 +3,14 @@ into scored Applications on a user's Career Brain, with events published
 at every step.
 """
 
-from careeros_job_discovery.pipeline import JobDiscoveryPipeline
+from careeros_job_discovery.pipeline import DiscoveryRun, JobDiscoveryPipeline
 from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting, skill_gap
 
-__all__ = ["JobDiscoveryPipeline", "JobPostingRepository", "score_posting", "skill_gap"]
+__all__ = [
+    "DiscoveryRun",
+    "JobDiscoveryPipeline",
+    "JobPostingRepository",
+    "score_posting",
+    "skill_gap",
+]

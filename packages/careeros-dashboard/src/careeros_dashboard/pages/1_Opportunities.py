@@ -47,9 +47,12 @@ with st.expander("Search for jobs", expanded=False), st.form("search_jobs"):
         summary = search_for_jobs(
             store, brain.identity.id, keywords=keywords, remote_only=remote_only, limit=limit
         )
-        st.success(
-            f"Discovered {summary['discovered']} posting(s), {summary['qualified']} qualified."
-        )
+        st.success(f"Discovered {summary.discovered} posting(s), {summary.qualified} qualified.")
+        if summary.source_errors:
+            st.warning(
+                f"{len(summary.source_errors)} source(s) didn't respond — these results are "
+                "incomplete:\n\n" + "\n".join(f"- {e}" for e in summary.source_errors)
+            )
         st.rerun()
 
 applications = list_applications(store)

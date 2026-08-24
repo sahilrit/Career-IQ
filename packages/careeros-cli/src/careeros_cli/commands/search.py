@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 from careeros_cli.context import CLIContext, build_context
+from careeros_job_agent import CycleSummary
 from careeros_job_providers import JobSearchQuery
 
 
-def run_search(context: CLIContext, identity_id: str, query: JobSearchQuery) -> dict[str, int]:
+def run_search(context: CLIContext, identity_id: str, query: JobSearchQuery) -> CycleSummary:
     return context.agent.run_cycle(identity_id, query)
 
 
@@ -19,5 +19,5 @@ def cmd_search(args: argparse.Namespace) -> int:
         keywords=args.keywords or [], remote_only=args.remote_only, limit=args.limit
     )
     summary = run_search(context, args.identity_id, query)
-    print(json.dumps(summary))
+    print(summary.model_dump_json())
     return 0

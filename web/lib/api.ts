@@ -146,11 +146,19 @@ export type PlanInfo = {
   name: string;
   monthly_price_usd: number;
   features: string[];
+  /** What this workspace can use today — the full list while open access is on. */
+  available_features: string[];
   is_current: boolean;
   checkout_url: string | null;
 };
 
-export type Billing = { current_tier: string; status: string; plans: PlanInfo[] };
+export type Billing = {
+  current_tier: string;
+  status: string;
+  /** True while CareerOS is free for all: no prices, no upsells. */
+  open_access: boolean;
+  plans: PlanInfo[];
+};
 
 export type AiStatus = { has_key: boolean; model: string };
 
@@ -468,11 +476,11 @@ export const api = {
   searchJobs: (
     token: string,
     body: { keywords: string[]; remote_only: boolean; limit?: number },
-  ) => request<{ discovered: number; qualified: number }>("/opportunities/search", {
-    token,
-    method: "POST",
-    body,
-  }),
+  ) =>
+    request<{ discovered: number; qualified: number; source_errors: string[] }>(
+      "/opportunities/search",
+      { token, method: "POST", body },
+    ),
   generatePackage: (token: string, job_url: string) =>
     request<{
       resume_text: string;

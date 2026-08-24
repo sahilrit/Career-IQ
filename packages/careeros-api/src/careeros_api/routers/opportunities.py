@@ -44,7 +44,11 @@ def search(body: SearchRequest, context: Context) -> SearchResponse:
         remote_only=body.remote_only,
         limit=body.limit,
     )
-    return SearchResponse(discovered=summary["discovered"], qualified=summary["qualified"])
+    return SearchResponse(
+        discovered=summary.discovered,
+        qualified=summary.qualified,
+        source_errors=summary.source_errors,
+    )
 
 
 @router.post("/generate", response_model=ApplicationPackageResponse)

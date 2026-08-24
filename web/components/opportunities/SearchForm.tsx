@@ -24,9 +24,26 @@ export function SearchForm() {
         <SubmitButton>Search</SubmitButton>
       </form>
       {state && state.ok && (
-        <p className="mt-3 text-sm text-emerald-400">
-          Discovered {state.discovered} posting(s), {state.qualified} qualified.
-        </p>
+        <div className="mt-3">
+          <p className="text-sm text-emerald-400">
+            Discovered {state.discovered} posting(s), {state.qualified} qualified.
+          </p>
+          {/* A search that quietly returned less because a source broke looks
+              identical to a quiet week. Say which ones didn't answer. */}
+          {state.source_errors.length > 0 && (
+            <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2">
+              <p className="text-sm text-amber-300">
+                {state.source_errors.length} source(s) didn&apos;t respond, so these results are
+                incomplete.
+              </p>
+              <ul className="mt-1 space-y-0.5 text-xs text-amber-200/70">
+                {state.source_errors.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
       {state && !state.ok && <p className="mt-3 text-sm text-red-400">{state.error}</p>}
     </div>

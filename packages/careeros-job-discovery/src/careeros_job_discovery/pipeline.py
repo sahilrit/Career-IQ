@@ -11,11 +11,26 @@ this pipeline knowing who's listening.
 
 from __future__ import annotations
 
+from pydantic import BaseModel, Field
+
 from careeros_career_brain import Application, CareerBrainRepository
 from careeros_event_bus import Event, EventBus
 from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
+
+
+class DiscoveryRun(BaseModel):
+    """What one discovery cycle produced.
+
+    ``source_errors`` carries the reason any provider contributed nothing —
+    rate limited, timed out, blocked. A run that quietly returns fewer results
+    because a source broke is indistinguishable from a slow week in the market,
+    so these travel with the applications rather than only reaching the log.
+    """
+
+    applications: list[Application] = Field(default_factory=list)
+    source_errors: list[str] = Field(default_factory=list)
 
 
 class JobDiscoveryPipeline:
@@ -31,7 +46,7 @@ class JobDiscoveryPipeline:
         self._bus = event_bus
         self._postings = posting_repository
 
-    def run(self, identity_id: str, query: JobSearchQuery) -> list[Application]:
+    def run(self, identity_id: str, query: JobSearchQuery) -> DiscoveryRun:
         """Discover, score, and store new applications for one user's Career Brain.
 
         Postings already recorded (matched by job URL) are skipped, so
@@ -94,4 +109,4 @@ class JobDiscoveryPipeline:
         if new_applications:
             self._repository.save(brain)
 
-        return new_applications
+        return DiscoveryRun(applications=new_applications, source_errors=result.source_errors)

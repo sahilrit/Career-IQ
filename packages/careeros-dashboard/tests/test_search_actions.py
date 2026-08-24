@@ -61,7 +61,7 @@ def test_search_for_jobs_discovers_and_qualifies(store):
         provider_registry=registry,
     )
 
-    assert summary["discovered"] == 1
+    assert summary.discovered == 1
 
 
 def test_generate_application_for_job_builds_a_real_package(store):
