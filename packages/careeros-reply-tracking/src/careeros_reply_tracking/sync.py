@@ -87,17 +87,31 @@ class _SeenState(BaseModel):
 _SEEN_ENTITY = "reply_tracking_seen"
 
 
-def _company_key(name: str) -> str:
-    tokens = "".join(c if c.isalnum() else " " for c in name.lower()).split()
+def _tokens(text: str) -> list[str]:
+    """Lower-cased alphanumeric tokens, in order."""
+    return "".join(c if c.isalnum() else " " for c in text.lower()).split()
+
+
+def _company_tokens(name: str) -> set[str]:
+    """The distinctive tokens of a company name, with generic suffixes dropped.
+
+    "Acme Corp" -> {"acme"}, "Prop Solutions" -> {"prop", "solutions"}. If a
+    name is nothing but noise words, keep them all rather than match nothing.
+    """
+    tokens = _tokens(name)
     meaningful = [t for t in tokens if t not in _COMPANY_NOISE]
-    return "".join(meaningful or tokens)
+    return set(meaningful or tokens)
 
 
-def _email_mentions_company(message: EmailMessage, company_key: str) -> bool:
-    if not company_key:
+def _email_mentions_company(message: EmailMessage, company_tokens: set[str]) -> bool:
+    """Whether the email's sender and subject contain the company as whole
+    tokens. Token-set containment, never substring: "On" must not match
+    "notion.com" and "Meta" must not match "meta-analysis", or an unrelated
+    email would advance the wrong application."""
+    if not company_tokens:
         return False
-    haystack = _company_key(f"{message.sender} {message.subject}")
-    return company_key in haystack
+    haystack = set(_tokens(f"{message.sender} {message.subject}"))
+    return company_tokens <= haystack
 
 
 def _transition_path(
@@ -138,7 +152,7 @@ def _matching_applications(brain: CareerBrain, message: EmailMessage) -> list[Ap
     return [
         application
         for application in brain.applications
-        if _email_mentions_company(message, _company_key(application.company_name))
+        if _email_mentions_company(message, _company_tokens(application.company_name))
     ]
 
 

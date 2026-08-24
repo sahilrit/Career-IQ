@@ -97,13 +97,16 @@ def country_for_locations(locations: list[str]) -> str:
     not resolve to Great Britain on the strength of the city name.
     """
     for raw in locations:
-        text = " ".join(str(raw).lower().split())
-        if not text:
+        # Whole-word tokens, so a country key like "us" matches the token "us"
+        # but never a substring of "Belarus" or "Aarhus". A multi-word key like
+        # "united states" matches only when all its words are present.
+        words = set("".join(c if c.isalnum() else " " for c in str(raw).lower()).split())
+        if not words:
             continue
         for token, code in COUNTRY_TOKENS.items():
-            if token in text:
+            if set(token.split()) <= words:
                 return code
         for token, code in CITY_TOKENS.items():
-            if token in text:
+            if set(token.split()) <= words:
                 return code
     return DEFAULT_COUNTRY

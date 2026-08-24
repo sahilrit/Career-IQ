@@ -11,6 +11,8 @@ this pipeline knowing who's listening.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from careeros_career_brain import Application, CareerBrainRepository
@@ -19,6 +21,9 @@ from careeros_job_discovery.llm_scoring import LlmJobScorer, apply_patches
 from careeros_job_discovery.posting_store import JobPostingRepository
 from careeros_job_discovery.scoring import score_posting
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
+
+#: How many postings a single run will LLM-score, at most. One API call each.
+DEFAULT_MAX_LLM_SCORED = 40
 
 
 def _profile_summary(brain) -> str:
@@ -67,6 +72,7 @@ class JobDiscoveryPipeline:
         posting_repository: JobPostingRepository | None = None,
         *,
         llm_scorer: LlmJobScorer | None = None,
+        max_llm_scored: int = DEFAULT_MAX_LLM_SCORED,
     ) -> None:
         self._providers = provider_registry
         self._repository = career_brain_repository
@@ -75,6 +81,19 @@ class JobDiscoveryPipeline:
         # Optional second-pass scorer. Without one, discovery behaves exactly
         # as it always has: cheap arithmetic against the Career Brain.
         self._llm_scorer = llm_scorer
+        # LLM scoring is one API call per posting, so it is capped per run and
+        # spent on the highest heuristic-scoring candidates. The rest keep
+        # their heuristic score. Without a cap a broad first search could fire
+        # hundreds of serial LLM calls.
+        self._max_llm_scored = max(0, max_llm_scored)
+
+    def _select_llm_targets(self, scored: list[tuple[Any, float]]) -> set[str]:
+        """The URLs of the postings that get an LLM call this run: the highest
+        heuristic-scoring ones, up to the cap. Empty when there is no scorer."""
+        if self._llm_scorer is None or self._max_llm_scored == 0:
+            return set()
+        ranked = sorted(scored, key=lambda item: item[1], reverse=True)
+        return {posting.url for posting, _ in ranked[: self._max_llm_scored]}
 
     def run(self, identity_id: str, query: JobSearchQuery) -> DiscoveryRun:
         """Discover, score, and store new applications for one user's Career Brain.
@@ -86,12 +105,22 @@ class JobDiscoveryPipeline:
         result = self._providers.search_all(query)
 
         profile_summary = _profile_summary(brain)
-        new_applications: list[Application] = []
+
+        # Score every new posting cheaply first, then spend the capped LLM budget
+        # on the highest-scoring ones. A broad first search can surface hundreds
+        # of postings; LLM-scoring all of them would be minutes of serial calls
+        # and real token cost.
+        scored: list[tuple[Any, float]] = []
         for posting in result.postings:
             if brain.find_application_by_job_url(posting.url) is not None:
                 # Already recorded; still nothing to re-cache or re-score.
                 continue
+            scored.append((posting, score_posting(posting, brain)))
 
+        llm_targets = self._select_llm_targets(scored)
+
+        new_applications: list[Application] = []
+        for posting, score in scored:
             self._bus.publish(
                 Event(
                     event_type="job.discovered",
@@ -100,9 +129,7 @@ class JobDiscoveryPipeline:
                 )
             )
 
-            score = score_posting(posting, brain)
-
-            if self._llm_scorer is not None:
+            if posting.url in llm_targets and self._llm_scorer is not None:
                 llm_result = self._llm_scorer.score(posting, profile_summary=profile_summary)
                 if llm_result is not None:
                     # Corrections first, so the cached posting and the score

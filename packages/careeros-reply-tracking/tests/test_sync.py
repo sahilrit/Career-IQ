@@ -175,3 +175,59 @@ def test_summary_counts_everything_seen(store, brain_with_application):
     summary = sync_replies(store, brain_with_application.identity.id, mailbox, event_bus=EventBus())
     assert summary.scanned == 3
     assert summary.transitioned == 1
+
+
+# --- company matching precision (regression: substring false positives) ------
+
+
+def test_a_company_name_is_not_matched_as_a_substring(store):
+    """'On' must not match 'notion.com', and 'Meta' must not match
+    'meta-analysis' — matching is on whole tokens, not substrings, or an
+    unrelated recruiter email would advance the wrong application."""
+    repository = CareerBrainRepository(store)
+    brain = CareerBrain(identity=Identity(full_name="Sahil", email="sahil@example.com"))
+    brain.applications.append(
+        Application(job_title="Designer", company_name="On", status=ApplicationStatus.APPLIED)
+    )
+    repository.save(brain)
+
+    mailbox = FakeMailbox(
+        [
+            _msg(
+                id="x",
+                sender="recruiting@notion.com",
+                subject="Your Notion application",
+                body="We'd like to invite you to an interview.",
+            )
+        ]
+    )
+    summary = sync_replies(store, brain.identity.id, mailbox, event_bus=EventBus())
+
+    assert summary.transitioned == 0
+    assert repository.load(brain.identity.id).applications[0].status is ApplicationStatus.APPLIED
+
+
+def test_a_multiword_company_matches_when_all_tokens_are_present(store):
+    repository = CareerBrainRepository(store)
+    brain = CareerBrain(identity=Identity(full_name="Sahil", email="sahil@example.com"))
+    brain.applications.append(
+        Application(
+            job_title="Engineer",
+            company_name="Prop Solutions",
+            status=ApplicationStatus.APPLIED,
+        )
+    )
+    repository.save(brain)
+
+    mailbox = FakeMailbox(
+        [
+            _msg(
+                id="y",
+                sender="hr@propsolutions.com",
+                subject="Prop Solutions — interview invite",
+                body="Let's schedule a call.",
+            )
+        ]
+    )
+    summary = sync_replies(store, brain.identity.id, mailbox, event_bus=EventBus())
+    assert summary.transitioned == 1

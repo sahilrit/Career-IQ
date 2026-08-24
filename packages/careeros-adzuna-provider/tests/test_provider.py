@@ -189,3 +189,28 @@ def test_health_check_asks_for_a_single_result(fake_transport_cls):
     transport = fake_transport_cls()
     AdzunaProvider(transport).health_check()
     assert transport.calls[0]["results_per_page"] == 1
+
+
+# --- country routing precision (regression: substring false positives) -------
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["Belarus", "Cyprus", "Aarhus, Denmark", "Toulouse, France", "Mauritius"],
+)
+def test_a_country_token_is_not_matched_as_a_substring(location):
+    """'us' must not match 'Belarus'/'Cyprus'/'Aarhus', or the search routes to
+    the US index for a country that is nowhere near it. Unsupported locations
+    fall back to the default, never to a wrong supported country."""
+    result = country_for_locations([location])
+    assert result != "us"
+
+
+def test_a_multiword_country_still_resolves():
+    assert country_for_locations(["San Francisco, United States"]) == "us"
+    assert country_for_locations(["London, United Kingdom"]) == "gb"
+
+
+def test_a_multiword_city_still_resolves():
+    assert country_for_locations(["New York"]) == "us"
+    assert country_for_locations(["New Delhi"]) == "in"

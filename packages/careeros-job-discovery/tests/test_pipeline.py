@@ -17,13 +17,20 @@ def repository():
         yield CareerBrainRepository(store)
 
 
-def _pipeline(repository, providers, *, llm_scorer=None, posting_repository=None):
+def _pipeline(
+    repository, providers, *, llm_scorer=None, posting_repository=None, max_llm_scored=40
+):
     registry = JobProviderRegistry()
     for provider in providers:
         registry.register(provider)
     bus = EventBus()
     pipeline = JobDiscoveryPipeline(
-        registry, repository, bus, posting_repository, llm_scorer=llm_scorer
+        registry,
+        repository,
+        bus,
+        posting_repository,
+        llm_scorer=llm_scorer,
+        max_llm_scored=max_llm_scored,
     )
     return pipeline, bus
 
@@ -238,3 +245,64 @@ def test_llm_patches_correct_the_cached_posting(
     pipeline.run(brain.identity.id, JobSearchQuery())
 
     assert posting_repository.load_or_none(posting.url).remote is True
+
+
+# --- LLM scoring cost cap ----------------------------------------------------
+
+
+def _many_provider(fake_provider_cls, posting_factory, n):
+    postings = [
+        posting_factory(external_id=str(i), title=f"Growth Role {i}", url=f"https://x/{i}")
+        for i in range(n)
+    ]
+    return fake_provider_cls("remoteok", postings)
+
+
+def test_llm_scoring_is_capped_per_run(
+    repository, brain_factory, posting_factory, fake_provider_cls
+):
+    """One LLM call per new posting, unbounded, would cost minutes and real
+    money on a large first search. The pipeline caps how many are LLM-scored."""
+    from careeros_job_discovery.llm_scoring import LlmScoreResult
+
+    brain = brain_factory()
+    repository.save(brain)
+    scorer = _StubScorer(LlmScoreResult(score=80))
+    pipeline, _bus = _pipeline(
+        repository,
+        [_many_provider(fake_provider_cls, posting_factory, 10)],
+        llm_scorer=scorer,
+        max_llm_scored=3,
+    )
+
+    run = pipeline.run(brain.identity.id, JobSearchQuery(limit=50))
+
+    # All 10 still become applications; only 3 cost an LLM call.
+    assert len(run.applications) == 10
+    assert len(scorer.scored) == 3
+
+
+def test_uncapped_postings_keep_their_heuristic_score(
+    repository, brain_factory, posting_factory, fake_provider_cls
+):
+    from careeros_job_discovery.llm_scoring import LlmScoreResult
+
+    brain = brain_factory()
+    repository.save(brain)
+    # A distinctive LLM score (0.0) so LLM-scored postings are tellable apart
+    # from the heuristic ones, whatever the heuristic returns.
+    scorer = _StubScorer(LlmScoreResult(score=0))
+    pipeline, _bus = _pipeline(
+        repository,
+        [_many_provider(fake_provider_cls, posting_factory, 5)],
+        llm_scorer=scorer,
+        max_llm_scored=1,
+    )
+
+    run = pipeline.run(brain.identity.id, JobSearchQuery(limit=50))
+
+    # Exactly one posting carries the LLM's 0.0; the other four keep whatever
+    # the heuristic gave them (never 0.0 here).
+    llm_scored = [a for a in run.applications if a.match_score == 0.0]
+    assert len(llm_scored) == 1
+    assert len(scorer.scored) == 1
