@@ -166,6 +166,19 @@ export type OnboardingStep = { key: string; label: string; href: string; done: b
 export type Onboarding = { steps: OnboardingStep[]; complete: boolean };
 
 export type GoogleStatus = { configured: boolean; connected: boolean; email: string | null };
+export type WatchedCompany = { ats: string; board_token: string; display_name: string };
+export type WatchlistNewPosting = {
+  external_id: string;
+  title: string;
+  company_name: string;
+  url: string;
+};
+export type WatchlistCheck = {
+  checked: number;
+  errored: number;
+  baselined: number;
+  new_postings: WatchlistNewPosting[];
+};
 export type ReplySyncSummary = {
   scanned: number;
   transitioned: number;
@@ -583,4 +596,17 @@ export const api = {
   careerIntel: (token: string) => request<CareerIntel>("/career-intel", { token }),
   addSignal: (token: string, body: { category: string; subject: string; score: number }) =>
     request<{ ok: boolean }>("/career-intel/signals", { token, method: "POST", body }),
+
+  watchlist: (token: string) => request<WatchedCompany[]>("/watchlist", { token }),
+  watchCompany: (
+    token: string,
+    body: { ats: string; board_token: string; display_name?: string },
+  ) => request<WatchedCompany>("/watchlist", { token, method: "POST", body }),
+  unwatchCompany: (token: string, ats: string, board_token: string) =>
+    request<{ removed: boolean }>(`/watchlist/${ats}/${board_token}`, {
+      token,
+      method: "DELETE",
+    }),
+  checkWatchlist: (token: string) =>
+    request<WatchlistCheck>("/watchlist/check", { token, method: "POST" }),
 };
