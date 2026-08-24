@@ -97,13 +97,13 @@ def test_detect_form_mapping_picks_up_optional_fields():
         "input[type='email']",
         "button[type='submit']",
         "input[type='tel']",
-        "input[type='file']",
+        "input[type='file'][name*='resume' i]",
         "textarea[name*='cover' i]",
     ):
         session.set_visible(selector)
     mapping = detect_form_mapping(session)
     assert mapping.phone_selector == "input[type='tel']"
-    assert mapping.resume_upload_selector == "input[type='file']"
+    assert mapping.resume_upload_selector == "input[type='file'][name*='resume' i]"
     assert mapping.cover_letter_selector == "textarea[name*='cover' i]"
 
 
@@ -112,12 +112,29 @@ def test_file_input_is_never_mapped_as_the_text_cover_letter():
     cover-letter TEXT field must only match a textarea, so a lone file input is
     mapped as the résumé upload, not force-typed into as a cover letter."""
     session = FakeBrowserSession()
-    for selector in ("input[type='email']", "button[type='submit']", "input[type='file']"):
+    for selector in (
+        "input[type='email']",
+        "button[type='submit']",
+        "input[type='file'][name*='resume' i]",
+    ):
         session.set_visible(selector)
     mapping = detect_form_mapping(session)
     assert mapping is not None
-    assert mapping.resume_upload_selector == "input[type='file']"
+    assert mapping.resume_upload_selector == "input[type='file'][name*='resume' i]"
     assert mapping.cover_letter_selector is None
+
+
+def test_resume_is_never_uploaded_into_a_cover_letter_file_field():
+    """Regression: a plain input[type=file] match was putting the résumé in the
+    cover-letter upload slot. If only a cover-letter file input exists, the
+    résumé upload must resolve to nothing rather than the wrong field."""
+    session = FakeBrowserSession()
+    session.set_visible("input[type='email']")
+    session.set_visible("button[type='submit']")
+    session.set_visible("input[type='file'][id*='cover_letter' i]")  # cover-letter upload only
+    mapping = detect_form_mapping(session)
+    assert mapping is not None
+    assert mapping.resume_upload_selector is None
 
 
 def test_invisible_recaptcha_v3_badge_does_not_trigger_a_captcha():

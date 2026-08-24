@@ -61,7 +61,20 @@ _FULL_NAME_SELECTORS = [
     "input[name*='full' i]",
 ]
 _PHONE_SELECTORS = ["input[type='tel']", "#phone", "input[name*='phone' i]"]
-_RESUME_SELECTORS = ["input[type='file']"]
+# Résumé upload — prefer a file input clearly for the résumé/CV, and NEVER a
+# cover-letter file input (a plain "input[type='file']" match was uploading the
+# résumé into the cover-letter slot on forms that have both).
+_RESUME_SELECTORS = [
+    "input[type='file'][name*='resume' i]",
+    "input[type='file'][id*='resume' i]",
+    "input[type='file'][name*='cv' i]",
+    "input[type='file'][id*='cv' i]",
+    # Generic fallback: any file input that is NOT a cover-letter upload. If
+    # even this finds nothing, we skip the résumé rather than risk uploading it
+    # to the wrong field.
+    "input[type='file']:not([id*='cover' i]):not([name*='cover' i])"
+    ":not([id*='letter' i]):not([name*='letter' i])",
+]
 # The cover-letter TEXT field — must be a textarea we can type into. A bare
 # "#cover_letter" is dangerous: on Greenhouse that id is an <input type="file">,
 # and typing into a file input throws. Match textareas only; a file-based cover
