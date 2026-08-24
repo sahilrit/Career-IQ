@@ -59,6 +59,13 @@ select = [
 ]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+# These modules exist precisely to map ambiguous Unicode glyphs (smart
+# quotes, en/em dashes, non-latin scripts) to safe PDF text, so the
+# ambiguous-character lint is noise in them.
+"packages/careeros-api/src/careeros_api/resume_pdf.py" = ["RUF001"]
+"packages/careeros-api/tests/test_resume_pdf.py" = ["RUF001"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["careeros_common"]
 
