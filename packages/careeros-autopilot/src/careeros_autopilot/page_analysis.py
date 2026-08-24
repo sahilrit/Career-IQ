@@ -200,7 +200,10 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
             lowered = question.lower()
             if any(word in lowered for word in _standard):
                 continue
-            css = f"#{element_id}"
+            # Attribute selector, not "#id": some ATS use all-numeric ids
+            # (e.g. id="4001209002"), and "#4001209002" is INVALID CSS and
+            # throws when filled — which crashed whole cycles.
+            css = f'[id="{element_id}"]'
             if css in seen:
                 continue
             seen.add(css)

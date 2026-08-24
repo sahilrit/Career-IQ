@@ -273,7 +273,20 @@ def test_detect_question_fields_uses_label_elements_and_selects():
         [{"id": "q_src", "label": None, "placeholder": None}],
     )
     fields = {f.selector: f for f in detect_question_fields(session)}
-    assert fields["#q_auth"].question == "Are you authorized to work in the US?"
-    assert fields["#q_auth"].kind == "text"
-    assert fields["#q_src"].question == "How did you hear about us?"
-    assert fields["#q_src"].kind == "select"
+    assert fields['[id="q_auth"]'].question == "Are you authorized to work in the US?"
+    assert fields['[id="q_auth"]'].kind == "text"
+    assert fields['[id="q_src"]'].question == "How did you hear about us?"
+    assert fields['[id="q_src"]'].kind == "select"
+
+
+def test_numeric_field_ids_produce_valid_selectors():
+    """Regression: an all-numeric id like 4001209002 makes '#4001209002' an
+    INVALID CSS selector that throws on fill and crashed whole cycles. Use an
+    attribute selector instead."""
+    session = FakeBrowserSession()
+    session.set_query_all_results(
+        "input[type='text']",
+        [{"id": "4001209002", "label": "Years of experience", "placeholder": None}],
+    )
+    fields = detect_question_fields(session)
+    assert fields[0].selector == '[id="4001209002"]'

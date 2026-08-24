@@ -42,16 +42,19 @@ def fill_application_form(
         with contextlib.suppress(Exception):
             session.fill(mapping.cover_letter_selector, package.cover_letter)
 
-    # Additional application questions, answered from the Career Brain.
+    # Additional application questions, answered from the Career Brain. A single
+    # awkward field (odd selector, custom widget) must never sink the whole
+    # form — skip it and leave it for the human.
     answers = question_answers or {}
     for field in mapping.question_fields:
         answer = answers.get(field.selector)
         if not answer:
             continue
-        if field.kind == "select":
-            session.select_option(field.selector, answer)
-        else:
-            session.fill(field.selector, answer)
+        with contextlib.suppress(Exception):
+            if field.kind == "select":
+                session.select_option(field.selector, answer)
+            else:
+                session.fill(field.selector, answer)
 
 
 def submit_application_form(session: BrowserSession, mapping: FormFieldMapping) -> None:
