@@ -28,15 +28,27 @@ _ATS_HOST_RE = re.compile(
 
 # Blocking conditions the autopilot must never try to get around: a captcha,
 # or a login/signup wall (a visible password field means exactly that).
+#
+# Only INTERACTIVE captchas count — the ones a human must actually click. We do
+# NOT match the generic "recaptcha" iframe, because reCAPTCHA v3 keeps a visible
+# badge on the page at all times with no challenge to solve; matching it made
+# the autopilot pause pointlessly on forms that submit fine on their own. The
+# v2 checkbox (api2/anchor) and image challenge (api2/bframe) are the real,
+# human-solvable frames; hCaptcha/Turnstile challenge frames likewise.
+_CAPTCHA = "a captcha challenge"
 CAPTCHA_DETECTORS = [
-    SelectorAppearsDetector("iframe[src*='recaptcha']", kind="captcha"),
-    SelectorAppearsDetector("iframe[src*='hcaptcha']", kind="captcha"),
-    SelectorAppearsDetector("iframe[src*='turnstile']", kind="captcha"),
-    SelectorAppearsDetector(".g-recaptcha", kind="captcha"),
-    SelectorAppearsDetector(".h-captcha", kind="captcha"),
+    SelectorAppearsDetector("iframe[src*='api2/anchor']", kind="captcha", description=_CAPTCHA),
+    SelectorAppearsDetector("iframe[src*='api2/bframe']", kind="captcha", description=_CAPTCHA),
+    SelectorAppearsDetector("iframe[src*='hcaptcha.com']", kind="captcha", description=_CAPTCHA),
+    SelectorAppearsDetector(
+        "iframe[src*='challenges.cloudflare.com']", kind="captcha", description=_CAPTCHA
+    ),
+    SelectorAppearsDetector(".h-captcha iframe", kind="captcha", description=_CAPTCHA),
 ]
 LOGIN_WALL_DETECTORS = [
-    SelectorAppearsDetector("input[type='password']", kind="login_required"),
+    SelectorAppearsDetector(
+        "input[type='password']", kind="login_required", description="a login/sign-in wall"
+    ),
 ]
 DEFAULT_PROBLEM_DETECTORS = [*CAPTCHA_DETECTORS, *LOGIN_WALL_DETECTORS]
 

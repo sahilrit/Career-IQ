@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 from careeros_autopilot import detect_form_mapping, find_apply_url, prepare_application_page
-from careeros_autopilot.page_analysis import ats_apply_url, detect_question_fields
+from careeros_autopilot.page_analysis import (
+    DEFAULT_PROBLEM_DETECTORS,
+    ats_apply_url,
+    detect_question_fields,
+)
 from careeros_browser import FakeBrowserSession
+from careeros_human_in_the_loop import run_detectors
 from careeros_job_providers import JobPosting
 
 
@@ -113,6 +118,23 @@ def test_file_input_is_never_mapped_as_the_text_cover_letter():
     assert mapping is not None
     assert mapping.resume_upload_selector == "input[type='file']"
     assert mapping.cover_letter_selector is None
+
+
+def test_invisible_recaptcha_v3_badge_does_not_trigger_a_captcha():
+    """reCAPTCHA v3 keeps a visible badge (a generic 'recaptcha' iframe) with
+    nothing to solve — it must NOT pause the run."""
+    session = FakeBrowserSession()
+    session.set_visible("iframe[src*='recaptcha']")  # the v3 badge, no challenge
+    session.set_visible(".g-recaptcha")
+    assert run_detectors(session, DEFAULT_PROBLEM_DETECTORS) is None
+
+
+def test_visible_recaptcha_v2_checkbox_is_detected_as_a_captcha():
+    session = FakeBrowserSession()
+    session.set_visible("iframe[src*='api2/anchor']")  # the "I'm not a robot" checkbox
+    problem = run_detectors(session, DEFAULT_PROBLEM_DETECTORS)
+    assert problem is not None
+    assert problem.kind == "captcha"
 
 
 def test_ats_apply_url_derivation():

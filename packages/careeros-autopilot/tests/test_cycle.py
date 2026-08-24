@@ -116,7 +116,7 @@ def test_run_report_is_persisted(store, registry, brain, tmp_path):
 
 def test_captcha_hands_off_instead_of_submitting(store, registry, brain, tmp_path):
     session = form_session()
-    session.set_visible("iframe[src*='recaptcha']")
+    session.set_visible("iframe[src*='api2/anchor']")  # visible reCAPTCHA v2 checkbox
     report = run(store, registry, session, tmp_path)
 
     assert report["submitted"] == 0
@@ -131,7 +131,7 @@ def test_login_wall_hands_off_instead_of_submitting(store, registry, brain, tmp_
     report = run(store, registry, session, tmp_path)
 
     assert report["submitted"] == 0
-    assert "password" in report["outcomes"][0]["reason"].lower()
+    assert "login" in report["outcomes"][0]["reason"].lower()
 
 
 def test_no_form_found_is_reported_not_submitted(store, registry, brain, tmp_path):

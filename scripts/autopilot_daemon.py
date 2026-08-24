@@ -46,8 +46,12 @@ from careeros_workingnomads_provider import WorkingNomadsProvider
 
 DEFAULT_KEYWORDS = (
     "performance marketing,media buyer,paid social,paid media,paid search,ppc,"
-    "meta ads,facebook ads,growth marketing,digital marketing,marketing manager,"
-    "marketing specialist,ecommerce,shopify,conversion rate,cro"
+    "meta ads,facebook ads,google ads,growth marketing,growth,demand generation,"
+    "digital marketing,marketing manager,marketing specialist,marketing analyst,"
+    "product marketing,brand marketing,content marketing,lifecycle marketing,"
+    "email marketing,crm,marketing automation,seo,sem,social media,"
+    "user acquisition,paid acquisition,retention marketing,affiliate marketing,"
+    "ecommerce,shopify,conversion rate,cro"
 )
 
 
