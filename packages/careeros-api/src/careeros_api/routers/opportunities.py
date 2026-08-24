@@ -43,6 +43,9 @@ def search(body: SearchRequest, context: Context) -> SearchResponse:
         keywords=body.keywords,
         remote_only=body.remote_only,
         limit=body.limit,
+        # None when the workspace has no AI key — discovery then uses the
+        # heuristic scorer alone, exactly as before.
+        llm_scorer=ai_support.resolve_llm_job_scorer(context.store, context.account.workspace_id),
     )
     return SearchResponse(
         discovered=summary.discovered,

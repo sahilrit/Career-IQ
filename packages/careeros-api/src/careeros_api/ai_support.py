@@ -11,6 +11,7 @@ from careeros_ai import AIClient, build_client
 from careeros_api.vault_support import open_vault
 from careeros_application_engine import AICoverLetterGenerator, CoverLetterGenerator
 from careeros_credentials import SecretNotFoundError
+from careeros_job_discovery.llm_scoring import LlmJobScorer
 
 _KEY_SERVICE = "anthropic_api_key"  # kept for back-compat with stored keys
 _MODEL_SERVICE = "ai_model"
@@ -101,3 +102,16 @@ def resolve_ai_client(store: Any, workspace_id: str) -> AIClient | None:
     if not key:
         return None
     return build_client(key, _model_for(store, workspace_id))
+
+
+def resolve_llm_job_scorer(store: Any, workspace_id: str) -> LlmJobScorer | None:
+    """The second-pass job scorer, when the workspace has an AI key.
+
+    Without a key, discovery falls back to the heuristic scorer — which is
+    the same behaviour as before this existed, so nothing breaks for a
+    workspace that has not configured AI.
+    """
+    key = _get_key(store, workspace_id)
+    if not key:
+        return None
+    return LlmJobScorer(build_client(key, _model_for(store, workspace_id)))

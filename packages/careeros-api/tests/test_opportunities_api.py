@@ -24,7 +24,7 @@ def test_search_returns_summary(client, auth_headers, monkeypatch):
     headers = auth_headers()
     _create_brain(client, headers)
 
-    def fake_search(store, identity_id, *, keywords, remote_only, limit):
+    def fake_search(store, identity_id, *, keywords, remote_only, limit, llm_scorer=None):
         assert keywords == ["performance marketing"]
         return CycleSummary(discovered=12, qualified=4)
 
@@ -44,7 +44,7 @@ def test_search_reports_sources_that_did_not_respond(client, auth_headers, monke
     headers = auth_headers()
     _create_brain(client, headers)
 
-    def fake_search(store, identity_id, *, keywords, remote_only, limit):
+    def fake_search(store, identity_id, *, keywords, remote_only, limit, llm_scorer=None):
         return CycleSummary(
             discovered=3,
             qualified=1,
@@ -60,6 +60,53 @@ def test_search_reports_sources_that_did_not_respond(client, auth_headers, monke
 
     assert response.status_code == 200
     assert response.json()["source_errors"] == ["linkedin: search timed out after 120s"]
+
+
+def test_search_uses_the_llm_scorer_when_the_workspace_has_a_key(client, auth_headers, monkeypatch):
+    """The second-pass scorer is what turns a keyword match into a real fit
+    score, so it has to actually reach the pipeline."""
+    headers = auth_headers()
+    _create_brain(client, headers)
+    seen: dict[str, object] = {}
+
+    def fake_search(store, identity_id, *, keywords, remote_only, limit, llm_scorer=None):
+        seen["llm_scorer"] = llm_scorer
+        return CycleSummary(discovered=1, qualified=1)
+
+    monkeypatch.setattr(opportunities, "search_for_jobs", fake_search)
+    monkeypatch.setattr(
+        opportunities.ai_support, "resolve_llm_job_scorer", lambda store, ws: "a-scorer"
+    )
+    client.post(
+        "/opportunities/search",
+        headers=headers,
+        json={"keywords": ["ppc"], "remote_only": False, "limit": 10},
+    )
+
+    assert seen["llm_scorer"] == "a-scorer"
+
+
+def test_search_works_without_an_ai_key(client, auth_headers, monkeypatch):
+    """No key means no scorer — discovery falls back to the heuristic rather
+    than failing."""
+    headers = auth_headers()
+    _create_brain(client, headers)
+    seen: dict[str, object] = {}
+
+    def fake_search(store, identity_id, *, keywords, remote_only, limit, llm_scorer=None):
+        seen["llm_scorer"] = llm_scorer
+        return CycleSummary(discovered=1, qualified=0)
+
+    monkeypatch.setattr(opportunities, "search_for_jobs", fake_search)
+    monkeypatch.setattr(opportunities.ai_support, "resolve_llm_job_scorer", lambda store, ws: None)
+    response = client.post(
+        "/opportunities/search",
+        headers=headers,
+        json={"keywords": ["ppc"], "remote_only": False, "limit": 10},
+    )
+
+    assert response.status_code == 200
+    assert seen["llm_scorer"] is None
 
 
 def test_search_requires_auth(client):

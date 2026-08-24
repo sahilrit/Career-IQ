@@ -22,6 +22,7 @@ from careeros_himalayas_provider import HimalayasProvider
 from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_agent import CycleSummary, JobAgent
 from careeros_job_discovery import JobDiscoveryPipeline, JobPostingRepository
+from careeros_job_discovery.llm_scoring import LlmJobScorer
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
 from careeros_job_search.optional_providers import linkedin_enabled
 from careeros_jobicy_provider import JobicyProvider
@@ -72,13 +73,16 @@ def search_for_jobs(
     remote_only: bool,
     limit: int,
     provider_registry: JobProviderRegistry | None = None,
+    llm_scorer: LlmJobScorer | None = None,
 ) -> CycleSummary:
     registry = provider_registry or default_provider_registry()
     repository = CareerBrainRepository(store)
     bus = EventBus()
     # Cache discovered postings so generation reads them back by URL
     # instead of re-crawling every provider.
-    pipeline = JobDiscoveryPipeline(registry, repository, bus, JobPostingRepository(store))
+    pipeline = JobDiscoveryPipeline(
+        registry, repository, bus, JobPostingRepository(store), llm_scorer=llm_scorer
+    )
     agent = JobAgent(pipeline, repository, bus)
     query = JobSearchQuery(keywords=keywords, remote_only=remote_only, limit=limit)
     return agent.run_cycle(identity_id, query)
