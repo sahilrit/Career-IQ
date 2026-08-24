@@ -54,6 +54,7 @@ members = [
     "careeros-fiverr-provider",
     "careeros-freelance-providers",
     "careeros-golangjobs-provider",
+    "careeros-gradcracker-provider",
     "careeros-greenhouse-provider",
     "careeros-himalayas-provider",
     "careeros-hiringcafe-provider",
@@ -1126,6 +1127,23 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
+name = "careeros-gradcracker-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-gradcracker-provider" }
+dependencies = [
+    { name = "careeros-browser" },
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-browser", editable = "packages/careeros-browser" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
 ]
 
 [[package]]
