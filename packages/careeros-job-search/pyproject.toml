@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "App-composition layer for job discovery: the default 10-provider registry plus search_for_jobs / generate_application_for_job. Shared by the Streamlit dashboard and the FastAPI backend so neither duplicates provider wiring."
 requires-python = ">=3.12"
 dependencies = [
+    "careeros-adzuna-provider",
     "careeros-application-engine",
     "careeros-arbeitnow-provider",
     "careeros-ashby-provider",
@@ -11,12 +12,14 @@ dependencies = [
     "careeros-common",
     "careeros-event-bus",
     "careeros-greenhouse-provider",
+    "careeros-hiringcafe-provider",
     "careeros-himalayas-provider",
     "careeros-job-agent",
     "careeros-job-discovery",
     "careeros-job-providers",
     "careeros-jobicy-provider",
     "careeros-lever-provider",
+    "careeros-linkedin-provider",
     "careeros-remoteok-provider",
     "careeros-themuse-provider",
     "careeros-weworkremotely-provider",
@@ -24,6 +27,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+careeros-adzuna-provider = { workspace = true }
 careeros-application-engine = { workspace = true }
 careeros-arbeitnow-provider = { workspace = true }
 careeros-ashby-provider = { workspace = true }
@@ -31,12 +35,14 @@ careeros-career-brain = { workspace = true }
 careeros-common = { workspace = true }
 careeros-event-bus = { workspace = true }
 careeros-greenhouse-provider = { workspace = true }
+careeros-hiringcafe-provider = { workspace = true }
 careeros-himalayas-provider = { workspace = true }
 careeros-job-agent = { workspace = true }
 careeros-job-discovery = { workspace = true }
 careeros-job-providers = { workspace = true }
 careeros-jobicy-provider = { workspace = true }
 careeros-lever-provider = { workspace = true }
+careeros-linkedin-provider = { workspace = true }
 careeros-remoteok-provider = { workspace = true }
 careeros-themuse-provider = { workspace = true }
 careeros-weworkremotely-provider = { workspace = true }
