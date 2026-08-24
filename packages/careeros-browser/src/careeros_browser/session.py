@@ -37,6 +37,35 @@ class BrowserSession(Protocol):
     def is_visible(self, selector: str) -> bool: ...
     def wait_for_selector(self, selector: str, *, timeout_ms: int = 10_000) -> None: ...
 
+    def capture_response_after(
+        self,
+        action: Callable[[], None],
+        *,
+        url_contains: str,
+        timeout_ms: int = 10_000,
+    ) -> str:
+        """Run ``action`` and return the body of the first network response
+        whose URL contains ``url_contains``.
+
+        For sites whose search results arrive as JSON the page's own script
+        fetches (Naukri's ``/jobapi/v3/search``), reading that response
+        directly is far more robust than scraping the DOM the script renders
+        from it — no dependency on rendered markup or timing.
+        """
+        ...
+
+    def query_all_html(self, selector: str) -> list[str]:
+        """The outer HTML of every element matching ``selector``.
+
+        For markup too irregular for ``query_all``'s flat sub-selector
+        map — label/value pairs (``<dt>Salary</dt><dd>...</dd>``), optional
+        fields whose presence varies per card — this hands back real HTML
+        so a plain ``html.parser`` function can do the extraction, the same
+        pattern already used for HTML-based providers that fetch over
+        plain HTTP.
+        """
+        ...
+
     def query_all(self, selector: str, *, extract: dict[str, str]) -> list[dict[str, str | None]]:
         """Every element matching ``selector``, each rendered as a dict.
 

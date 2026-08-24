@@ -9,6 +9,15 @@ dependencies = [
     "pydantic>=2.7",
 ]
 
+[project.optional-dependencies]
+# Anti-detect Firefox for sites behind Cloudflare/Akamai (Naukri, Gradcracker).
+# Optional: never required just to import careeros_browser, and importing this
+# package never fails without it — only launch_camoufox_session() does, with a
+# clear error. Install with `uv sync --extra camoufox` then
+# `python3 -m camoufox fetch` to download the browser binary (also optional,
+# free, one-time).
+camoufox = ["camoufox>=0.4"]
+
 [tool.uv.sources]
 careeros-common = { workspace = true }
 

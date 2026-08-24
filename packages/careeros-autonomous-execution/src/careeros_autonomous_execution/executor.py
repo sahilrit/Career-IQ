@@ -82,6 +82,7 @@ class AutonomousApplicationExecutor:
         submit_enabled: bool = True,
         prepare_only: bool = False,
         assist_captcha: bool = False,
+        question_ai_client: object | None = None,
         on_prepared: Callable[[Application, JobPosting, ApplicationPackage], None] | None = None,
     ) -> None:
         self._repository = repository
@@ -103,6 +104,8 @@ class AutonomousApplicationExecutor:
         # True -> auto-submit clean forms, but when a captcha is present, fill
         # and hand off to the human (solve captcha + submit) instead of holding.
         self._assist_captcha = assist_captcha
+        # Raw AI client used to answer custom form questions the rules can't.
+        self._question_ai_client = question_ai_client
         self._on_prepared = on_prepared
 
     def run_for_identity(
@@ -205,7 +208,7 @@ class AutonomousApplicationExecutor:
         # Career Brain; unanswerable ones are left blank for a human.
         question_answers: dict[str, str] = {}
         if mapping.question_fields:
-            answerer = QuestionAnswerer(brain, posting)
+            answerer = QuestionAnswerer(brain, posting, ai_client=self._question_ai_client)
             for field in mapping.question_fields:
                 answer = answerer.answer(field.question)
                 if answer.answerable and answer.text:

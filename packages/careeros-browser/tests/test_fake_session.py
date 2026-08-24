@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from careeros_browser import DownloadError, FakeBrowserSession, SelectorTimeoutError
+from careeros_browser import (
+    DownloadError,
+    FakeBrowserSession,
+    ResponseTimeoutError,
+    SelectorTimeoutError,
+)
 
 
 def test_goto_updates_current_url():
@@ -132,3 +137,126 @@ def test_query_all_results_are_isolated_by_selector():
 
     assert session.query_all(".gig-card", extract={}) == [{"title": "gig"}]
     assert session.query_all(".job-card", extract={}) == [{"title": "job"}]
+
+
+# --- response capture (regression target: Naukri-style XHR interception) -----
+
+
+def test_capture_response_after_returns_the_queued_body():
+    session = FakeBrowserSession()
+    session.queue_response(url_contains="jobapi/v3/search", body='{"jobDetails": []}')
+    body = session.capture_response_after(lambda: None, url_contains="jobapi/v3/search")
+    assert body == '{"jobDetails": []}'
+
+
+def test_capture_response_after_runs_the_action():
+    session = FakeBrowserSession()
+    session.queue_response(url_contains="jobapi", body="{}")
+    ran = {"called": False}
+    session.capture_response_after(lambda: ran.__setitem__("called", True), url_contains="jobapi")
+    assert ran["called"] is True
+
+
+def test_capture_response_after_matches_by_substring_not_exact_url():
+    session = FakeBrowserSession()
+    session.queue_response(url_contains="jobapi/v3/search", body='{"page": 1}')
+    body = session.capture_response_after(lambda: None, url_contains="jobapi/v3/search")
+    assert body == '{"page": 1}'
+
+
+def test_capture_response_after_with_no_queued_response_raises():
+    session = FakeBrowserSession()
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(lambda: None, url_contains="jobapi")
+
+
+def test_capture_response_after_consumes_the_queued_response_once():
+    """A second call for the same URL pattern with nothing re-queued must not
+    silently replay the first response — pagination depends on each page
+    getting its own fresh response."""
+    session = FakeBrowserSession()
+    session.queue_response(url_contains="jobapi", body="page-one")
+    session.capture_response_after(lambda: None, url_contains="jobapi")
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(lambda: None, url_contains="jobapi")
+
+
+def test_capture_response_after_serves_multiple_queued_responses_in_order():
+    session = FakeBrowserSession()
+    session.queue_response(url_contains="jobapi", body="page-one")
+    session.queue_response(url_contains="jobapi", body="page-two")
+    first = session.capture_response_after(lambda: None, url_contains="jobapi")
+    second = session.capture_response_after(lambda: None, url_contains="jobapi")
+    assert (first, second) == ("page-one", "page-two")
+
+
+# --- outer-HTML extraction (regression target: dt/dd-shaped cards) -----------
+
+
+def test_query_all_html_returns_empty_list_when_nothing_queued():
+    session = FakeBrowserSession()
+    assert session.query_all_html("article") == []
+
+
+def test_query_all_html_replays_the_queued_blocks():
+    session = FakeBrowserSession()
+    session.set_html_blocks("article", ["<article>one</article>", "<article>two</article>"])
+    assert session.query_all_html("article") == [
+        "<article>one</article>",
+        "<article>two</article>",
+    ]
+
+
+def test_query_all_html_is_isolated_by_selector():
+    session = FakeBrowserSession()
+    session.set_html_blocks("article", ["<article>a</article>"])
+    session.set_html_blocks(".card", ["<div>b</div>"])
+    assert session.query_all_html("article") == ["<article>a</article>"]
+    assert session.query_all_html(".card") == ["<div>b</div>"]
+
+
+# --- simulated click failure (regression target: "no more pages" detection) --
+
+
+def test_click_succeeds_by_default():
+    session = FakeBrowserSession()
+    session.click("#next")  # must not raise
+    assert session.clicked_selectors == ["#next"]
+
+
+def test_a_selector_marked_to_fail_raises_on_click():
+    session = FakeBrowserSession()
+    session.set_click_failure("#next")
+    with pytest.raises(SelectorTimeoutError):
+        session.click("#next")
+
+
+def test_a_failing_click_is_not_recorded_as_clicked():
+    session = FakeBrowserSession()
+    session.set_click_failure("#next")
+    with pytest.raises(SelectorTimeoutError):
+        session.click("#next")
+    assert session.clicked_selectors == []
+
+
+def test_only_the_marked_selector_fails():
+    session = FakeBrowserSession()
+    session.set_click_failure("#next")
+    session.click("#other")  # unaffected
+    assert session.clicked_selectors == ["#other"]
+
+
+def test_capture_response_after_normalizes_an_action_failure():
+    """The real PlaywrightBrowserSession wraps the whole navigate/click-and-
+    wait sequence in one try/except, so a click that fails inside the action
+    surfaces as ResponseTimeoutError, not the raw click error — callers must
+    be able to treat 'response never arrived' and 'the action itself failed'
+    identically without needing two except clauses."""
+    session = FakeBrowserSession()
+    session.set_click_failure("#next")
+
+    def action():
+        session.click("#next")
+
+    with pytest.raises(ResponseTimeoutError):
+        session.capture_response_after(action, url_contains="jobapi")

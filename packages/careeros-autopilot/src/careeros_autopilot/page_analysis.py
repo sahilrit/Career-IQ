@@ -132,25 +132,48 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
     """
     fields: list[QuestionField] = []
     seen: set[str] = set()
-    for selector, kind in (("textarea", "text"), ("input[type='text']", "text")):
+
+    # Standard fields the mapping already fills — never re-ask them as questions.
+    _standard = ("first name", "last name", "email", "phone", "resume", "cv", "cover letter")
+
+    # A <label for="id"> gives the question text for most real forms (aria-label
+    # and placeholder are the exception, not the rule).
+    labels_by_for: dict[str, str] = {}
+    try:
+        for label in session.query_all("label", extract={"for": "@for", "text": ""}):
+            target = (label.get("for") or "").strip()
+            text = (label.get("text") or "").strip()
+            if target and text:
+                labels_by_for[target] = text
+    except Exception:
+        labels_by_for = {}
+
+    # NOTE: "@attr" extracts the element's OWN attribute; a bare "textarea@id"
+    # would look for a *nested* textarea and always miss — which is why live
+    # forms used to yield no questions at all.
+    for selector, kind in (
+        ("textarea", "text"),
+        ("input[type='text']", "text"),
+        ("select", "select"),
+    ):
         try:
             elements = session.query_all(
                 selector,
-                extract={
-                    "id": f"{selector}@id",
-                    "label": f"{selector}@aria-label",
-                    "placeholder": f"{selector}@placeholder",
-                },
+                extract={"id": "@id", "label": "@aria-label", "placeholder": "@placeholder"},
             )
         except Exception:
             continue
         for element in elements:
             element_id = element.get("id")
-            question = element.get("label") or element.get("placeholder")
+            question = (
+                element.get("label")
+                or element.get("placeholder")
+                or (labels_by_for.get(element_id) if element_id else None)
+            )
             if not element_id or not question:
                 continue
             lowered = question.lower()
-            if any(word in lowered for word in ("first name", "last name", "email", "phone")):
+            if any(word in lowered for word in _standard):
                 continue
             css = f"#{element_id}"
             if css in seen:

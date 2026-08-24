@@ -96,6 +96,49 @@ def test_unknown_question_is_not_answered(answerer):
     assert answerer.answer("What is your favorite color?").answerable is False
 
 
+class FakeAI:
+    def __init__(self, reply: str) -> None:
+        self.reply = reply
+        self.prompts: list[str] = []
+
+    def complete(self, *, system: str, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self.reply
+
+
+def test_ai_fallback_answers_questions_no_rule_matches(brain):
+    ai = FakeAI("I scaled paid social from $10k to $200k/mo at Presha Trading.")
+    answerer = QuestionAnswerer(brain, ai_client=ai)
+    a = answerer.answer("Describe a marketing campaign you're proud of.")
+    assert a.answerable is True
+    assert "Presha Trading" in a.text
+    assert ai.prompts and "Presha Trading" in ai.prompts[0]  # grounded in the profile
+
+
+def test_ai_unknown_leaves_the_field_blank(brain):
+    ai = FakeAI("UNKNOWN")
+    answerer = QuestionAnswerer(brain, ai_client=ai)
+    assert answerer.answer("What is your active security clearance level?").answerable is False
+
+
+def test_ai_is_never_consulted_for_sponsorship_or_demographics(brain):
+    # Rules answer these before the AI could, so it can never fabricate them.
+    ai = FakeAI("Yes, absolutely!")
+    answerer = QuestionAnswerer(brain, ai_client=ai)
+    assert answerer.answer("Do you require visa sponsorship?").answerable is False
+    assert "prefer not" in answerer.answer("What is your ethnicity?").text.lower()
+    assert ai.prompts == []
+
+
+def test_ai_errors_degrade_to_blank(brain):
+    class BoomAI:
+        def complete(self, *, system: str, prompt: str) -> str:
+            raise RuntimeError("gemini down")
+
+    answerer = QuestionAnswerer(brain, ai_client=BoomAI())
+    assert answerer.answer("Tell us a fun fact about yourself.").answerable is False
+
+
 def test_why_question_uses_posting_context(brain):
     posting = JobPosting(
         source_provider="test",

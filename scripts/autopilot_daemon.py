@@ -126,6 +126,26 @@ def resolve_cover_letter_generator(scoped: Any, workspace_id: str) -> Any | None
     return _ResilientCoverLetter(ai_generator, TemplateCoverLetterGenerator())
 
 
+def resolve_question_ai_client(scoped: Any, workspace_id: str) -> Any | None:
+    """Raw AI client for answering custom form questions. CAREEROS_AI_KEY wins;
+    otherwise the workspace's stored key. None (rules-only) on any failure."""
+    direct_key = os.environ.get("CAREEROS_AI_KEY", "").strip()
+    if direct_key:
+        try:
+            from careeros_ai import build_client
+
+            model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
+            return build_client(direct_key, model)
+        except Exception:
+            return None
+    try:
+        from careeros_api import ai_support
+
+        return ai_support.resolve_ai_client(scoped, workspace_id)
+    except Exception:
+        return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace-id", required=True)
@@ -171,6 +191,9 @@ def main() -> None:
         )
     scoped = TenantScopedDocumentStore(store, arguments.workspace_id)
     cover_letter_generator = resolve_cover_letter_generator(scoped, arguments.workspace_id)
+    question_ai_client = resolve_question_ai_client(scoped, arguments.workspace_id)
+    if question_ai_client is not None:
+        print("AI form answers: ON — custom questions answered from your profile.")
     if arguments.dry_run:
         print("DRY RUN — will reach and map forms but NEVER submit.")
 
@@ -224,6 +247,7 @@ def main() -> None:
                 submit_enabled=not arguments.dry_run,
                 prepare_only=review,
                 assist_captcha=assist,
+                question_ai_client=question_ai_client,
                 on_prepared=on_prepared if interactive else None,
             )
             print(

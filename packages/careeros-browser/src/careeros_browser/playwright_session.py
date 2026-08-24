@@ -10,10 +10,16 @@ the real ``playwright`` package to be importable just to read this code.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from careeros_browser.exceptions import BrowserError, DownloadError, SelectorTimeoutError
+from careeros_browser.exceptions import (
+    BrowserError,
+    DownloadError,
+    ResponseTimeoutError,
+    SelectorTimeoutError,
+)
 
 
 class PlaywrightBrowserSession:
@@ -87,6 +93,27 @@ class PlaywrightBrowserSession:
                     row[field_name] = sub_element.text_content()
             results.append(row)
         return results
+
+    def capture_response_after(
+        self,
+        action: Callable[[], None],
+        *,
+        url_contains: str,
+        timeout_ms: int = 10_000,
+    ) -> str:
+        try:
+            with self._page.expect_response(
+                lambda response: url_contains in response.url(), timeout=timeout_ms
+            ) as response_info:
+                action()
+            return response_info.value.text()
+        except Exception as exc:
+            raise ResponseTimeoutError(
+                f"No response containing {url_contains!r} within {timeout_ms}ms: {exc}"
+            ) from exc
+
+    def query_all_html(self, selector: str) -> list[str]:
+        return self._page.eval_on_selector_all(selector, "els => els.map(el => el.outerHTML)")
 
     def download_triggered_by(self, action, *, save_to: str | Path) -> Path:
         try:

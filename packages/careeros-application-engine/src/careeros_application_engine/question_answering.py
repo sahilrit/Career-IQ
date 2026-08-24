@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from careeros_ai import AIClient
 from careeros_career_brain import CareerBrain
 from careeros_job_providers import JobPosting
 
@@ -48,9 +49,20 @@ def _has_skill(brain: CareerBrain, text: str) -> bool:
 class QuestionAnswerer:
     """Maps a free-text question label to a truthful answer from the brain."""
 
-    def __init__(self, brain: CareerBrain, posting: JobPosting | None = None) -> None:
+    def __init__(
+        self,
+        brain: CareerBrain,
+        posting: JobPosting | None = None,
+        *,
+        ai_client: AIClient | None = None,
+    ) -> None:
         self._brain = brain
         self._posting = posting
+        # When set, questions no rule recognizes are drafted by the AI, grounded
+        # strictly in the profile facts below (it replies UNKNOWN rather than
+        # invent). Hard facts (visa/sponsorship) and demographics are matched by
+        # rules first, so the AI never fabricates those.
+        self._ai_client = ai_client
         identity = brain.identity
         first_name, _, last_name = identity.full_name.partition(" ")
 
@@ -96,7 +108,9 @@ class QuestionAnswerer:
                 Answer("Immediately / 2 weeks' notice"),
             ),
             (
-                re.compile(r"location|where.*based|city|country|time ?zone", re.I),
+                # Word-bound city/country so they don't match inside words like
+                # "ethni-CITY" (which must fall through to the demographics rule).
+                re.compile(r"location|where.*based|\bcity\b|\bcountry\b|time ?zone", re.I),
                 Answer(identity.location) if identity.location else Answer("", answerable=False),
             ),
             (
@@ -180,6 +194,66 @@ class QuestionAnswerer:
     def _role_name(self) -> str:
         return self._posting.title if self._posting else "the"
 
+    # -- AI fallback -----------------------------------------------------
+
+    def _profile_facts(self) -> str:
+        brain = self._brain
+        identity = brain.identity
+        lines = [f"Name: {identity.full_name}"]
+        if identity.headline:
+            lines.append(f"Headline: {identity.headline}")
+        if identity.location:
+            lines.append(f"Location: {identity.location}")
+        if identity.summary:
+            lines.append(f"Summary: {identity.summary}")
+        if brain.skills:
+            lines.append("Skills: " + ", ".join(skill.name for skill in brain.skills))
+        if brain.experiences:
+            lines.append("Experience:")
+            lines += [
+                f"  - {exp.title} at {exp.company_name}"
+                + (f" ({exp.start_date} to {exp.end_date or 'present'})" if exp.start_date else "")
+                for exp in brain.experiences
+            ]
+        education = getattr(brain, "education", None) or []
+        if education:
+            lines.append(
+                "Education: " + "; ".join(f"{e.credential} — {e.institution}" for e in education)
+            )
+        certifications = getattr(brain, "certifications", None) or []
+        if certifications:
+            lines.append("Certifications: " + ", ".join(c.name for c in certifications))
+        prefs = brain.preferences
+        if getattr(prefs, "min_salary", None):
+            lines.append(f"Minimum salary: {prefs.salary_currency} {prefs.min_salary:,}")
+        return "\n".join(lines)
+
+    def _ai_answer(self, question: str) -> Answer:
+        if self._ai_client is None:
+            return Answer("", answerable=False)
+        role = ""
+        if self._posting is not None:
+            role = f"\nRole: {self._posting.title} at {self._posting.company_name}\n"
+        system = (
+            "You fill answers on a candidate's job application. Answer the question "
+            "truthfully and concisely using ONLY the candidate facts provided. NEVER "
+            "invent employers, titles, dates, numbers, degrees, certifications, or "
+            "work-authorization/visa status. If the facts do not support a truthful "
+            "answer, reply with exactly: UNKNOWN. For a yes/no question, answer 'Yes' "
+            "or 'No' only when the facts make it clear, else UNKNOWN. Keep it under "
+            "120 words, first person, no preamble."
+        )
+        prompt = (
+            f"Candidate facts:\n{self._profile_facts()}\n{role}\nQuestion: {question}\n\nAnswer:"
+        )
+        try:
+            text = self._ai_client.complete(system=system, prompt=prompt).strip()
+        except Exception:
+            return Answer("", answerable=False)
+        if not text or text.upper().startswith("UNKNOWN"):
+            return Answer("", answerable=False)
+        return Answer(text)
+
     # -- public API ------------------------------------------------------
 
     def answer(self, question: str) -> Answer:
@@ -195,4 +269,5 @@ class QuestionAnswerer:
         )
         if is_screening and _has_skill(self._brain, question):
             return Answer("Yes", choice="yes")
-        return Answer("", answerable=False)
+        # No rule matched — let the AI draft it from the profile (or UNKNOWN).
+        return self._ai_answer(question)
