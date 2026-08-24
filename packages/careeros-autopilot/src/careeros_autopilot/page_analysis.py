@@ -178,6 +178,21 @@ def detect_form_mapping(session: BrowserSession) -> FormFieldMapping | None:
     )
 
 
+def _settle_for_form(session: BrowserSession, url: str) -> None:
+    """On a known ATS host, give a client-rendered form (Ashby/Greenhouse are
+    React apps) a moment to appear before we inspect the page. No-op on other
+    hosts, so aggregator pages that will never hold a form add no latency.
+    """
+    if not _ATS_HOST_RE.search(url or ""):
+        return
+    try:
+        # Any core field appearing means the form has rendered. The fake test
+        # session raises immediately when absent, so this only waits for real.
+        session.wait_for_selector("input[type='email']", timeout_ms=6000)
+    except Exception:
+        return
+
+
 def prepare_application_page(session: BrowserSession, posting: JobPosting) -> str | None:
     """Navigate to the posting and onward to its application form.
 
@@ -193,6 +208,7 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
     if _first_visible(session, _BOT_PROTECTION_SELECTORS) is not None:
         return "the site is showing a bot-protection challenge — a human must apply here"
 
+    _settle_for_form(session, posting.url)
     if detect_form_mapping(session) is not None:
         return None  # the posting page itself is the form
 
@@ -206,4 +222,5 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
         session.goto(apply_url)
     except Exception as exc:
         return f"could not open apply link {apply_url}: {exc}"
+    _settle_for_form(session, apply_url)
     return None

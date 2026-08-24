@@ -127,6 +127,17 @@ def test_prepare_navigates_to_derived_ashby_apply_form():
     assert session.current_url == "https://jobs.ashbyhq.com/openai/123/application"
 
 
+def test_ashby_rendered_form_is_detected_inline_without_navigating():
+    """After the SPA settles, the Ashby form fields are present on the page, so
+    it's used in place — no bogus 'no form found'."""
+    session = FakeBrowserSession()
+    session.set_visible("input[type='email']")
+    session.set_visible("button[type='submit']")
+    posting = make_posting(url="https://jobs.ashbyhq.com/openai/123")
+    assert prepare_application_page(session, posting) is None
+    assert session.current_url == "https://jobs.ashbyhq.com/openai/123"
+
+
 def test_application_suffix_link_is_found():
     session = FakeBrowserSession()
     session.set_query_all_results("a", [{"href": "https://jobs.ashbyhq.com/acme/1/application"}])
