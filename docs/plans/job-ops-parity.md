@@ -117,7 +117,7 @@ wrap it **in-process** — strictly simpler than their subprocess + CSV round-tr
 
 > **Progress log — 2026-08-24.** Items marked DONE are built, unit-tested,
 > linted and live-verified against the real services. Workspace test count:
-> 1,635 -> 1,773.
+> 1,635 -> 1,852.
 
 ### Deviations from the original plan, and why
 
@@ -206,7 +206,21 @@ Publisher/Partner), the provider drops into the same interface.
   every checkout link; the billing page and the landing pricing section show
   what is included instead of what it costs. 18 new tests.
 
-### Week 2 — LLM scoring
+### Week 2 — LLM scoring — DONE
+
+`careeros_job_discovery.llm_scoring`. The heuristic scorer stays the cheap first
+pass; the LLM stage runs on what clears it and does three jobs in one structured
+call: propose fact corrections, write a neutral brief, score the candidate
+0-100. Almost nothing is trusted — every correction needs a verbatim excerpt
+that is then checked against the posting, so a hallucinated quote is dropped;
+low confidence dropped, medium may only fill a missing value. The patch
+whitelist excludes url/external_id/source_provider. A new salary takes its
+currency from the excerpt (a bug found reading real output: the default turned a
+GBP advert into USD). Wired through `search_for_jobs` to `/opportunities/search`,
+active only when the workspace has an AI key; failures fall back to the
+heuristic. 49 tests.
+
+### (original) Week 2 — LLM scoring
 Keep `careeros_job_discovery.scoring` as the cheap first pass; add an LLM stage for postings
 that clear it. Copy the *shape* of their `scorer.ts` prompt — one structured-output call returning:
 1. **job fact patches** — corrections to whitelisted scraped fields, each requiring a verbatim
@@ -217,7 +231,18 @@ that clear it. Copy the *shape* of their `scorer.ts` prompt — one structured-o
 
 Wire through `careeros-ai` (bring-your-own-key already exists).
 
-### Week 3 — application reply tracking
+### Week 3 — application reply tracking — DONE
+
+`careeros-reply-tracking` (new package) + `gmail_reply_sync` in the API. A
+deterministic, conservative classifier reads recruiter email; the sync loop
+matches by company and advances the application, walking the real transition
+graph (APPLIED -> IN_REVIEW -> INTERVIEWING) rather than forcing a jump, and
+refusing illegal moves (a rejection on an accepted offer). Idempotent via a
+seen-message ledger. Mailbox is a protocol, tested against fixtures; the API
+supplies a Gmail-backed implementation over a new gmail.readonly scope and a
+"Check inbox for replies" button on the Google settings card. 40 tests.
+
+### (original) Week 3 — application reply tracking
 `integrations_google.py` already has half the Gmail OAuth. Add: pull last 90 days →
 match against open applications → LLM classify → transition stage (Interviewing / Rejected).
 
