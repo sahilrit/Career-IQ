@@ -25,6 +25,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from careeros_adzuna_provider import AdzunaProvider
 from careeros_application_engine import TemplateCoverLetterGenerator
 from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
@@ -33,6 +34,7 @@ from careeros_common import DocumentStore, open_store
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
+from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_providers import JobProviderRegistry
 from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
@@ -62,6 +64,11 @@ def build_registry() -> JobProviderRegistry:
     registry.register(GreenhouseProvider())
     registry.register(AshbyProvider())
     registry.register(LeverProvider())
+    # HiringCafe: keyless; each posting's url is the employer's direct apply
+    # link. Adzuna: needs ADZUNA_APP_ID / ADZUNA_APP_KEY in the environment —
+    # without them it reports unavailable and is skipped, so it's safe to add.
+    registry.register(HiringCafeProvider())
+    registry.register(AdzunaProvider())
     return registry
 
 
