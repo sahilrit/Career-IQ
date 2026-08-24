@@ -48,6 +48,9 @@ def parse_job_entry(entry: dict[str, Any]) -> JobPosting:
         title=(entry.get("position") or "").strip(),
         company_name=(entry.get("company") or "").strip(),
         url=entry.get("url") or entry.get("apply_url") or "",
+        # The employer's direct apply link, when RemoteOK provides it — the
+        # autopilot navigates here instead of the RemoteOK listing page.
+        apply_url=entry.get("apply_url") or None,
         location=entry.get("location") or None,
         remote=True,  # RemoteOK is a remote-only job board by definition
         salary=_parse_salary(entry),

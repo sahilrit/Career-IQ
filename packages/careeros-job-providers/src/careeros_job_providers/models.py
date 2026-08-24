@@ -40,6 +40,10 @@ class JobPosting(BaseModel):
     title: str
     company_name: str
     url: str
+    # A direct link to the real application form (the underlying ATS), when the
+    # provider knows it and it differs from ``url`` (which may be an aggregator
+    # listing page). The autopilot navigates here first when present.
+    apply_url: str | None = None
     location: str | None = None
     remote: bool = False
     salary: Salary | None = None

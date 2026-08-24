@@ -127,6 +127,11 @@ def main() -> None:
     parser.add_argument(
         "--show-browser", action="store_true", help="run the browser visibly instead of headless"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="reach and map each form but never click submit (safe validation)",
+    )
     arguments = parser.parse_args()
 
     keywords = [keyword.strip() for keyword in arguments.keywords.split(",") if keyword.strip()]
@@ -145,6 +150,8 @@ def main() -> None:
         )
     scoped = TenantScopedDocumentStore(store, arguments.workspace_id)
     cover_letter_generator = resolve_cover_letter_generator(scoped, arguments.workspace_id)
+    if arguments.dry_run:
+        print("DRY RUN — will reach and map forms but NEVER submit.")
 
     while True:
         try:
@@ -154,6 +161,7 @@ def main() -> None:
                 keywords=keywords,
                 headless=not arguments.show_browser,
                 cover_letter_generator=cover_letter_generator,
+                submit_enabled=not arguments.dry_run,
             )
             print(
                 f"[{report['ran_at']}] discovered={report['discovered']} "

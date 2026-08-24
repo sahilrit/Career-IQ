@@ -21,7 +21,14 @@ def test_parses_core_fields(remoteok_fixture):
     assert posting.title == "Senior Backend Engineer"
     assert posting.company_name == "Acme Corp"
     assert posting.url == "https://remoteok.com/remote-jobs/1000001"
+    # The employer's direct apply link is captured for the autopilot.
+    assert posting.apply_url == "https://acme.example/careers/1000001"
     assert posting.tags == ["python", "django", "postgres"]
+
+
+def test_apply_url_is_none_when_absent(remoteok_fixture):
+    # The second job entry in the fixture has no apply_url.
+    assert parse_job_entry(remoteok_fixture[2]).apply_url is None
 
 
 def test_remote_is_always_true():
