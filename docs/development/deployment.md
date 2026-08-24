@@ -96,36 +96,45 @@ description fetches per search. If you ever see rate limiting, set
 `CAREEROS_ENABLE_LINKEDIN=0` on the API service to switch it off; the other
 sources are unaffected.
 
-## Free-tier keep-alive (Render)
+## Free-tier spin-down (Render) — accepted limitation, not fixed
 
 Render's free instance type spins down after ~15 min with no incoming
-HTTP traffic, adding a ~50s cold start to the next request. Two
-independent mechanisms cover this:
+HTTP traffic, adding a ~50s cold start to the next request. This is
+**not currently prevented** for either service; both `careeros-api` and
+`careeros-web` can go cold. Two things were tried and neither reliably
+stops it:
 
-1. **Render's own Health Check Path** (Settings → Health Checks, per
-   service) — Render polls this path continuously as long as it's set,
-   and that polling itself counts as traffic, so a service with a
-   health check path configured never goes idle. `careeros-api` has
-   this set to `/health` (already exists as a FastAPI route);
-   `careeros-web` has it set to `/api/health`
-   (`web/app/api/health/route.ts`, a trivial `{"ok": true}` handler —
-   Next.js's `next start` has no built-in health route).
-2. **`.github/workflows/keepalive.yml`** — a GitHub Actions cron
-   backstop that curls both services every 10 min. Treat this as
-   secondary: GitHub's scheduled-workflow triggers are best-effort and
-   were observed firing 1–4 hours apart despite the 10-min cron, so it
-   alone is not enough to reliably beat the 15-min spin-down window.
+1. **`.github/workflows/keepalive.yml`** — a GitHub Actions cron that
+   curls both services every 10 min. GitHub's scheduled-workflow
+   triggers are best-effort, not exact: observed firing 1–4 hours apart
+   despite the 10-min cron, so it does not reliably beat the 15-min
+   spin-down window.
+2. **Render's own Health Check Path** (Settings → Health Checks, per
+   service; `careeros-api` → `/health`, `careeros-web` →
+   `/api/health`, added in `web/app/api/health/route.ts`) — verified
+   empirically (2026-08-25) that this does **not** prevent free-tier
+   idle spin-down: a `careeros-web` instance died from inactivity at
+   the standard 15-minute mark with the health check path correctly
+   configured. `careeros-api` staying continuously warm in the logs
+   turned out to be explained by other real traffic hitting it (not
+   proof the health check path itself keeps a service alive) — don't
+   trust that pattern as a working fix.
 
-**Verify:** on the service's Logs tab, an instance that's actually
-being kept warm shows either continuous `GET /health` 200s (FastAPI
-logs every request) or, for the Next.js web service — which doesn't
-log requests to stdout — the absence of an
-`npm error ... signal SIGTERM` block for well past 15 minutes of no
-real user traffic. That SIGTERM pattern is npm's `next start` wrapper
-logging a "failure" when Render kills the process; it shows up both on
-ordinary deploy cutovers (harmless — old instance replaced by new) and
-on an idle spin-down (the bug this section fixes) — the deploy-events
-list on the same tab tells you which one you're looking at.
+If this cold start becomes a real problem, the two options that would
+actually solve it are a genuine external uptime monitor (e.g.
+UptimeRobot, cron-job.org) hitting the public URL on a tight schedule,
+or a paid Render instance type (which removes free-tier spin-down
+entirely). Neither is set up as of this writing.
+
+**Reading the logs:** on `careeros-web`'s Logs tab, an
+`npm error ... signal SIGTERM` block appears both on an ordinary deploy
+cutover (harmless — old instance replaced by new, "Deploying..."
+appears right around it) and on an idle spin-down (the instance simply
+stops, with a gap in the logs until the next request wakes it) — the
+deploy-events list on the same tab tells you which one you're looking
+at. `careeros-api` logs every request (FastAPI/uvicorn), so continuous
+`GET /health` 200s there just mean *something* is currently calling it
+— not that any particular mechanism is guaranteed to keep doing so.
 
 ## Migrating existing SQLite data to Postgres
 
