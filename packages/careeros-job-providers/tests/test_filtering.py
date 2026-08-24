@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from careeros_job_providers import EmploymentType, JobSearchQuery, Salary, matches_query
+import pytest
+
+from careeros_job_providers import (
+    EmploymentType,
+    JobSearchQuery,
+    Salary,
+    filter_postings,
+    matches_query,
+)
 
 
 def test_remote_only_excludes_non_remote_postings(posting_factory):
@@ -79,3 +87,42 @@ def test_multi_word_keyword_matches_phrase(posting_factory):
 def test_keyword_found_in_tags(posting_factory):
     posting = posting_factory(title="Growth Role", description="", tags=["ppc", "marketing"])
     assert matches_query(posting, JobSearchQuery(keywords=["ppc"]))
+
+
+# --- server-side filters -----------------------------------------------------
+# Some providers (LinkedIn, Indeed, Adzuna) apply keyword and location matching
+# inside their own query. Re-applying it here drops valid results, because our
+# haystack is only what we managed to parse — a posting whose description has
+# not been fetched yet has almost nothing to match against.
+
+
+def test_keywords_can_be_marked_as_already_applied(posting_factory):
+    posting = posting_factory(title="Senior Manager, Growth", description="", tags=[])
+    query = JobSearchQuery(keywords=["performance marketing"])
+    assert matches_query(posting, query) is False
+    assert matches_query(posting, query, applied_server_side={"keywords"}) is True
+
+
+def test_locations_can_be_marked_as_already_applied(posting_factory):
+    posting = posting_factory(title="Engineer", location="Karnataka, India")
+    query = JobSearchQuery(locations=["Bengaluru"])
+    assert matches_query(posting, query) is False
+    assert matches_query(posting, query, applied_server_side={"locations"}) is True
+
+
+def test_marking_keywords_applied_does_not_disable_the_other_filters(posting_factory):
+    posting = posting_factory(title="Anything", remote=False)
+    query = JobSearchQuery(keywords=["whatever"], remote_only=True)
+    assert matches_query(posting, query, applied_server_side={"keywords"}) is False
+
+
+def test_filter_postings_passes_the_flag_through(posting_factory):
+    postings = [posting_factory(title="Senior Manager, Growth", description="", tags=[])]
+    query = JobSearchQuery(keywords=["performance marketing"])
+    assert filter_postings(postings, query) == []
+    assert filter_postings(postings, query, applied_server_side={"keywords"}) == postings
+
+
+def test_unknown_server_side_field_is_rejected(posting_factory):
+    with pytest.raises(ValueError, match="not a filterable field"):
+        matches_query(posting_factory(), JobSearchQuery(), applied_server_side={"salary"})
