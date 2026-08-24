@@ -21,7 +21,9 @@ from __future__ import annotations
 import argparse
 import os
 import time
+from typing import Any
 
+from careeros_application_engine import TemplateCoverLetterGenerator
 from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
@@ -61,6 +63,44 @@ def build_registry() -> JobProviderRegistry:
     return registry
 
 
+class _ResilientCoverLetter:
+    """AI cover letters, but any provider error (rate limit, bad key, outage)
+    falls back to the template so one flaky call never breaks a whole cycle."""
+
+    def __init__(self, ai: Any, fallback: Any) -> None:
+        self._ai = ai
+        self._fallback = fallback
+
+    def generate(self, brain: Any, posting: Any) -> str:
+        try:
+            return self._ai.generate(brain, posting)
+        except Exception as error:
+            print(f"    (AI cover letter failed: {type(error).__name__}; used template)")
+            return self._fallback.generate(brain, posting)
+
+
+def resolve_cover_letter_generator(scoped: Any, workspace_id: str) -> Any | None:
+    """The workspace's AI cover-letter writer (Gemini/Anthropic/…), wrapped so
+    failures fall back to templates. None when there's no key or it can't be
+    decrypted (then the cycle uses templates).
+
+    Decryption needs CAREEROS_SECRET_KEY to match the value the live app used
+    to store the key — set the same one here, or leave both unset (dev default).
+    """
+    try:
+        from careeros_api import ai_support
+
+        ai_generator = ai_support.resolve_cover_letter_generator(scoped, workspace_id)
+    except Exception as error:
+        print(f"AI cover letters: off ({type(error).__name__}: {error}) — using templates")
+        return None
+    if ai_generator is None:
+        print("AI cover letters: off (no AI key stored for this workspace) — using templates")
+        return None
+    print("AI cover letters: ON — each application is written by your AI model")
+    return _ResilientCoverLetter(ai_generator, TemplateCoverLetterGenerator())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace-id", required=True)
@@ -88,6 +128,7 @@ def main() -> None:
             f"{arguments.data_dir}/careeros.db — set CAREEROS_DATABASE_URL to use your live account"
         )
     scoped = TenantScopedDocumentStore(store, arguments.workspace_id)
+    cover_letter_generator = resolve_cover_letter_generator(scoped, arguments.workspace_id)
 
     while True:
         try:
@@ -96,6 +137,7 @@ def main() -> None:
                 provider_registry=build_registry(),
                 keywords=keywords,
                 headless=not arguments.show_browser,
+                cover_letter_generator=cover_letter_generator,
             )
             print(
                 f"[{report['ran_at']}] discovered={report['discovered']} "

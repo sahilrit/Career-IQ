@@ -58,6 +58,7 @@ def run_autopilot_cycle(
     seconds_between_actions: float = 10.0,
     work_dir: str | Path = ".careeros/autopilot",
     browser_session: BrowserSession | None = None,
+    cover_letter_generator: Any | None = None,
 ) -> dict[str, Any]:
     """Run one full cycle for the store's Career Brain; returns the
     persisted run report as a dict."""
@@ -103,8 +104,11 @@ def run_autopilot_cycle(
         "id": str(uuid.uuid4()),
         "ran_at": datetime.now(UTC).isoformat(),
         "keywords": keywords,
-        "discovered": discovery_summary["discovered"],
-        "newly_qualified": discovery_summary["qualified"],
+        "discovered": discovery_summary.discovered,
+        "newly_qualified": discovery_summary.qualified,
+        # Surface why any source went quiet, so a thin autopilot run is
+        # explainable rather than just disappointing.
+        "source_errors": discovery_summary.source_errors,
         "qualified_total": len(qualified),
         "submitted": 0,
         "outcomes": [],
@@ -118,7 +122,9 @@ def run_autopilot_cycle(
             (posting for posting in map(resolve_posting, qualified) if posting is not None), None
         )
         if sample_posting is not None:
-            sample_package = build_application_package(brain, sample_posting)
+            sample_package = build_application_package(
+                brain, sample_posting, cover_letter_generator=cover_letter_generator
+            )
             resume_path = str(
                 write_resume_pdf(sample_package.resume_text, work_path / "resume.pdf")
             )
@@ -146,6 +152,7 @@ def run_autopilot_cycle(
             resolve_form_mapping=lambda application: None,
             prepare_page=paced_prepare,
             resolve_form_mapping_live=lambda session, application: detect_form_mapping(session),
+            cover_letter_generator=cover_letter_generator,
         )
 
         def execute(session: BrowserSession) -> None:

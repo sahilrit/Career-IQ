@@ -20,7 +20,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from careeros_application_engine import QuestionAnswerer, build_application_package
+from careeros_application_engine import (
+    CoverLetterGenerator,
+    QuestionAnswerer,
+    build_application_package,
+)
 from careeros_application_intelligence import record_outcome
 from careeros_application_runner import ApplicationRunner, FormFieldMapping
 from careeros_autonomy import ActionRequest, AutonomyPolicy
@@ -73,6 +77,7 @@ class AutonomousApplicationExecutor:
         resolve_form_mapping: FormMappingResolver,
         prepare_page: PagePreparer | None = None,
         resolve_form_mapping_live: LiveFormMappingResolver | None = None,
+        cover_letter_generator: CoverLetterGenerator | None = None,
     ) -> None:
         self._repository = repository
         self._autonomy = autonomy_policy
@@ -82,6 +87,8 @@ class AutonomousApplicationExecutor:
         self._resolve_form_mapping = resolve_form_mapping
         self._prepare_page = prepare_page
         self._resolve_form_mapping_live = resolve_form_mapping_live
+        # None -> build_application_package uses its template generator.
+        self._cover_letter_generator = cover_letter_generator
 
     def run_for_identity(
         self,
@@ -167,7 +174,9 @@ class AutonomousApplicationExecutor:
                 reason="No form mapping known for this posting's site.",
             )
 
-        package = build_application_package(brain, posting)
+        package = build_application_package(
+            brain, posting, cover_letter_generator=self._cover_letter_generator
+        )
 
         # Answer any additional questions on the form, truthfully from the
         # Career Brain; unanswerable ones are left blank for a human.
