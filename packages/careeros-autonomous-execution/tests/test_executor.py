@@ -120,7 +120,7 @@ def test_prepare_only_fills_a_captcha_gated_form_and_hands_off(
     assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
 
 
-def test_assist_auto_submits_a_clean_form(
+def test_assist_fills_and_pauses_even_on_a_clean_form(
     repository,
     autonomy_policy,
     application_runner,
@@ -130,7 +130,8 @@ def test_assist_auto_submits_a_clean_form(
     form_mapping,
     brain_with_qualified_application,
 ):
-    # No captcha present -> assist mode behaves like normal auto-submit.
+    # No captcha, but assist no longer blind-submits — it fills and hands off,
+    # because an auto-submit can't be verified. Nothing goes out unseen.
     session.set_visible(form_mapping.submit_selector)
     session.set_visible(form_mapping.success_selector)
     prepared: list[str] = []
@@ -148,13 +149,14 @@ def test_assist_auto_submits_a_clean_form(
     run = executor.run_for_identity(
         brain_with_qualified_application.identity.id,
         session,
-        detectors=[SelectorAppearsDetector("iframe[src*='recaptcha']", kind="captcha")],
+        detectors=[SelectorAppearsDetector("iframe[src*='api2/anchor']", kind="captcha")],
     )
 
-    assert run.submitted_count == 1
-    assert prepared == []  # no pause on a clean form
+    assert run.submitted_count == 0
+    assert len(prepared) == 1  # filled and handed to the human
+    assert session.clicked_selectors == []  # never auto-clicked submit
     reloaded = repository.load(brain_with_qualified_application.identity.id)
-    assert reloaded.applications[0].status == ApplicationStatus.APPLIED
+    assert reloaded.applications[0].status == ApplicationStatus.QUALIFIED
 
 
 def test_assist_pauses_on_a_captcha_instead_of_submitting(

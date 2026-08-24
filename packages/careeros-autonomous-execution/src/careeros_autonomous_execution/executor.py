@@ -214,10 +214,12 @@ class AutonomousApplicationExecutor:
                 if answer.answerable and answer.text:
                     question_answers[field.selector] = answer.text
 
-        # Pause for a human when we're in review mode (every form), or in
-        # assist mode and this specific form is captcha-gated. Clean forms in
-        # assist mode fall through to auto-submit below.
-        pause_for_human = self._prepare_only or (self._assist_captcha and problem is not None)
+        # Pause for a human in review mode AND in assist mode. Blind auto-submit
+        # can't be verified (job forms carry "thank you"/"submitted" boilerplate
+        # that false-positives success, and captchas/anti-bot silently reject the
+        # submit), so assist now fills every form and hands it to the human to
+        # verify and submit — nothing goes out unseen.
+        pause_for_human = self._prepare_only or self._assist_captcha
         if pause_for_human:
             # Fill the form (best-effort) but never submit. A human solves any
             # captcha and clicks submit. Stays QUALIFIED.

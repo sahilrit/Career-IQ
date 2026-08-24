@@ -47,10 +47,11 @@ fi
 
 echo
 echo "Choose a mode:"
-echo "  [1] Auto-apply + assist — auto-submit open forms; on a captcha, fill it"
-echo "      and pause so you solve it and submit, then it continues (recommended)"
-echo "  [2] Prepare & review — fill every form but never submit; you finish each"
-echo "      one and they also appear in your web Review queue"
+echo "  [1] Assisted apply — fill every form (basics, résumé, cover letter,"
+echo "      screening questions), then pause so YOU review and click submit"
+echo "      (recommended — nothing is submitted without your click)"
+echo "  [2] Prepare & review — same filling, but queued to your web Review page"
+echo "      to finish later instead of pausing at the terminal"
 printf "Mode [1/2, default 1]: "
 read -r MODE
 

@@ -174,8 +174,8 @@ def main() -> None:
     parser.add_argument(
         "--assist",
         action="store_true",
-        help="auto-submit open forms, but when a captcha appears, fill it and "
-        "pause on a visible browser so you solve the captcha and submit, then continue",
+        help="fill each form (basics, résumé, cover letter, screening questions) and "
+        "pause on a visible browser so you review and click submit, then continue",
     )
     arguments = parser.parse_args()
 
@@ -232,8 +232,8 @@ def main() -> None:
         print("REVIEW MODE — filling forms for you to finish. A browser will open.")
     elif assist:
         print(
-            "ASSIST MODE — auto-submitting open forms; on a captcha I'll fill it and "
-            "pause for you to solve + submit, then continue. A browser will open."
+            "ASSIST MODE — I fill each form (basics, résumé, cover letter, screening "
+            "questions), then pause for you to review and click submit. A browser opens."
         )
 
     # Both review and assist pause on a visible browser for the human.
