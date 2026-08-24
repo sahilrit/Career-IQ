@@ -17,6 +17,7 @@ from careeros_ashby_provider import AshbyProvider
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
+from careeros_golangjobs_provider import GolangJobsProvider
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_hiringcafe_provider import HiringCafeProvider
@@ -53,6 +54,7 @@ def default_provider_registry() -> JobProviderRegistry:
     # Adzuna needs a free developer key; without one it reports itself
     # unavailable and the rest of discovery carries on unaffected.
     registry.register(AdzunaProvider())
+    registry.register(GolangJobsProvider())
     # Open-form ATS boards last: their postings link to application forms
     # with no login/captcha — the ones the autopilot can actually submit.
     registry.register(GreenhouseProvider())
