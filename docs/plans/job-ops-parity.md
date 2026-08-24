@@ -117,7 +117,7 @@ wrap it **in-process** — strictly simpler than their subprocess + CSV round-tr
 
 > **Progress log — 2026-08-24.** Items marked DONE are built, unit-tested,
 > linted and live-verified against the real services. Workspace test count:
-> 1,635 -> 1,852.
+> 1,635 -> 1,897.
 
 ### Deviations from the original plan, and why
 
@@ -246,7 +246,29 @@ supplies a Gmail-backed implementation over a new gmail.readonly scope and a
 `integrations_google.py` already has half the Gmail OAuth. Add: pull last 90 days →
 match against open applications → LLM classify → transition stage (Interviewing / Rejected).
 
-### Week 4 — anti-bot layer in `careeros-browser`
+### Week 4 — anti-bot layer — DONE (primitives only, deliberately)
+
+`careeros_browser.resilience`. Built the pure-Python, testable core:
+Cloudflare challenge detection (content markers + 403/503-from-CF status), a
+persistent cookie jar storing `cf_clearance` with the UA that earned it, and
+retry-with-backoff. 54 tests, no browser binary.
+
+**Deliberately did not build** the Camoufox binary, headed human-solve/VNC flow,
+Docker changes, or TLS-fingerprint spoofing. Every current provider reaches its
+source over plain HTTP — that machinery would be untested, unused infrastructure.
+It becomes worthwhile only when a hard-blocked provider (Naukri, Gradcracker, UK
+Visa Jobs) is actually added; the primitives above are the core it will build on.
+
+### Also done, beyond the original plan
+- **Typeset PDF export** (`careeros_api.resume_pdf`) — replaced the flat latin-1
+  text dump with a structured one-column CV rendered from the résumé Markdown;
+  transliterates non-latin text instead of dropping it; € / ₹ degrade to EUR / Rs.
+  Fixed a real bug: € is cp1252, not latin-1, so the old exporter silently ate it.
+- **Company watchlist** (`careeros-watchlist`) — monitor Greenhouse / Lever /
+  Ashby boards, diff for new roles, silent first-run baseline, empty-board-is-error
+  guard. Lever + Ashby are boards JobOps' watchlist can't reach.
+
+### (original) Week 4 — anti-bot layer in `careeros-browser`
 Camoufox launch options, content-marker challenge detection, cookie+UA persistence,
 `curl_cffi` TLS impersonation. Add `challenge_required: str | None` to `JobSearchResult`.
 
