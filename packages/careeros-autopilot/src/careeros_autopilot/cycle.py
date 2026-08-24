@@ -62,6 +62,7 @@ def run_autopilot_cycle(
     submit_enabled: bool = True,
     prepare_only: bool = False,
     assist_captcha: bool = False,
+    question_ai_client: Any | None = None,
     on_prepared: Any | None = None,
 ) -> dict[str, Any]:
     """Run one full cycle for the store's Career Brain; returns the
@@ -162,6 +163,7 @@ def run_autopilot_cycle(
             submit_enabled=submit_enabled,
             prepare_only=prepare_only,
             assist_captcha=assist_captcha,
+            question_ai_client=question_ai_client,
             on_prepared=on_prepared,
         )
 

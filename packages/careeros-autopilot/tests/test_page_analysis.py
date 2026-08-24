@@ -212,3 +212,29 @@ def test_detect_question_fields_from_labels():
     assert "Current employer" in questions
     # Standard name/email/phone fields are excluded from questions.
     assert "First Name" not in questions
+
+
+def test_detect_question_fields_uses_label_elements_and_selects():
+    """Real forms label fields with <label for=id> and use <select> dropdowns —
+    both must be detected, not just aria-label text inputs."""
+    session = FakeBrowserSession()
+    session.set_query_all_results(
+        "label",
+        [
+            {"for": "q_auth", "text": "Are you authorized to work in the US?"},
+            {"for": "q_src", "text": "How did you hear about us?"},
+        ],
+    )
+    session.set_query_all_results(
+        "input[type='text']",
+        [{"id": "q_auth", "label": None, "placeholder": None}],
+    )
+    session.set_query_all_results(
+        "select",
+        [{"id": "q_src", "label": None, "placeholder": None}],
+    )
+    fields = {f.selector: f for f in detect_question_fields(session)}
+    assert fields["#q_auth"].question == "Are you authorized to work in the US?"
+    assert fields["#q_auth"].kind == "text"
+    assert fields["#q_src"].question == "How did you hear about us?"
+    assert fields["#q_src"].kind == "select"
