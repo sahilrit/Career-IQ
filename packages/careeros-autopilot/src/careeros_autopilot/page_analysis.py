@@ -59,7 +59,12 @@ _COVER_LETTER_SELECTORS = [
     "textarea#cover_letter",
     "textarea[name*='letter' i]",
 ]
-_SUBMIT_SELECTORS = ["#submit_app", "button[type='submit']", "input[type='submit']"]
+_SUBMIT_SELECTORS = [
+    "#submit_app",
+    "#btn-submit",  # Lever
+    "button[type='submit']",
+    "input[type='submit']",
+]
 
 # Bot-protection interstitials (e.g. Cloudflare). The autopilot never
 # tries to get past these — it reports them so a human can take over.
@@ -155,12 +160,24 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
     return fields
 
 
-def detect_form_mapping(session: BrowserSession) -> FormFieldMapping | None:
-    """Build a mapping from what's visibly on the page, or None."""
+def detect_form_mapping(
+    session: BrowserSession, *, require_submit: bool = True
+) -> FormFieldMapping | None:
+    """Build a mapping from what's visibly on the page, or None.
+
+    ``require_submit=False`` (prepare-and-review) accepts a form as soon as it
+    has a fillable email field, even if no submit button is exposed — a human
+    reviews and submits, so we only need somewhere to put the candidate's data.
+    """
     email = _first_visible(session, _EMAIL_SELECTORS)
     submit = _first_visible(session, _SUBMIT_SELECTORS)
-    if email is None or submit is None:
+    if email is None:
         return None
+    if submit is None:
+        if require_submit:
+            return None
+        # Placeholder — never clicked in prepare mode; the human submits.
+        submit = "button[type='submit']"
 
     first_name = _first_visible(session, _FIRST_NAME_SELECTORS)
     last_name = _first_visible(session, _LAST_NAME_SELECTORS)

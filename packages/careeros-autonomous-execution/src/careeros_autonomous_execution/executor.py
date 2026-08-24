@@ -79,6 +79,8 @@ class AutonomousApplicationExecutor:
         resolve_form_mapping_live: LiveFormMappingResolver | None = None,
         cover_letter_generator: CoverLetterGenerator | None = None,
         submit_enabled: bool = True,
+        prepare_only: bool = False,
+        on_prepared: Callable[[Application, JobPosting], None] | None = None,
     ) -> None:
         self._repository = repository
         self._autonomy = autonomy_policy
@@ -92,6 +94,11 @@ class AutonomousApplicationExecutor:
         self._cover_letter_generator = cover_letter_generator
         # False -> reach + map the form but never click submit (dry run).
         self._submit_enabled = submit_enabled
+        # True -> fill the form (incl. captcha-gated ones) but never submit;
+        # a human reviews, solves any captcha, and submits. on_prepared is
+        # called with (application, posting) once the form is filled.
+        self._prepare_only = prepare_only
+        self._on_prepared = on_prepared
 
     def run_for_identity(
         self,
@@ -158,12 +165,17 @@ class AutonomousApplicationExecutor:
 
         problem = run_detectors(session, detectors)
         if problem is not None:
-            handoff.request_takeover(problem)
-            return ExecutionOutcome(
-                application.id,
-                submitted=False,
-                reason=f"Handed off to a human: {problem.description}",
-            )
+            # In prepare-and-review we WANT captcha-gated forms: fill what we
+            # can and let the human solve the captcha + submit. A login wall,
+            # though, means there's no fillable form to prepare — still hand off.
+            blocking = problem.kind == "login_required" or not self._prepare_only
+            if blocking:
+                handoff.request_takeover(problem)
+                return ExecutionOutcome(
+                    application.id,
+                    submitted=False,
+                    reason=f"Handed off to a human: {problem.description}",
+                )
 
         mapping = None
         if self._resolve_form_mapping_live is not None:
@@ -190,6 +202,25 @@ class AutonomousApplicationExecutor:
                 answer = answerer.answer(field.question)
                 if answer.answerable and answer.text:
                     question_answers[field.selector] = answer.text
+
+        if self._prepare_only:
+            # Prepare-and-review: fill the form (best-effort) but never submit.
+            # A human solves any captcha and clicks submit. Stays QUALIFIED.
+            self._runner.prepare(
+                session,
+                package,
+                mapping,
+                application_id=application.id,
+                resume_file_path=resume_file_path,
+                question_answers=question_answers,
+            )
+            if self._on_prepared is not None:
+                self._on_prepared(application, posting)
+            return ExecutionOutcome(
+                application.id,
+                submitted=False,
+                reason="Prepared for review — form filled; solve the captcha and submit",
+            )
 
         if not self._submit_enabled:
             # Dry run: we reached a fillable form and built the mapping/package,

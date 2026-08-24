@@ -62,6 +62,17 @@ def test_detect_form_mapping_requires_email_and_submit():
     assert detect_form_mapping(session) is not None
 
 
+def test_lenient_mapping_accepts_a_fillable_form_without_a_submit_button():
+    """Prepare-and-review only needs somewhere to put the data; the human
+    submits, so a visible email field is enough even with no submit button."""
+    session = FakeBrowserSession()
+    session.set_visible("input[type='email']")
+    assert detect_form_mapping(session) is None  # strict still requires submit
+    mapping = detect_form_mapping(session, require_submit=False)
+    assert mapping is not None
+    assert mapping.email_selector == "input[type='email']"
+
+
 def test_detect_form_mapping_prefers_split_name_fields():
     session = FakeBrowserSession()
     session.set_visible("input[type='email']")

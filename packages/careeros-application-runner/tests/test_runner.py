@@ -23,6 +23,23 @@ def test_successful_submission(session, package):
     assert len(result.screenshots) == 2  # before-submit + success
 
 
+def test_prepare_fills_the_form_but_never_submits(session, package):
+    mapping = FormFieldMapping(
+        full_name_selector="#name",
+        email_selector="#email",
+        submit_selector="#submit",
+        success_selector="#success",
+    )
+    runner = ApplicationRunner(screenshot_dir="/tmp/careeros-screenshots")
+    shot = runner.prepare(session, package, mapping, application_id="job-1")
+
+    assert session.field_value("#email") == "ada@example.com"
+    assert session.field_value("#name") == "Ada Lovelace"
+    # Never clicked submit — a human finishes the captcha and submits.
+    assert session.clicked_selectors == []
+    assert str(shot).endswith("job-1-prepared.png")
+
+
 def test_validation_failure_short_circuits_before_any_attempt(session, package):
     mapping = FormFieldMapping(submit_selector="#submit", success_selector="#success")
     # submit button never made visible
