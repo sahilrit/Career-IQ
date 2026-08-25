@@ -86,6 +86,32 @@ def test_sponsorship_is_never_guessed(answerer):
     assert answerer.answer("Do you require visa sponsorship?").answerable is False
 
 
+def test_work_auth_uses_the_stored_answer(brain):
+    brain.preferences.us_work_authorized = False
+    a = QuestionAnswerer(brain).answer(
+        "Are you authorized to work lawfully in the United States for Calendly?"
+    )
+    assert a.answerable is True
+    assert a.text == "No"
+    brain.preferences.us_work_authorized = True
+    assert QuestionAnswerer(brain).answer("Are you authorized to work in the US?").text == "Yes"
+
+
+def test_sponsorship_uses_the_stored_answer(brain):
+    brain.preferences.needs_visa_sponsorship = True
+    a = QuestionAnswerer(brain).answer("Will you now or in the future require sponsorship?")
+    assert a.answerable is True
+    assert a.text == "Yes"
+
+
+def test_a_learned_answer_wins_over_rules_and_ai(brain):
+    brain.preferences.screening_answers = {
+        "product led growth": "Yes — I scaled PLG funnels at Presha Trading."
+    }
+    a = QuestionAnswerer(brain).answer("Have you worked in a Product Led Growth SaaS company?")
+    assert a.text == "Yes — I scaled PLG funnels at Presha Trading."
+
+
 def test_eeo_is_declined_politely(answerer):
     a = answerer.answer("What is your gender?")
     assert a.answerable is True

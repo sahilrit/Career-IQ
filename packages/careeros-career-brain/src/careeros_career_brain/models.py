@@ -49,6 +49,13 @@ class Preferences(BaseModel):
     employment_types: list[str] = Field(default_factory=list)
     industries_of_interest: list[str] = Field(default_factory=list)
     industries_to_avoid: list[str] = Field(default_factory=list)
+    # Standard application answers the user gives once and we reuse truthfully
+    # on every form. None = unknown (leave for a human); never guessed.
+    us_work_authorized: bool | None = None
+    needs_visa_sponsorship: bool | None = None
+    # Free-form "learned" answers: a keyword/phrase from a question -> the answer
+    # the user gave. The answerer matches these before falling back to the AI.
+    screening_answers: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("min_salary")
     @classmethod

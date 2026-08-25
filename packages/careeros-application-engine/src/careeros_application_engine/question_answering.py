@@ -167,14 +167,31 @@ class QuestionAnswerer:
         return Answer("Open / negotiable")
 
     def _work_auth(self) -> Answer:
-        # Truthful only if the brain records it; otherwise defer to a human.
-        location = (self._brain.identity.location or "").lower()
-        if location:
-            return Answer(f"Authorized to work in {self._brain.identity.location}", choice="yes")
+        # Use the user's stored, truthful answer (set once). Never guess: if
+        # unknown, defer to a human. (Most of these ask about the US.)
+        authorized = self._brain.preferences.us_work_authorized
+        if authorized is True:
+            return Answer("Yes", choice="yes")
+        if authorized is False:
+            return Answer("No", choice="no")
         return Answer("", answerable=False)
 
     def _sponsorship(self) -> Answer:
-        return Answer("", answerable=False)  # never guess visa/sponsorship
+        # The user's stored answer — never a guess.
+        needs = self._brain.preferences.needs_visa_sponsorship
+        if needs is True:
+            return Answer("Yes", choice="yes")
+        if needs is False:
+            return Answer("No", choice="no")
+        return Answer("", answerable=False)
+
+    def _stored_answer(self, question: str) -> Answer | None:
+        """A "learned" answer the user saved for a matching question, if any."""
+        lowered = question.lower()
+        for key, value in self._brain.preferences.screening_answers.items():
+            if key.lower() in lowered and value:
+                return Answer(value)
+        return None
 
     def _why(self) -> Answer:
         if self._posting is None:
@@ -258,6 +275,10 @@ class QuestionAnswerer:
 
     def answer(self, question: str) -> Answer:
         """Best truthful answer for a free-text question label."""
+        # A "learned" answer the user saved wins over everything else.
+        stored = self._stored_answer(question)
+        if stored is not None:
+            return stored
         for pattern, builder in self._rules:
             if pattern.search(question):
                 result = builder() if callable(builder) else builder
