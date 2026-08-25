@@ -128,7 +128,10 @@ class PlaywrightBrowserSession:
 
     def screenshot(self, path: str | Path) -> Path:
         resolved = Path(path)
-        self._page.screenshot(path=str(resolved))
+        # Full page, not just the viewport — application forms sit below a long
+        # job description, so a viewport shot shows only the blurb, not the
+        # filled fields we want to review.
+        self._page.screenshot(path=str(resolved), full_page=True)
         return resolved
 
     def close(self) -> None:
