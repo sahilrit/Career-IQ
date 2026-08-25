@@ -89,6 +89,7 @@ members = [
     "careeros-tenancy",
     "careeros-themuse-provider",
     "careeros-trust-layer",
+    "careeros-ukvisajobs-provider",
     "careeros-watchlist",
     "careeros-weworkremotely-provider",
     "careeros-workflow-builder",
@@ -243,6 +244,9 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "careeros-api" },
+    { name = "careeros-gradcracker-provider" },
+    { name = "careeros-naukri-provider" },
+    { name = "careeros-ukvisajobs-provider" },
     { name = "httpx" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -256,6 +260,9 @@ requires-dist = [{ name = "careeros-dashboard", editable = "packages/careeros-da
 [package.metadata.requires-dev]
 dev = [
     { name = "careeros-api", editable = "packages/careeros-api" },
+    { name = "careeros-gradcracker-provider", editable = "packages/careeros-gradcracker-provider" },
+    { name = "careeros-naukri-provider", editable = "packages/careeros-naukri-provider" },
+    { name = "careeros-ukvisajobs-provider", editable = "packages/careeros-ukvisajobs-provider" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "pre-commit", specifier = ">=3.7" },
     { name = "pytest", specifier = ">=8.0" },
@@ -1738,6 +1745,25 @@ dependencies = [
 requires-dist = [
     { name = "careeros-career-brain", editable = "packages/careeros-career-brain" },
     { name = "careeros-common", editable = "packages/careeros-common" },
+]
+
+[[package]]
+name = "careeros-ukvisajobs-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-ukvisajobs-provider" }
+dependencies = [
+    { name = "careeros-browser" },
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-browser", editable = "packages/careeros-browser" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]

@@ -31,9 +31,26 @@ dev = [
     # name it here to keep it installed in the shared workspace venv.
     "careeros-api",
     "httpx>=0.27",
+    # Browser-gated job providers (docs/plans/browser-gated-sources.md):
+    # local-daemon-only by design, deliberately NOT a dependency of
+    # careeros-api (Dockerfile.api syncs with --package careeros-api, so
+    # this group never reaches the hosted image). scripts/autopilot_daemon.py
+    # needs them in the shared dev venv to run locally.
+    "careeros-naukri-provider",
+    "careeros-gradcracker-provider",
+    "careeros-ukvisajobs-provider",
 ]
 
 [tool.uv.sources.careeros-api]
+workspace = true
+
+[tool.uv.sources.careeros-naukri-provider]
+workspace = true
+
+[tool.uv.sources.careeros-gradcracker-provider]
+workspace = true
+
+[tool.uv.sources.careeros-ukvisajobs-provider]
 workspace = true
 
 # ---------------------------------------------------------------------------

@@ -31,6 +31,7 @@ from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore, open_store
+from careeros_gradcracker_provider import GradcrackerProvider
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
@@ -38,9 +39,11 @@ from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_providers import JobProviderRegistry
 from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
+from careeros_naukri_provider import NaukriProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_tenancy import TenantScopedDocumentStore
 from careeros_themuse_provider import TheMuseProvider
+from careeros_ukvisajobs_provider import UkVisaJobsProvider
 from careeros_weworkremotely_provider import WeWorkRemotelyProvider
 from careeros_workingnomads_provider import WorkingNomadsProvider
 
@@ -55,7 +58,35 @@ DEFAULT_KEYWORDS = (
 )
 
 
-def build_registry() -> JobProviderRegistry:
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def resolve_ukvisajobs_credentials(scoped: Any, workspace_id: str) -> tuple[str, str] | None:
+    """The workspace's my.ukvisajobs.com email/password, for UkVisaJobsProvider.
+
+    Simplest path: set UKVISAJOBS_EMAIL / UKVISAJOBS_PASSWORD directly — no
+    vault, no CAREEROS_SECRET_KEY juggling. Otherwise read what's stored in
+    the workspace's credential vault (needs CAREEROS_SECRET_KEY here to
+    MATCH the value the live app encrypted it with). None means the
+    provider searches nothing and reports why via source_errors, same as
+    Adzuna without its API keys.
+    """
+    direct_email = os.environ.get("UKVISAJOBS_EMAIL", "").strip()
+    direct_password = os.environ.get("UKVISAJOBS_PASSWORD", "").strip()
+    if direct_email and direct_password:
+        return (direct_email, direct_password)
+
+    try:
+        from careeros_api import ukvisajobs_credentials
+
+        return ukvisajobs_credentials.credentials(scoped, workspace_id)
+    except Exception as error:
+        print(f"UK Visa Jobs: off ({type(error).__name__}: {error}) — skipping this source")
+        return None
+
+
+def build_registry(scoped: Any, workspace_id: str) -> JobProviderRegistry:
     registry = JobProviderRegistry()
     registry.register(RemoteOKProvider())
     registry.register(ArbeitnowProvider())
@@ -73,6 +104,22 @@ def build_registry() -> JobProviderRegistry:
     # without them it reports unavailable and is skipped, so it's safe to add.
     registry.register(HiringCafeProvider())
     registry.register(AdzunaProvider())
+
+    # Browser-gated sources (docs/plans/browser-gated-sources.md): each run
+    # drives a real anti-detect browser against the source's own site from
+    # this machine's IP — real cost and real ToS exposure, unlike everything
+    # above. Naukri/Gradcracker need no credentials but are still an anti-bot
+    # arms race to keep working, so they're opt-in, not on by default.
+    if _env_flag("CAREEROS_ENABLE_NAUKRI"):
+        registry.register(NaukriProvider())
+    if _env_flag("CAREEROS_ENABLE_GRADCRACKER"):
+        registry.register(GradcrackerProvider())
+    # UK Visa Jobs additionally needs the user's own site credentials; with
+    # none configured, search() itself reports that through source_errors
+    # and touches no browser, so registering it unconditionally is safe.
+    registry.register(
+        UkVisaJobsProvider(credentials=resolve_ukvisajobs_credentials(scoped, workspace_id))
+    )
     return registry
 
 
@@ -243,7 +290,7 @@ def main() -> None:
         try:
             report = run_autopilot_cycle(
                 scoped,
-                provider_registry=build_registry(),
+                provider_registry=build_registry(scoped, arguments.workspace_id),
                 keywords=keywords,
                 # Review/assist need a visible browser so you can finish forms.
                 headless=(not arguments.show_browser) and not interactive,
