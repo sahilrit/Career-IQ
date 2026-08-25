@@ -20,6 +20,7 @@ def test_provider_detection():
     assert provider_for_key("sk-or-v1-abc") == "openrouter"
     assert provider_for_key("nvapi-abc123") == "nvidia"
     assert provider_for_key("AIzaSyAbc123") == "gemini"
+    assert provider_for_key("gsk_abc123") == "groq"
     assert provider_for_key("sk-abc123") == "openai"
 
 
@@ -28,6 +29,7 @@ def test_build_client_picks_the_right_client():
     assert isinstance(build_client("sk-or-v1-xxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("nvapi-xxxxxxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("AIzaSyxxxxxxxxxxxx"), OpenAICompatibleClient)
+    assert isinstance(build_client("gsk_xxxxxxxxxxxx"), OpenAICompatibleClient)
     assert isinstance(build_client("sk-openai-xxxxxxxx"), OpenAICompatibleClient)
 
 
@@ -40,6 +42,17 @@ def test_gemini_client_hits_google_endpoint_with_free_model():
 
     client = build_client("AIzaSy-test", http_client=_transport(handler))
     assert client.complete(system="s", prompt="p") == "Hi from Gemini"
+
+
+def test_groq_client_hits_groq_endpoint_with_free_model():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "api.groq.com" in str(request.url)
+        assert request.headers["authorization"] == "Bearer gsk_test"
+        assert request.read().count(b"llama-3.3-70b-versatile") == 1  # free-tier default model
+        return httpx.Response(200, json={"choices": [{"message": {"content": "Hi from Groq"}}]})
+
+    client = build_client("gsk_test", http_client=_transport(handler))
+    assert client.complete(system="s", prompt="p") == "Hi from Groq"
 
 
 def test_nvidia_client_hits_nvidia_endpoint():

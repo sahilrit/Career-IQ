@@ -88,16 +88,17 @@ export function AiKeyForm({ initial }: { initial: AiStatus }) {
           placeholder={
             status.has_key
               ? "•••••••• (leave blank to keep)"
-              : "AIza… / sk-ant-… / sk-or-… / sk-… / nvapi-…"
+              : "gsk_… / AIza… / sk-ant-… / sk-or-… / sk-… / nvapi-…"
           }
           value={key}
           onChange={(event) => setKey(event.target.value)}
           autoComplete="off"
         />
         <p className="mt-1.5 text-xs text-muted">
-          Works with <span className="text-white/80">Google Gemini (AIza…)</span>, Anthropic
-          (sk-ant-…), OpenRouter (sk-or-…), OpenAI (sk-…), or NVIDIA (nvapi-…). We detect the
-          provider from the key. Stored encrypted; never shown again.
+          Works with <span className="text-white/80">Groq (gsk_…)</span>,{" "}
+          <span className="text-white/80">Google Gemini (AIza…)</span>, Anthropic (sk-ant-…),
+          OpenRouter (sk-or-…), OpenAI (sk-…), or NVIDIA (nvapi-…). We detect the provider from the
+          key. Stored encrypted; never shown again.
         </p>
 
         <label className="label mt-4">Model (optional)</label>

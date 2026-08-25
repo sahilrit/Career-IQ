@@ -36,13 +36,18 @@ def put_ai(body: AiKeyRequest, context: Context) -> AiStatusResponse:
     model = body.model.strip() or None
 
     if key:
-        valid_prefix = key.startswith("sk-") or key.startswith("nvapi-") or key.startswith("AIza")
+        valid_prefix = (
+            key.startswith("sk-")
+            or key.startswith("nvapi-")
+            or key.startswith("AIza")
+            or key.startswith("gsk_")
+        )
         if not valid_prefix or len(key) < 20:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "that doesn't look like an API key — paste an 'sk-…' key (Anthropic, "
-                "OpenRouter, or OpenAI), an 'nvapi-…' key (NVIDIA), or an 'AIza…' key "
-                "(Google Gemini)",
+                "OpenRouter, or OpenAI), an 'nvapi-…' key (NVIDIA), an 'AIza…' key "
+                "(Google Gemini), or a 'gsk_…' key (Groq)",
             )
         ai_support.store_workspace_key(store, workspace_id, key)
     elif not ai_support.has_workspace_key(store, workspace_id):
