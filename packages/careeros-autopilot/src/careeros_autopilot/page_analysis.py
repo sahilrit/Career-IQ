@@ -173,6 +173,30 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
     except Exception:
         labels_by_for = {}
 
+    # Custom (React/ARIA) dropdowns — the "Select…" widgets that aren't native
+    # <select> and so need a click-and-pick interaction, not a plain fill.
+    #
+    # Runs FIRST, ahead of the generic text/select scan below: a real
+    # react-select's focusable input has type="text" as an implementation
+    # detail, with a real usable aria-label — so it also matches
+    # "input[type='text']" below. If that scan ran first it would claim the
+    # selector as a plain text field before detect_comboboxes() got a
+    # chance, and fill_application_form later calling .fill() on a closed
+    # dropdown types into it without ever selecting an option, i.e. silently
+    # does nothing (verified against a live Greenhouse form, 2026-08-26 —
+    # every EEO/sponsorship dropdown question was affected).
+    try:
+        comboboxes = session.detect_comboboxes()
+    except Exception:
+        comboboxes = []
+    for combobox in comboboxes:
+        selector = (combobox.get("selector") or "").strip()
+        question = (combobox.get("question") or "").strip()
+        if not selector or not question or selector in seen:
+            continue
+        seen.add(selector)
+        fields.append(QuestionField(selector=selector, question=question, kind="combobox"))
+
     # NOTE: "@attr" extracts the element's OWN attribute; a bare "textarea@id"
     # would look for a *nested* textarea and always miss — which is why live
     # forms used to yield no questions at all.
@@ -209,19 +233,6 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
             seen.add(css)
             fields.append(QuestionField(selector=css, question=question, kind=kind))
 
-    # Custom (React/ARIA) dropdowns — the "Select…" widgets that aren't native
-    # <select> and so need a click-and-pick interaction, not a plain fill.
-    try:
-        comboboxes = session.detect_comboboxes()
-    except Exception:
-        comboboxes = []
-    for combobox in comboboxes:
-        selector = (combobox.get("selector") or "").strip()
-        question = (combobox.get("question") or "").strip()
-        if not selector or not question or selector in seen:
-            continue
-        seen.add(selector)
-        fields.append(QuestionField(selector=selector, question=question, kind="combobox"))
     return fields
 
 

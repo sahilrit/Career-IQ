@@ -295,18 +295,57 @@ def test_detect_question_fields_includes_custom_dropdowns():
     assert fields['[id="cos-combo-0"]'].kind == "combobox"
 
 
-def test_combobox_selector_already_seen_is_not_duplicated():
-    """A dropdown whose selector was already taken by a text/select field is
-    not added twice."""
+def test_a_react_select_dropdown_is_classified_as_combobox_not_text():
+    """Regression: a real react-select dropdown's focusable input element has
+    type='text' and a real aria-label as implementation details — so it also
+    matches the plain `input[type='text']` scan, WITH a usable question
+    label, which is enough to enter `seen` and block the correct combobox
+    classification. On a live Greenhouse form (verified 2026-08-26) this
+    caused every EEO/sponsorship dropdown question ('Do you require
+    immigration sponsorship...', gender, veteran status, ...) to be
+    misclassified as kind='text', so fill_application_form later called a
+    plain .fill() on a closed dropdown — which types into it without ever
+    selecting an option, i.e. silently does nothing useful.
+    detect_comboboxes() must win a selector collision, not lose to
+    whichever generic scan happens to run first."""
     session = FakeBrowserSession()
+    session.set_query_all_results(
+        "input[type='text']",
+        [
+            {
+                "id": "question_31786595003",
+                "label": "Do you require immigration sponsorship to work in the United States?",
+                "placeholder": None,
+            }
+        ],
+    )
+    session.set_comboboxes(
+        [
+            {
+                "selector": '[id="question_31786595003"]',
+                "question": "Do you require immigration sponsorship to work in the United States?",
+            }
+        ]
+    )
+    fields = [
+        f for f in detect_question_fields(session) if f.selector == '[id="question_31786595003"]'
+    ]
+    assert len(fields) == 1
+    assert fields[0].kind == "combobox"
+
+
+def test_combobox_selector_already_seen_is_not_duplicated():
+    """A dropdown whose selector was already reported by detect_comboboxes()
+    is not added a second time by the generic scan."""
+    session = FakeBrowserSession()
+    session.set_comboboxes([{"selector": '[id="q_country"]', "question": "Country"}])
     session.set_query_all_results(
         "select",
         [{"id": "q_country", "label": "Country", "placeholder": None}],
     )
-    session.set_comboboxes([{"selector": '[id="q_country"]', "question": "Country"}])
     fields = [f for f in detect_question_fields(session) if f.selector == '[id="q_country"]']
     assert len(fields) == 1
-    assert fields[0].kind == "select"  # the native <select> won, seen first
+    assert fields[0].kind == "combobox"  # detect_comboboxes wins, seen first
 
 
 def test_numeric_field_ids_produce_valid_selectors():
