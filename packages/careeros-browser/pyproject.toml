@@ -16,7 +16,7 @@ dependencies = [
 # clear error. Install with `uv sync --extra camoufox` then
 # `python3 -m camoufox fetch` to download the browser binary (also optional,
 # free, one-time).
-camoufox = ["camoufox>=0.4"]
+camoufox = ["camoufox[geoip]>=0.4"]
 
 [tool.uv.sources]
 careeros-common = { workspace = true }
