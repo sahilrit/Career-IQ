@@ -84,6 +84,7 @@ members = [
     "careeros-remoteok-provider",
     "careeros-reply-tracking",
     "careeros-runtime",
+    "careeros-seek-provider",
     "careeros-self-hosted",
     "careeros-skill-marketplace",
     "careeros-tenancy",
@@ -1339,6 +1340,7 @@ dependencies = [
     { name = "careeros-lever-provider" },
     { name = "careeros-linkedin-provider" },
     { name = "careeros-remoteok-provider" },
+    { name = "careeros-seek-provider" },
     { name = "careeros-themuse-provider" },
     { name = "careeros-weworkremotely-provider" },
     { name = "careeros-workingnomads-provider" },
@@ -1364,6 +1366,7 @@ requires-dist = [
     { name = "careeros-lever-provider", editable = "packages/careeros-lever-provider" },
     { name = "careeros-linkedin-provider", editable = "packages/careeros-linkedin-provider" },
     { name = "careeros-remoteok-provider", editable = "packages/careeros-remoteok-provider" },
+    { name = "careeros-seek-provider", editable = "packages/careeros-seek-provider" },
     { name = "careeros-themuse-provider", editable = "packages/careeros-themuse-provider" },
     { name = "careeros-weworkremotely-provider", editable = "packages/careeros-weworkremotely-provider" },
     { name = "careeros-workingnomads-provider", editable = "packages/careeros-workingnomads-provider" },
@@ -1664,6 +1667,23 @@ dependencies = [
 requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
+name = "careeros-seek-provider"
+version = "0.1.0"
+source = { editable = "packages/careeros-seek-provider" }
+dependencies = [
+    { name = "careeros-common" },
+    { name = "careeros-job-providers" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
+    { name = "httpx", specifier = ">=0.27" },
 ]
 
 [[package]]

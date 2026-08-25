@@ -30,6 +30,7 @@ from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
 from careeros_linkedin_provider import LinkedInProvider
 from careeros_remoteok_provider import RemoteOKProvider
+from careeros_seek_provider import SeekProvider
 from careeros_themuse_provider import TheMuseProvider
 from careeros_weworkremotely_provider import WeWorkRemotelyProvider
 from careeros_workingnomads_provider import WorkingNomadsProvider
@@ -55,6 +56,10 @@ def default_provider_registry() -> JobProviderRegistry:
     # unavailable and the rest of discovery carries on unaffected.
     registry.register(AdzunaProvider())
     registry.register(GolangJobsProvider())
+    # Seek's own frontend calls a plain, unauthenticated JSON search API —
+    # verified live (2026-08-26) — so it needs no key and no browser, unlike
+    # the local-daemon-only browser-gated sources.
+    registry.register(SeekProvider())
     # Open-form ATS boards last: their postings link to application forms
     # with no login/captcha — the ones the autopilot can actually submit.
     registry.register(GreenhouseProvider())

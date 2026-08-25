@@ -22,6 +22,7 @@ dependencies = [
     "careeros-lever-provider",
     "careeros-linkedin-provider",
     "careeros-remoteok-provider",
+    "careeros-seek-provider",
     "careeros-themuse-provider",
     "careeros-weworkremotely-provider",
     "careeros-workingnomads-provider",
@@ -46,6 +47,7 @@ careeros-jobicy-provider = { workspace = true }
 careeros-lever-provider = { workspace = true }
 careeros-linkedin-provider = { workspace = true }
 careeros-remoteok-provider = { workspace = true }
+careeros-seek-provider = { workspace = true }
 careeros-themuse-provider = { workspace = true }
 careeros-weworkremotely-provider = { workspace = true }
 careeros-workingnomads-provider = { workspace = true }

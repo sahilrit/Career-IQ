@@ -31,6 +31,7 @@ from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore, open_store
+from careeros_golangjobs_provider import GolangJobsProvider
 from careeros_gradcracker_provider import GradcrackerProvider
 from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
@@ -41,6 +42,7 @@ from careeros_jobicy_provider import JobicyProvider
 from careeros_lever_provider import LeverProvider
 from careeros_naukri_provider import NaukriProvider
 from careeros_remoteok_provider import RemoteOKProvider
+from careeros_seek_provider import SeekProvider
 from careeros_tenancy import TenantScopedDocumentStore
 from careeros_themuse_provider import TheMuseProvider
 from careeros_ukvisajobs_provider import UkVisaJobsProvider
@@ -104,6 +106,10 @@ def build_registry(scoped: Any, workspace_id: str) -> JobProviderRegistry:
     # without them it reports unavailable and is skipped, so it's safe to add.
     registry.register(HiringCafeProvider())
     registry.register(AdzunaProvider())
+    registry.register(GolangJobsProvider())
+    # Seek's own frontend calls a plain, unauthenticated JSON search API —
+    # verified live (2026-08-26) — so it needs no key and no browser.
+    registry.register(SeekProvider())
 
     # Browser-gated sources (docs/plans/browser-gated-sources.md): each run
     # drives a real anti-detect browser against the source's own site from

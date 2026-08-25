@@ -38,6 +38,7 @@ def test_the_original_api_backed_providers_are_all_registered():
         "hiringcafe",
         "adzuna",
         "golangjobs",
+        "seek",
     } <= ids
 
 
