@@ -40,6 +40,7 @@ dev = [
     "careeros-gradcracker-provider",
     "careeros-ukvisajobs-provider",
     "careeros-ziprecruiter-provider",
+    "careeros-glassdoor-provider",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -55,6 +56,9 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-ziprecruiter-provider]
+workspace = true
+
+[tool.uv.sources.careeros-glassdoor-provider]
 workspace = true
 
 # ---------------------------------------------------------------------------

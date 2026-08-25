@@ -31,6 +31,7 @@ from careeros_arbeitnow_provider import ArbeitnowProvider
 from careeros_ashby_provider import AshbyProvider
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore, open_store
+from careeros_glassdoor_provider import GlassdoorProvider
 from careeros_golangjobs_provider import GolangJobsProvider
 from careeros_gradcracker_provider import GradcrackerProvider
 from careeros_greenhouse_provider import GreenhouseProvider
@@ -125,6 +126,8 @@ def build_registry(scoped: Any, workspace_id: str) -> JobProviderRegistry:
         registry.register(GradcrackerProvider())
     if _env_flag("CAREEROS_ENABLE_ZIPRECRUITER"):
         registry.register(ZipRecruiterProvider())
+    if _env_flag("CAREEROS_ENABLE_GLASSDOOR"):
+        registry.register(GlassdoorProvider())
     # UK Visa Jobs additionally needs the user's own site credentials; with
     # none configured, search() itself reports that through source_errors
     # and touches no browser, so registering it unconditionally is safe.
