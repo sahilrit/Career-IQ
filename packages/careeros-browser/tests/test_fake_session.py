@@ -279,3 +279,36 @@ def test_capture_response_after_normalizes_an_action_failure():
 
     with pytest.raises(ResponseTimeoutError):
         session.capture_response_after(action, url_contains="jobapi")
+
+
+def test_detect_comboboxes_replays_queued_dropdowns():
+    session = FakeBrowserSession()
+    assert session.detect_comboboxes() == []  # none by default
+    session.set_comboboxes([{"selector": '[id="x"]', "question": "Sponsorship?"}])
+    assert session.detect_comboboxes() == [{"selector": '[id="x"]', "question": "Sponsorship?"}]
+
+
+def test_select_combobox_option_records_the_matched_choice():
+    session = FakeBrowserSession()
+    session.set_combobox_options('[id="x"]', ["Yes", "No"])
+    session.select_combobox_option('[id="x"]', "No")
+    assert session.combobox_selections == [('[id="x"]', "No")]
+    assert session.field_value('[id="x"]') == "No"
+
+
+def test_select_combobox_option_raises_when_no_option_matches():
+    from careeros_browser import BrowserError
+
+    session = FakeBrowserSession()
+    session.set_combobox_options('[id="x"]', ["California", "Texas"])
+    with pytest.raises(BrowserError):
+        session.select_combobox_option('[id="x"]', "India")
+    assert session.combobox_selections == []
+
+
+def test_select_combobox_option_raises_when_dropdown_has_no_options():
+    from careeros_browser import BrowserError
+
+    session = FakeBrowserSession()
+    with pytest.raises(BrowserError):
+        session.select_combobox_option('[id="x"]', "Yes")

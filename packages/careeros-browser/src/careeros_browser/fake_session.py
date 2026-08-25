@@ -13,10 +13,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from careeros_browser.exceptions import (
+    BrowserError,
     DownloadError,
     ResponseTimeoutError,
     SelectorTimeoutError,
 )
+from careeros_browser.matching import best_option_index
 
 
 class FakeBrowserSession:
@@ -34,6 +36,9 @@ class FakeBrowserSession:
         # call, so a page that must be fetched twice needs two queued entries.
         self._queued_responses: dict[str, deque[str]] = {}
         self._failing_click_selectors: set[str] = set()
+        self._comboboxes: list[dict[str, str]] = []
+        self._combobox_options: dict[str, list[str]] = {}
+        self.combobox_selections: list[tuple[str, str]] = []
         self._user_agent = (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -78,6 +83,22 @@ class FakeBrowserSession:
 
     def select_option(self, selector: str, value: str) -> None:
         self._field_values[selector] = value
+
+    def detect_comboboxes(self) -> list[dict[str, str]]:
+        return [dict(row) for row in self._comboboxes]
+
+    def select_combobox_option(self, control_selector: str, option_text: str) -> None:
+        options = self._combobox_options.get(control_selector)
+        if not options:
+            raise BrowserError(f"Dropdown {control_selector!r} exposed no options to choose from")
+        index = best_option_index(options, option_text)
+        if index is None:
+            raise BrowserError(
+                f"No option matching {option_text!r} in dropdown {control_selector!r}"
+            )
+        chosen = options[index]
+        self._field_values[control_selector] = chosen
+        self.combobox_selections.append((control_selector, chosen))
 
     def upload_file(self, selector: str, file_path: str | Path) -> None:
         self.uploaded_files[selector] = str(file_path)
@@ -173,6 +194,14 @@ class FakeBrowserSession:
     def set_query_all_results(self, selector: str, results: list[dict[str, str | None]]) -> None:
         """Simulate ``selector`` matching a list of elements, for test setup."""
         self._query_all_results[selector] = results
+
+    def set_comboboxes(self, comboboxes: list[dict[str, str]]) -> None:
+        """Simulate the page holding these custom dropdowns, for test setup."""
+        self._comboboxes = [dict(row) for row in comboboxes]
+
+    def set_combobox_options(self, control_selector: str, options: list[str]) -> None:
+        """Simulate the options ``control_selector``'s dropdown offers once opened."""
+        self._combobox_options[control_selector] = list(options)
 
     def set_html_blocks(self, selector: str, htmls: list[str]) -> None:
         """Simulate ``selector`` matching elements with this outer HTML."""

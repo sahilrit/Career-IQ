@@ -279,6 +279,36 @@ def test_detect_question_fields_uses_label_elements_and_selects():
     assert fields['[id="q_src"]'].kind == "select"
 
 
+def test_detect_question_fields_includes_custom_dropdowns():
+    """React/ARIA 'Select…' dropdowns aren't native <select>; they surface via
+    detect_comboboxes() and must be detected as kind='combobox'."""
+    session = FakeBrowserSession()
+    session.set_comboboxes(
+        [
+            {"selector": '[id="react-select-3-input"]', "question": "Do you require sponsorship?"},
+            {"selector": '[id="cos-combo-0"]', "question": "Which state do you reside in?"},
+        ]
+    )
+    fields = {f.selector: f for f in detect_question_fields(session)}
+    assert fields['[id="react-select-3-input"]'].kind == "combobox"
+    assert fields['[id="react-select-3-input"]'].question == "Do you require sponsorship?"
+    assert fields['[id="cos-combo-0"]'].kind == "combobox"
+
+
+def test_combobox_selector_already_seen_is_not_duplicated():
+    """A dropdown whose selector was already taken by a text/select field is
+    not added twice."""
+    session = FakeBrowserSession()
+    session.set_query_all_results(
+        "select",
+        [{"id": "q_country", "label": "Country", "placeholder": None}],
+    )
+    session.set_comboboxes([{"selector": '[id="q_country"]', "question": "Country"}])
+    fields = [f for f in detect_question_fields(session) if f.selector == '[id="q_country"]']
+    assert len(fields) == 1
+    assert fields[0].kind == "select"  # the native <select> won, seen first
+
+
 def test_numeric_field_ids_produce_valid_selectors():
     """Regression: an all-numeric id like 4001209002 makes '#4001209002' an
     INVALID CSS selector that throws on fill and crashed whole cycles. Use an

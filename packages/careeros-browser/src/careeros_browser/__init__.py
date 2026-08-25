@@ -12,6 +12,7 @@ from careeros_browser.exceptions import (
 from careeros_browser.fake_session import FakeBrowserSession
 from careeros_browser.health import check_browser_health
 from careeros_browser.launcher import launch_browser_session, launch_camoufox_session
+from careeros_browser.matching import best_option_index
 from careeros_browser.models import BrowserHealth, BrowserHealthStatus
 from careeros_browser.playwright_session import PlaywrightBrowserSession
 from careeros_browser.resilience import (
@@ -37,6 +38,7 @@ __all__ = [
     "PlaywrightBrowserSession",
     "ResponseTimeoutError",
     "SelectorTimeoutError",
+    "best_option_index",
     "check_browser_health",
     "is_challenge_html",
     "is_challenge_status",

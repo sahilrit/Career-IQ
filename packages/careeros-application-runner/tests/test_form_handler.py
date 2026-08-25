@@ -79,6 +79,49 @@ def test_cover_letter_fill_failure_does_not_abort_the_application(package):
     assert session.field_value("#cover_letter") is None
 
 
+def test_fills_a_custom_dropdown_question(session, package):
+    """A kind='combobox' question is answered by opening the dropdown and
+    picking the matching option, not by a plain fill."""
+    from careeros_application_runner.models import QuestionField
+
+    session.set_combobox_options('[id="q_sponsor"]', ["Yes", "No"])
+    mapping = FormFieldMapping(
+        email_selector="#email",
+        question_fields=[
+            QuestionField(selector='[id="q_sponsor"]', question="Sponsorship?", kind="combobox")
+        ],
+        submit_selector="#submit",
+        success_selector="#success",
+    )
+
+    fill_application_form(session, package, mapping, question_answers={'[id="q_sponsor"]': "Yes"})
+
+    assert session.combobox_selections == [('[id="q_sponsor"]', "Yes")]
+    assert session.field_value('[id="q_sponsor"]') == "Yes"
+
+
+def test_unmatched_dropdown_option_is_left_for_a_human(session, package):
+    """When no option matches the answer, the dropdown raises internally and the
+    field is left blank rather than a wrong value chosen — the rest still fills."""
+    from careeros_application_runner.models import QuestionField
+
+    session.set_combobox_options('[id="q_state"]', ["California", "New York", "Texas"])
+    mapping = FormFieldMapping(
+        email_selector="#email",
+        question_fields=[
+            QuestionField(selector='[id="q_state"]', question="US state?", kind="combobox")
+        ],
+        submit_selector="#submit",
+        success_selector="#success",
+    )
+
+    fill_application_form(session, package, mapping, question_answers={'[id="q_state"]': "India"})
+
+    assert session.combobox_selections == []
+    assert session.field_value('[id="q_state"]') is None
+    assert session.field_value("#email") == "ada@example.com"  # rest still filled
+
+
 def test_submit_clicks_the_submit_selector(session):
     mapping = FormFieldMapping(submit_selector="#submit", success_selector="#success")
     submit_application_form(session, mapping)

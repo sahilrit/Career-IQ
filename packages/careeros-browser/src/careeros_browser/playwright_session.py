@@ -10,6 +10,7 @@ the real ``playwright`` package to be importable just to read this code.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,58 @@ from careeros_browser.exceptions import (
     ResponseTimeoutError,
     SelectorTimeoutError,
 )
+from careeros_browser.matching import best_option_index
+
+# Runs in the page: find every custom (React/ARIA) dropdown, resolve its
+# question label, stamp a stable id on its clickable control, and hand back
+# {selector, question}. It walks up to a few ancestors for the label because
+# React dropdowns put the <label for=…> on the field WRAPPER, not on the tiny
+# combobox input inside it — the reason a plain [label for] scrape found none.
+_DETECT_COMBOBOXES_JS = r"""
+() => {
+  const STANDARD = ['first name','last name','full name','email','phone',
+                    'resume','cv','cover letter'];
+  const textOf = (id) => {
+    const n = id && document.getElementById(id);
+    return n ? n.textContent.trim() : '';
+  };
+  const labelFor = (el) => {
+    const aria = (el.getAttribute('aria-label') || '').trim();
+    if (aria) return aria;
+    const lb = el.getAttribute('aria-labelledby');
+    if (lb) { const t = lb.split(/\s+/).map(textOf).join(' ').trim(); if (t) return t; }
+    const own = el.closest('label');
+    if (own && own.textContent.trim()) return own.textContent.trim();
+    let p = el;
+    for (let k = 0; k < 5 && p; k++) {
+      p = p.parentElement;
+      if (!p) break;
+      const lab = p.querySelector('label');
+      if (lab && lab.textContent.trim()) return lab.textContent.trim();
+    }
+    return '';
+  };
+  // react-select exposes its options input as [role=combobox]; other ATS use a
+  // role=combobox div. Both are covered; native <select> is intentionally NOT.
+  const sel = "[role='combobox'], input[id^='react-select']";
+  const nodes = Array.from(document.querySelectorAll(sel));
+  const out = [];
+  const seen = new Set();
+  let stamp = 0;
+  for (const el of nodes) {
+    const question = labelFor(el);
+    if (!question) continue;
+    const lowered = question.toLowerCase();
+    if (STANDARD.some((w) => lowered.includes(w))) continue;
+    if (!el.id) el.id = 'cos-combo-' + (stamp++);
+    const selector = '[id="' + el.id + '"]';
+    if (seen.has(selector)) continue;
+    seen.add(selector);
+    out.push({ selector, question });
+  }
+  return out;
+}
+"""
 
 
 class PlaywrightBrowserSession:
@@ -61,6 +114,55 @@ class PlaywrightBrowserSession:
 
     def select_option(self, selector: str, value: str) -> None:
         self._page.select_option(selector, value)
+
+    def detect_comboboxes(self) -> list[dict[str, str]]:
+        try:
+            found = self._page.evaluate(_DETECT_COMBOBOXES_JS)
+        except Exception:
+            return []
+        results: list[dict[str, str]] = []
+        for row in found or []:
+            selector = (row.get("selector") or "").strip()
+            question = (row.get("question") or "").strip()
+            if selector and question:
+                results.append({"selector": selector, "question": question})
+        return results
+
+    def select_combobox_option(self, control_selector: str, option_text: str) -> None:
+        page = self._page
+        # Open the menu. Clicking the control focuses it and (for react-select /
+        # ARIA comboboxes) renders the option list.
+        page.click(control_selector)
+        # Best-effort type-to-filter: react-select narrows a long list as you
+        # type, which makes the right option render even when the list is
+        # virtualised. Harmless (and ignored) on dropdowns that aren't inputs.
+        with contextlib.suppress(Exception):
+            page.fill(control_selector, option_text)
+        # Wait for options to appear; if they never do this isn't an
+        # options-list dropdown we can drive — raise so the field is left blank.
+        try:
+            page.wait_for_selector("[role='option']", timeout=3000)
+        except Exception as exc:
+            raise BrowserError(
+                f"Dropdown {control_selector!r} exposed no options to choose from"
+            ) from exc
+        handles = page.query_selector_all("[role='option']")
+        visible: list[Any] = []
+        texts: list[str] = []
+        for handle in handles:
+            try:
+                if handle.is_visible():
+                    visible.append(handle)
+                    texts.append((handle.text_content() or "").strip())
+            except Exception:
+                continue
+        index = best_option_index(texts, option_text)
+        if index is None:
+            raise BrowserError(
+                f"No option matching {option_text!r} in dropdown {control_selector!r} "
+                f"(options: {texts})"
+            )
+        visible[index].click()
 
     def upload_file(self, selector: str, file_path: str | Path) -> None:
         self._page.set_input_files(selector, str(file_path))

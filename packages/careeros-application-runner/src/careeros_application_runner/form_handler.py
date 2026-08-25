@@ -53,6 +53,11 @@ def fill_application_form(
         with contextlib.suppress(Exception):
             if field.kind == "select":
                 session.select_option(field.selector, answer)
+            elif field.kind == "combobox":
+                # A custom React/ARIA "Select…" dropdown: open it and pick the
+                # option matching the answer. Raises (→ suppressed, left for a
+                # human) if it can't match rather than choosing a wrong value.
+                session.select_combobox_option(field.selector, answer)
             else:
                 session.fill(field.selector, answer)
 

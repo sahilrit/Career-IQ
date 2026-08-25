@@ -208,6 +208,20 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
                 continue
             seen.add(css)
             fields.append(QuestionField(selector=css, question=question, kind=kind))
+
+    # Custom (React/ARIA) dropdowns — the "Select…" widgets that aren't native
+    # <select> and so need a click-and-pick interaction, not a plain fill.
+    try:
+        comboboxes = session.detect_comboboxes()
+    except Exception:
+        comboboxes = []
+    for combobox in comboboxes:
+        selector = (combobox.get("selector") or "").strip()
+        question = (combobox.get("question") or "").strip()
+        if not selector or not question or selector in seen:
+            continue
+        seen.add(selector)
+        fields.append(QuestionField(selector=selector, question=question, kind="combobox"))
     return fields
 
 

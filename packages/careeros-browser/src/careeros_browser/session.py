@@ -41,6 +41,29 @@ class BrowserSession(Protocol):
         ...
 
     def select_option(self, selector: str, value: str) -> None: ...
+
+    def detect_comboboxes(self) -> list[dict[str, str]]:
+        """Custom (React/ARIA) dropdowns on the page — the ``Select…`` widgets
+        that are NOT native ``<select>`` elements and so can't be filled with
+        ``select_option``.
+
+        Returns one ``{"selector": ..., "question": ...}`` per dropdown: a
+        stable selector for the clickable control, and the question label
+        resolved from its ``aria-label``/``<label>``. Native ``<select>`` and
+        the standard name/email/phone fields are excluded. Empty when the page
+        has none (the common case), so callers pay nothing on plain forms.
+        """
+        ...
+
+    def select_combobox_option(self, control_selector: str, option_text: str) -> None:
+        """Open the custom dropdown at ``control_selector`` and choose the
+        option best matching ``option_text``.
+
+        Raises if the dropdown never opens or no option matches — the caller
+        then leaves the field for a human rather than picking a wrong value.
+        """
+        ...
+
     def upload_file(self, selector: str, file_path: str | Path) -> None: ...
 
     def text_content(self, selector: str) -> str | None: ...
