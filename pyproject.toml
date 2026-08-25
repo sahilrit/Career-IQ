@@ -41,6 +41,14 @@ dev = [
     "careeros-ukvisajobs-provider",
     "careeros-ziprecruiter-provider",
     "careeros-glassdoor-provider",
+    # Naukri/Gradcracker/UK Visa Jobs/ZipRecruiter/Glassdoor all need a real
+    # anti-detect browser session (careeros_browser.launch_camoufox_session),
+    # not just careeros-browser's core (Playwright-only) install. Requesting
+    # the extra here, rather than needing `uv sync --extra camoufox` every
+    # time, is what keeps a plain `uv sync` leaving these actually runnable —
+    # still opt-in for the hosted API image, which syncs with
+    # --package careeros-api and never touches this dev group.
+    "careeros-browser[camoufox]",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -59,6 +67,9 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-glassdoor-provider]
+workspace = true
+
+[tool.uv.sources.careeros-browser]
 workspace = true
 
 # ---------------------------------------------------------------------------

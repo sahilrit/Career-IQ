@@ -247,6 +247,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "careeros-api" },
+    { name = "careeros-browser", extra = ["camoufox"] },
     { name = "careeros-glassdoor-provider" },
     { name = "careeros-gradcracker-provider" },
     { name = "careeros-naukri-provider" },
@@ -265,6 +266,7 @@ requires-dist = [{ name = "careeros-dashboard", editable = "packages/careeros-da
 [package.metadata.requires-dev]
 dev = [
     { name = "careeros-api", editable = "packages/careeros-api" },
+    { name = "careeros-browser", extras = ["camoufox"], editable = "packages/careeros-browser" },
     { name = "careeros-glassdoor-provider", editable = "packages/careeros-glassdoor-provider" },
     { name = "careeros-gradcracker-provider", editable = "packages/careeros-gradcracker-provider" },
     { name = "careeros-naukri-provider", editable = "packages/careeros-naukri-provider" },
