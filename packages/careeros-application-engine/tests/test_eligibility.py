@@ -3,10 +3,12 @@ rules the candidate out, never on a guess."""
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pytest
 
 from careeros_application_engine import disqualifying_requirement
-from careeros_career_brain import CareerBrain, Identity, Preferences
+from careeros_career_brain import CareerBrain, Experience, Identity, Preferences
 
 
 def _brain(**prefs) -> CareerBrain:
@@ -18,6 +20,14 @@ def _brain(**prefs) -> CareerBrain:
         ),
         preferences=Preferences(**prefs),
     )
+
+
+def _brain_with_years(total_years: float, **prefs) -> CareerBrain:
+    """A brain with one experience entry spanning ``total_years`` up to today."""
+    brain = _brain(**prefs)
+    start = date.today() - timedelta(days=round(total_years * 365.25))
+    experience = Experience(company_name="Acme", title="Marketer", start_date=start)
+    return brain.model_copy(update={"experiences": [experience]})
 
 
 # --- sponsorship ---------------------------------------------------------
@@ -109,3 +119,57 @@ def test_line_broken_requirement_still_matches():
     brain = _brain(us_work_authorized=False)
     text = "You must be authorized to\n   work in the United States."
     assert disqualifying_requirement(brain, text) is not None
+
+
+# --- years of experience --------------------------------------------------
+
+
+def test_a_stated_minimum_the_candidate_falls_short_of_is_skipped():
+    brain = _brain_with_years(4)
+    text = "Looking for someone with 10+ years of experience."
+    assert disqualifying_requirement(brain, text) is not None
+
+
+def test_a_stated_minimum_the_candidate_meets_is_not_flagged():
+    brain = _brain_with_years(12)
+    text = "Looking for someone with 10+ years of experience."
+    assert disqualifying_requirement(brain, text) is None
+
+
+def test_a_stated_minimum_with_no_experience_stored_is_not_flagged():
+    # Conservative by design: an empty Career Brain must never trigger a
+    # disqualification it has no data to actually support.
+    brain = _brain(needs_visa_sponsorship=False)
+    text = "Looking for someone with 10+ years of experience."
+    assert disqualifying_requirement(brain, text) is None
+
+
+def test_years_mentioned_without_experience_context_is_not_a_requirement():
+    brain = _brain_with_years(2)
+    assert disqualifying_requirement(brain, "Founded 10 years ago in a garage.") is None
+
+
+def test_a_range_requirement_uses_the_lower_bound():
+    brain = _brain_with_years(6)
+    assert disqualifying_requirement(brain, "5-10 years of experience required.") is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "10+ years of experience required.",
+        "Requires at least 10 years of experience.",
+        "Minimum of 10 years of professional experience.",
+        "10 years experience needed.",
+    ],
+)
+def test_various_phrasings_of_a_minimum_are_recognised(text):
+    brain = _brain_with_years(2)
+    assert disqualifying_requirement(brain, text) is not None
+
+
+def test_experience_reason_states_both_numbers():
+    brain = _brain_with_years(4)
+    reason = disqualifying_requirement(brain, "Requires 10+ years of experience.")
+    assert reason is not None
+    assert "10" in reason and "4" in reason
