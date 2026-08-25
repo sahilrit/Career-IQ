@@ -48,6 +48,7 @@ from careeros_themuse_provider import TheMuseProvider
 from careeros_ukvisajobs_provider import UkVisaJobsProvider
 from careeros_weworkremotely_provider import WeWorkRemotelyProvider
 from careeros_workingnomads_provider import WorkingNomadsProvider
+from careeros_ziprecruiter_provider import ZipRecruiterProvider
 
 DEFAULT_KEYWORDS = (
     "performance marketing,media buyer,paid social,paid media,paid search,ppc,"
@@ -114,12 +115,16 @@ def build_registry(scoped: Any, workspace_id: str) -> JobProviderRegistry:
     # Browser-gated sources (docs/plans/browser-gated-sources.md): each run
     # drives a real anti-detect browser against the source's own site from
     # this machine's IP — real cost and real ToS exposure, unlike everything
-    # above. Naukri/Gradcracker need no credentials but are still an anti-bot
-    # arms race to keep working, so they're opt-in, not on by default.
+    # above. Naukri/Gradcracker/ZipRecruiter need no credentials but are
+    # still an anti-bot arms race to keep working (ZipRecruiter's search
+    # page is behind a real Cloudflare challenge, confirmed passable), so
+    # they're opt-in, not on by default.
     if _env_flag("CAREEROS_ENABLE_NAUKRI"):
         registry.register(NaukriProvider())
     if _env_flag("CAREEROS_ENABLE_GRADCRACKER"):
         registry.register(GradcrackerProvider())
+    if _env_flag("CAREEROS_ENABLE_ZIPRECRUITER"):
+        registry.register(ZipRecruiterProvider())
     # UK Visa Jobs additionally needs the user's own site credentials; with
     # none configured, search() itself reports that through source_errors
     # and touches no browser, so registering it unconditionally is safe.

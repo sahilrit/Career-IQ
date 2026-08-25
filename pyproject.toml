@@ -39,6 +39,7 @@ dev = [
     "careeros-naukri-provider",
     "careeros-gradcracker-provider",
     "careeros-ukvisajobs-provider",
+    "careeros-ziprecruiter-provider",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -51,6 +52,9 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-ukvisajobs-provider]
+workspace = true
+
+[tool.uv.sources.careeros-ziprecruiter-provider]
 workspace = true
 
 # ---------------------------------------------------------------------------
