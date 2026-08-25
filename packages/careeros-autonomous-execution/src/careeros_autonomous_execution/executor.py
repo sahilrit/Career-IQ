@@ -25,6 +25,7 @@ from careeros_application_engine import (
     CoverLetterGenerator,
     QuestionAnswerer,
     build_application_package,
+    disqualifying_requirement,
 )
 from careeros_application_intelligence import record_outcome
 from careeros_application_runner import ApplicationRunner, FormFieldMapping
@@ -39,6 +40,17 @@ from careeros_career_brain import (
 from careeros_event_bus import Event, EventBus
 from careeros_human_in_the_loop import HandoffSession, Problem, ProblemDetector, run_detectors
 from careeros_job_providers import JobPosting
+
+
+def _visible_page_text(session: BrowserSession) -> str:
+    """The loaded page's body text, or "" if it can't be read — used only to
+    spot an eligibility blocker stated on the form itself."""
+    try:
+        rows = session.query_all("body", extract={"text": ""})
+    except Exception:
+        return ""
+    return " ".join((row.get("text") or "") for row in rows)
+
 
 PostingResolver = Callable[[Application], JobPosting | None]
 FormMappingResolver = Callable[[Application], FormFieldMapping | None]
@@ -162,6 +174,17 @@ class AutonomousApplicationExecutor:
                 reason="No original posting found for this application.",
             )
 
+        # Eligibility gate (from the posting text, before we even open a
+        # browser): if the job explicitly requires something the candidate
+        # can't meet — US work authorization, sponsorship it won't give,
+        # US-only location — skip it and move on rather than prepare a form
+        # they'd be rejected from.
+        blocker = disqualifying_requirement(
+            brain, posting.title, getattr(posting, "description", None)
+        )
+        if blocker is not None:
+            return ExecutionOutcome(application.id, submitted=False, reason=f"Skipped — {blocker}.")
+
         if self._prepare_page is not None:
             preparation_error = self._prepare_page(session, posting)
             if preparation_error is not None:
@@ -170,6 +193,13 @@ class AutonomousApplicationExecutor:
                     submitted=False,
                     reason=f"Could not reach an application form: {preparation_error}",
                 )
+
+        # Eligibility gate again, now against the loaded form's own text —
+        # some ATS state the requirement on the application page, not in the
+        # aggregator's description.
+        blocker = disqualifying_requirement(brain, _visible_page_text(session))
+        if blocker is not None:
+            return ExecutionOutcome(application.id, submitted=False, reason=f"Skipped — {blocker}.")
 
         problem = run_detectors(session, detectors)
         if problem is not None:

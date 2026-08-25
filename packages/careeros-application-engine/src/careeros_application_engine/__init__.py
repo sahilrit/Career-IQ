@@ -16,6 +16,7 @@ from careeros_application_engine.cover_letter import (
     CoverLetterGenerator,
     TemplateCoverLetterGenerator,
 )
+from careeros_application_engine.eligibility import disqualifying_requirement
 from careeros_application_engine.package import ApplicationPackage, build_application_package
 from careeros_application_engine.question_answering import Answer, QuestionAnswerer
 from careeros_application_engine.resume import (
@@ -42,6 +43,7 @@ __all__ = [
     "ats_keyword_coverage",
     "build_application_package",
     "build_resume_content",
+    "disqualifying_requirement",
     "generate_answers",
     "render_resume_html",
     "render_resume_markdown",

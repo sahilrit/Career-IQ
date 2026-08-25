@@ -436,3 +436,86 @@ def test_no_arbitrary_cap_processes_every_qualified_application_in_one_run(
     run = executor.run_for_identity(brain.identity.id, session)
 
     assert run.submitted_count == 5
+
+
+def test_an_explicitly_ineligible_job_is_skipped_and_the_next_is_processed(
+    repository, autonomy_policy, application_runner, event_bus, session
+):
+    """A job whose description states a hard requirement the candidate can't
+    meet (US work authorization / no sponsorship) is skipped with a reason, and
+    the run moves on to the next, eligible job."""
+    from careeros_application_runner import FormFieldMapping
+    from careeros_career_brain import (
+        Application,
+        ApplicationStatus,
+        CareerBrain,
+        Identity,
+        Preferences,
+    )
+    from careeros_job_providers import JobPosting
+
+    def make_application(**overrides):
+        application = Application(match_score=0.9, **overrides)
+        application.transition_to(ApplicationStatus.QUALIFIED)
+        return application
+
+    blocked = make_application(
+        job_title="US Growth Lead",
+        company_name="OnlyUSA",
+        job_url="https://example.com/jobs/us",
+    )
+    eligible = make_application(
+        job_title="Remote Growth Lead",
+        company_name="GlobalCo",
+        job_url="https://example.com/jobs/global",
+    )
+    brain = CareerBrain(
+        identity=Identity(
+            full_name="Sahil Sachdeva", email="s@example.com", location="India (Remote)"
+        ),
+        preferences=Preferences(
+            remote_only=True, us_work_authorized=False, needs_visa_sponsorship=True
+        ),
+        applications=[blocked, eligible],
+    )
+    repository.save(brain)
+
+    postings = {
+        blocked.job_url: JobPosting(
+            source_provider="remoteok",
+            external_id="us",
+            title="US Growth Lead",
+            company_name="OnlyUSA",
+            url=blocked.job_url,
+            description="Must be authorized to work in the United States. No sponsorship.",
+        ),
+        eligible.job_url: JobPosting(
+            source_provider="remoteok",
+            external_id="global",
+            title="Remote Growth Lead",
+            company_name="GlobalCo",
+            url=eligible.job_url,
+            description="Fully remote, global team. Scale paid social across Meta and Google.",
+        ),
+    }
+    mapping = FormFieldMapping(submit_selector="#submit", success_selector="#success")
+    session.set_visible(mapping.submit_selector)
+    session.set_visible(mapping.success_selector)
+
+    executor = AutonomousApplicationExecutor(
+        repository=repository,
+        autonomy_policy=autonomy_policy,
+        application_runner=application_runner,
+        event_bus=event_bus,
+        resolve_posting=lambda application: postings[application.job_url],
+        resolve_form_mapping=lambda application: mapping,
+    )
+
+    run = executor.run_for_identity(brain.identity.id, session)
+
+    outcomes = {o.application_id: o for o in run.outcomes}
+    assert outcomes[blocked.id].submitted is False
+    assert outcomes[blocked.id].reason.startswith("Skipped —")
+    # The next, eligible job was still processed and submitted.
+    assert outcomes[eligible.id].submitted is True
+    assert run.submitted_count == 1
