@@ -37,9 +37,10 @@ esac
 export CAREEROS_DATABASE_URL="$DB_URL"
 
 echo
-echo "Optional: paste your Google Gemini key (AIza…) to have the AI write each"
-echo "cover letter, or just press Enter to use built-in templates."
-printf "Gemini key (optional): "
+echo "Optional: paste an AI key to have the AI write cover letters + answer"
+echo "screening questions — Groq (gsk_…, fast + free) or Google Gemini (AIza…)."
+echo "Or just press Enter to use built-in templates."
+printf "AI key (optional): "
 read -r AI_KEY
 if [ -n "$AI_KEY" ]; then
   export CAREEROS_AI_KEY="$AI_KEY"
