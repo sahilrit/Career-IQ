@@ -158,8 +158,8 @@ class _StubPage:
     def queue_download(self, path: Path) -> None:
         self._download = _StubDownload(path)
 
-    def screenshot(self, path: str) -> None:
-        self.calls.append(("screenshot", path))
+    def screenshot(self, path: str, *, full_page: bool = False) -> None:
+        self.calls.append(("screenshot", path, full_page))
 
     def close(self) -> None:
         self.closed = True
@@ -248,7 +248,7 @@ def test_screenshot_delegates_and_returns_path():
     session = PlaywrightBrowserSession(page)
     result = session.screenshot("/tmp/shot.png")
     assert result == Path("/tmp/shot.png")
-    assert ("screenshot", "/tmp/shot.png") in page.calls
+    assert ("screenshot", "/tmp/shot.png", True) in page.calls
 
 
 def test_close_delegates():
