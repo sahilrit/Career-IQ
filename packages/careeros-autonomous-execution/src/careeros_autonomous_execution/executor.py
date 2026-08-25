@@ -41,17 +41,6 @@ from careeros_event_bus import Event, EventBus
 from careeros_human_in_the_loop import HandoffSession, Problem, ProblemDetector, run_detectors
 from careeros_job_providers import JobPosting
 
-
-def _visible_page_text(session: BrowserSession) -> str:
-    """The loaded page's body text, or "" if it can't be read — used only to
-    spot an eligibility blocker stated on the form itself."""
-    try:
-        rows = session.query_all("body", extract={"text": ""})
-    except Exception:
-        return ""
-    return " ".join((row.get("text") or "") for row in rows)
-
-
 PostingResolver = Callable[[Application], JobPosting | None]
 FormMappingResolver = Callable[[Application], FormFieldMapping | None]
 # Navigates the session to the posting's live application form; returns an
@@ -194,12 +183,12 @@ class AutonomousApplicationExecutor:
                     reason=f"Could not reach an application form: {preparation_error}",
                 )
 
-        # Eligibility gate again, now against the loaded form's own text —
-        # some ATS state the requirement on the application page, not in the
-        # aggregator's description.
-        blocker = disqualifying_requirement(brain, _visible_page_text(session))
-        if blocker is not None:
-            return ExecutionOutcome(application.id, submitted=False, reason=f"Skipped — {blocker}.")
+        # NOTE: we deliberately do NOT re-run the eligibility gate against the
+        # loaded page's full body text. Nearly every US company's page carries
+        # boilerplate EEO legalese ("must be authorized to work in the US")
+        # that is NOT the role's actual requirement — scanning the whole body
+        # skipped fillable forms wholesale. The structured-description check
+        # above (posting title/description) is the only eligibility gate.
 
         problem = run_detectors(session, detectors)
         if problem is not None:
