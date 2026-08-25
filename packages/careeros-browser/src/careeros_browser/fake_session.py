@@ -34,7 +34,12 @@ class FakeBrowserSession:
         # call, so a page that must be fetched twice needs two queued entries.
         self._queued_responses: dict[str, deque[str]] = {}
         self._failing_click_selectors: set[str] = set()
+        self._user_agent = (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+        )
         self.clicked_selectors: list[str] = []
+        self.pressed_keys: list[tuple[str, str]] = []
         self.uploaded_files: dict[str, str] = {}
         self.screenshots_taken: list[Path] = []
         self.closed = False
@@ -67,6 +72,9 @@ class FakeBrowserSession:
         if selector in self._failing_click_selectors:
             raise SelectorTimeoutError(f"Selector {selector!r} did not appear (simulated)")
         self.clicked_selectors.append(selector)
+
+    def press(self, selector: str, key: str) -> None:
+        self.pressed_keys.append((selector, key))
 
     def select_option(self, selector: str, value: str) -> None:
         self._field_values[selector] = value
@@ -133,10 +141,17 @@ class FakeBrowserSession:
         self.screenshots_taken.append(resolved)
         return resolved
 
+    def user_agent(self) -> str:
+        return self._user_agent
+
     def close(self) -> None:
         self.closed = True
 
     # --- test-only helpers, not part of the BrowserSession protocol ---
+
+    def set_user_agent(self, user_agent: str) -> None:
+        """Simulate the launcher having generated this fingerprint."""
+        self._user_agent = user_agent
 
     def set_visible(self, selector: str, *, text: str | None = None) -> None:
         """Simulate an element becoming visible on the page, for test setup."""

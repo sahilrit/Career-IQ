@@ -60,6 +60,25 @@ def test_upload_file_is_recorded():
     assert session.uploaded_files["#resume"] == "/tmp/resume.pdf"
 
 
+def test_press_is_recorded():
+    session = FakeBrowserSession()
+    session.press("#password", "Enter")
+    assert session.pressed_keys == [("#password", "Enter")]
+
+
+def test_user_agent_has_a_realistic_default():
+    # A caller that forgets to set one should still get something that looks
+    # like a real browser UA, not an empty string a site could flag on.
+    session = FakeBrowserSession()
+    assert "Mozilla" in session.user_agent()
+
+
+def test_set_user_agent_overrides_the_default():
+    session = FakeBrowserSession()
+    session.set_user_agent("TestAgent/1.0")
+    assert session.user_agent() == "TestAgent/1.0"
+
+
 def test_set_hidden_undoes_set_visible():
     session = FakeBrowserSession()
     session.set_visible("#captcha")

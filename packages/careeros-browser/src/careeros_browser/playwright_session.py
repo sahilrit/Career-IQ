@@ -56,6 +56,9 @@ class PlaywrightBrowserSession:
     def click(self, selector: str) -> None:
         self._page.click(selector)
 
+    def press(self, selector: str, key: str) -> None:
+        self._page.press(selector, key)
+
     def select_option(self, selector: str, value: str) -> None:
         self._page.select_option(selector, value)
 
@@ -133,6 +136,9 @@ class PlaywrightBrowserSession:
         # filled fields we want to review.
         self._page.screenshot(path=str(resolved), full_page=True)
         return resolved
+
+    def user_agent(self) -> str:
+        return self._page.evaluate("() => navigator.userAgent")
 
     def close(self) -> None:
         self._page.close()

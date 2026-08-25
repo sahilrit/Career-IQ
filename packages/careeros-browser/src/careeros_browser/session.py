@@ -30,6 +30,16 @@ class BrowserSession(Protocol):
 
     def fill(self, selector: str, value: str) -> None: ...
     def click(self, selector: str) -> None: ...
+    def press(self, selector: str, key: str) -> None:
+        """Press a keyboard key while ``selector`` is focused.
+
+        For forms with no reliably selectable submit button (a client-
+        rendered login form whose submit control has no stable id/class),
+        this is the robust way to submit — pressing Enter in the last
+        filled field, exactly as a human would.
+        """
+        ...
+
     def select_option(self, selector: str, value: str) -> None: ...
     def upload_file(self, selector: str, file_path: str | Path) -> None: ...
 
@@ -82,5 +92,17 @@ class BrowserSession(Protocol):
     def download_triggered_by(self, action: Callable[[], None], *, save_to: str | Path) -> Path: ...
 
     def screenshot(self, path: str | Path) -> Path: ...
+
+    def user_agent(self) -> str:
+        """The live page's ``navigator.userAgent``.
+
+        A site that ties a solved anti-bot challenge's cookies to the UA
+        that solved it (e.g. Cloudflare's ``cf_clearance``) will reject a
+        later plain-HTTP request made with a mismatched UA — this is how a
+        caller reads back the real, possibly randomised, fingerprint a
+        launcher (e.g. Camoufox) generated for the session, so subsequent
+        requests outside the browser can reuse it exactly.
+        """
+        ...
 
     def close(self) -> None: ...

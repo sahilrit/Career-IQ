@@ -134,6 +134,13 @@ class _StubPage:
     def click(self, selector: str) -> None:
         self.calls.append(("click", selector))
 
+    def press(self, selector: str, key: str) -> None:
+        self.calls.append(("press", selector, key))
+
+    def evaluate(self, script: str) -> str:
+        self.calls.append(("evaluate", script))
+        return "TestAgent/1.0"
+
     def select_option(self, selector: str, value: str) -> None:
         self.calls.append(("select_option", selector, value))
 
@@ -200,6 +207,20 @@ def test_fill_click_and_select_option_delegate():
     assert ("fill", "#email", "ada@example.com") in page.calls
     assert ("click", "#submit") in page.calls
     assert ("select_option", "#country", "US") in page.calls
+
+
+def test_press_delegates():
+    page = _StubPage()
+    session = PlaywrightBrowserSession(page)
+    session.press("#password", "Enter")
+    assert ("press", "#password", "Enter") in page.calls
+
+
+def test_user_agent_delegates_to_evaluate():
+    page = _StubPage()
+    session = PlaywrightBrowserSession(page)
+    assert session.user_agent() == "TestAgent/1.0"
+    assert ("evaluate", "() => navigator.userAgent") in page.calls
 
 
 def test_upload_file_delegates_to_set_input_files():
