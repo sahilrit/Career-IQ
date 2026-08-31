@@ -26,6 +26,15 @@ from careeros_application_engine.resume import (
     render_resume_markdown,
     render_resume_text,
 )
+from careeros_application_engine.review import (
+    ApplicationReview,
+    ReviewFinding,
+    Severity,
+    deterministic_review,
+    parse_review_output,
+    profile_facts,
+    review_application_draft,
+)
 
 __all__ = [
     "ANSWER_GENERATORS",
@@ -33,9 +42,12 @@ __all__ = [
     "ATSReport",
     "Answer",
     "ApplicationPackage",
+    "ApplicationReview",
     "CoverLetterGenerator",
     "QuestionAnswerer",
     "ResumeContent",
+    "ReviewFinding",
+    "Severity",
     "TemplateCoverLetterGenerator",
     "answer_greatest_achievement",
     "answer_why_this_role",
@@ -43,9 +55,13 @@ __all__ = [
     "ats_keyword_coverage",
     "build_application_package",
     "build_resume_content",
+    "deterministic_review",
     "disqualifying_requirement",
     "generate_answers",
+    "parse_review_output",
+    "profile_facts",
     "render_resume_html",
     "render_resume_markdown",
     "render_resume_text",
+    "review_application_draft",
 ]

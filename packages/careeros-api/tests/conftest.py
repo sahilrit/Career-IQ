@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from careeros_api import app, dependencies
+from careeros_api import ai_support, app, dependencies
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +17,24 @@ def isolate_store(tmp_path, monkeypatch):
     dependencies.get_store.cache_clear()
     yield
     dependencies.get_store.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def isolate_ai_providers(monkeypatch):
+    """Keep the developer's machine out of the test results.
+
+    AI resolution now falls back to locally authenticated agent CLIs, so on a
+    machine with `claude` installed every "no AI configured" assertion would
+    quietly become "AI configured" — tests would pass or fail depending on
+    whose laptop ran them. Both env vars are cleared and the CLI path switched
+    off, so a test that wants a provider must say so explicitly.
+    """
+    monkeypatch.setenv("CAREEROS_LLM_CLI_ENABLED", "0")
+    monkeypatch.delenv("CAREEROS_AI_API_KEY", raising=False)
+    monkeypatch.delenv("CAREEROS_AI_MODEL", raising=False)
+    ai_support.reset_gateway_cache()
+    yield
+    ai_support.reset_gateway_cache()
 
 
 @pytest.fixture

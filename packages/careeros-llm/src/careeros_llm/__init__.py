@@ -5,6 +5,7 @@ AI. Which vendor answers is a configuration and runtime-health question, not
 something any feature knows.
 """
 
+from careeros_llm.bridge import GatewayAIClient, client_for
 from careeros_llm.cli_provider import (
     CLI_SPECS,
     CliProvider,
@@ -28,6 +29,7 @@ __all__ = [
     "ApiKeyProvider",
     "CliProvider",
     "CliSpec",
+    "GatewayAIClient",
     "LLMConfig",
     "LLMGateway",
     "LLMGatewayError",
@@ -41,5 +43,6 @@ __all__ = [
     "ProviderStatus",
     "available_cli_providers",
     "build_providers",
+    "client_for",
     "looks_like_cli_error",
 ]
