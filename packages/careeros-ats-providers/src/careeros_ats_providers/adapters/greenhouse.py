@@ -129,15 +129,24 @@ class GreenhouseAdapter(AtsAdapter):
             return None
         description = html_to_text(raw.get("content"))
         location = merge_locations((raw.get("location") or {}).get("name"), raw.get("_offices"))
+        # `absolute_url` is whatever the board is configured to point at, and
+        # for large customers that is usually their OWN careers site
+        # (stripe.com, careers.airbnb.com), not a hosted form. The
+        # Greenhouse-hosted form, when one exists, is always at this canonical
+        # address — so prefer it and let a self-hosting employer redirect away
+        # from it, which the runner then reports honestly. Verified live: Figma
+        # and Reddit serve the real form here while their absolute_url does not.
+        job_id = raw.get("id")
+        apply_url = (
+            f"https://job-boards.greenhouse.io/{entry.slug}/jobs/{job_id}" if job_id else url
+        )
         return JobPosting(
             source_provider=self.ats_id,
-            external_id=str(raw.get("id") or url),
+            external_id=str(job_id or url),
             title=(raw.get("title") or "").strip(),
             company_name=entry.name,
             url=url,
-            # A Greenhouse posting page IS the application form, so the posting
-            # URL is already the apply URL - no separate hop to discover.
-            apply_url=url,
+            apply_url=apply_url,
             location=location or None,
             remote=looks_remote(location, raw.get("title")),
             description=description,

@@ -197,3 +197,60 @@ class TestAbsentFields:
         report = fill_application_form(session, make_package(cover_letter=""), mapping)
         assert outcome_for(report, "cover_letter") is FieldOutcome.NEEDS_HUMAN
         assert report.is_submittable
+
+
+class TestReformattedValues:
+    """A field that reformats what it stores has still been filled."""
+
+    def test_a_phone_mask_that_changes_formatting_is_not_a_failure(self, session):
+        # Verified against a live Workable form: "+91 91298 32709" is stored as
+        # "091298 32709". Calling that a failed fill blocked otherwise-complete
+        # applications on a field that was correctly filled.
+        from careeros_application_runner.fill import _same_number
+
+        assert _same_number("+91 91298 32709", "091298 32709")
+
+    def test_a_different_number_is_still_a_failure(self):
+        from careeros_application_runner.fill import _same_number
+
+        assert not _same_number("+91 91298 32709", "+1 415 555 0100")
+
+    def test_short_codes_do_not_coincidentally_match(self):
+        from careeros_application_runner.fill import _same_number
+
+        assert not _same_number("123", "0123")
+
+    def test_a_reformatting_field_reports_as_filled_end_to_end(self, session, package):
+        # Simulate the mask by rewriting the stored value as the field would.
+        original_fill = session.fill
+
+        def masking_fill(selector, value):
+            original_fill(selector, "091298 32709" if selector == "#phone" else value)
+
+        session.fill = masking_fill
+        report = fill_application_form(
+            session, make_package(phone="+91 91298 32709"), base_mapping()
+        )
+        assert outcome_for(report, "phone") is FieldOutcome.FILLED
+
+
+class TestOptionalFailuresDoNotBlock:
+    def test_an_optional_field_that_failed_is_reported_but_does_not_block(self, session, package):
+        # The fields that most often fail on a live Greenhouse form are the
+        # optional EEO demographic dropdowns. Treating those as blockers held
+        # back applications that were otherwise complete.
+        session.set_combobox_options("#gender", [])
+        mapping = base_mapping(
+            question_fields=[QuestionField(selector="#gender", question="Gender", kind="combobox")]
+        )
+        report = fill_application_form(
+            session, package, mapping, question_answers={"#gender": "Prefer not to say"}
+        )
+        assert outcome_for(report, "Gender") is FieldOutcome.FAILED
+        assert report.failures  # still surfaced to a human
+        assert report.is_submittable  # but does not hold the application back
+
+    def test_a_required_field_that_failed_still_blocks(self, session, package):
+        session.set_field_rejects("#email")
+        report = fill_application_form(session, package, base_mapping())
+        assert not report.is_submittable

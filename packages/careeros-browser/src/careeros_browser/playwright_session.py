@@ -134,11 +134,22 @@ class PlaywrightBrowserSession:
                 results.append({"selector": selector, "question": question})
         return results
 
+    #: Opening a dropdown is a two-second operation or it is not going to work.
+    #: Playwright's 30s default meant one readonly combobox that never accepts a
+    #: click cost half a minute per field, and a form with several of them
+    #: could spend minutes failing.
+    COMBOBOX_CLICK_TIMEOUT_MS = 5_000
+
     def select_combobox_option(self, control_selector: str, option_text: str) -> None:
         page = self._page
         # Open the menu. Clicking the control focuses it and (for react-select /
         # ARIA comboboxes) renders the option list.
-        page.click(control_selector)
+        try:
+            page.click(control_selector, timeout=self.COMBOBOX_CLICK_TIMEOUT_MS)
+        except Exception as exc:
+            raise BrowserError(
+                f"Dropdown {control_selector!r} could not be opened: {str(exc).splitlines()[0]}"
+            ) from exc
         # Best-effort type-to-filter: react-select narrows a long list as you
         # type, which makes the right option render even when the list is
         # virtualised. Harmless (and ignored) on dropdowns that aren't inputs.

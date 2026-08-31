@@ -81,9 +81,14 @@ class FillReport(BaseModel):
     def blocking(self) -> list[FieldResult]:
         """What stands between this form and a submission.
 
-        A required field that failed or was left for a human blocks; an
-        optional one does not. A field that was never on the page cannot block,
-        because there is nothing to fill.
+        Only REQUIRED fields block. An optional field that failed is reported
+        (it is in ``failures``) but does not stop a human submitting: measured
+        against a live Greenhouse form, the fields that most often fail are the
+        optional EEO demographic dropdowns, and treating those as blockers held
+        back applications that were otherwise complete and correct.
+
+        A field that was never on the page cannot block — there is nothing to
+        fill.
         """
         return [
             r
@@ -93,8 +98,12 @@ class FillReport(BaseModel):
 
     @property
     def is_submittable(self) -> bool:
-        """No required field is missing and nothing failed outright."""
-        return not self.blocking and not self.failures
+        """Nothing REQUIRED is missing or failed.
+
+        Optional failures are surfaced separately (``failures``) so a human
+        reviewing still sees them, rather than being silently dropped.
+        """
+        return not self.blocking
 
     def summary(self) -> str:
         """One line a human can act on."""

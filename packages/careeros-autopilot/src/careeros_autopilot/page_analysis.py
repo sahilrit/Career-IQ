@@ -52,7 +52,19 @@ LOGIN_WALL_DETECTORS = [
 ]
 DEFAULT_PROBLEM_DETECTORS = [*CAPTCHA_DETECTORS, *LOGIN_WALL_DETECTORS]
 
-_EMAIL_SELECTORS = ["input[type='email']", "#email", "input[name*='email' i]"]
+# Email is the anchor field detection keys off, so it must not depend on a
+# single markup convention. Modern Greenhouse renders it as
+# <input type="text" id="email" autocomplete="email"> — no type="email" at all,
+# which is why a form that was perfectly fillable looked like no form at all.
+_EMAIL_SELECTORS = [
+    "input[type='email']",
+    "#email",
+    "input[autocomplete='email']",
+    "input[name*='email' i]",
+    "input[id*='email' i]",
+    "input[aria-label*='email' i]",
+    "input[placeholder*='email' i]",
+]
 _FIRST_NAME_SELECTORS = ["#first_name", "input[name*='first' i]"]
 _LAST_NAME_SELECTORS = ["#last_name", "input[name*='last' i]"]
 _FULL_NAME_SELECTORS = [
@@ -84,11 +96,27 @@ _COVER_LETTER_SELECTORS = [
     "textarea#cover_letter",
     "textarea[name*='letter' i]",
 ]
+# Submit control. Order matters, and the LAST entry is deliberately last.
+#
+# On a real Ashby form there are FORTY `button[type=submit]` elements: every
+# "Upload file" control and every Yes/No option renders as one, and the actual
+# "Submit Application" button is the last of them. Matching that bare selector
+# picked "Upload file" — so the autopilot's submit click would have opened a
+# file dialog while believing it had applied. The text-matching entries are
+# what identify the real control; the bare type match survives only as a final
+# fallback for forms with a single unlabelled button.
 _SUBMIT_SELECTORS = [
-    "#submit_app",
+    "#submit_app",  # Greenhouse
     "#btn-submit",  # Lever
-    "button[type='submit']",
+    "button:has-text('Submit Application')",
+    "button:has-text('Submit application')",
+    "button:has-text('Submit Application ')",
+    "input[type='submit'][value*='Submit' i]",
+    "button:text-is('Submit')",
+    "button:has-text('Apply for this job')",
+    "button:has-text('Send application')",
     "input[type='submit']",
+    "button[type='submit']",
 ]
 
 # Bot-protection interstitials (e.g. Cloudflare). The autopilot never
@@ -101,6 +129,25 @@ _BOT_PROTECTION_SELECTORS = [
 
 # Playwright text-engine selector: matches common confirmation copy.
 GENERIC_SUCCESS_SELECTOR = "text=/thank(s| you)|application (received|submitted)|success/i"
+
+
+#: Placeholder text that describes the INPUT rather than asking anything. Used
+#: as a question label it produces nonsense answers, so it is discarded.
+_GENERIC_PLACEHOLDERS = (
+    "type here",
+    "start typing",
+    "pick date",
+    "select...",
+    "select an option",
+    "choose...",
+    "enter value",
+    "your answer",
+)
+
+
+def _is_generic_placeholder(text: str) -> bool:
+    stripped = text.strip().lower().rstrip(".…")
+    return any(stripped.startswith(marker) for marker in _GENERIC_PLACEHOLDERS)
 
 
 def _first_visible(session: BrowserSession, selectors: list[str]) -> str | None:
@@ -214,12 +261,23 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
             continue
         for element in elements:
             element_id = element.get("id")
+            # A real <label for=…> beats a placeholder. Ashby renders every
+            # free-text question with the placeholder "Type here..." and puts
+            # the actual question in the label; reading the placeholder first
+            # meant the answerer was asked to answer "Type here...", five times
+            # per form. aria-label still wins over both — where it exists it is
+            # the most specific.
             question = (
                 element.get("label")
-                or element.get("placeholder")
                 or (labels_by_for.get(element_id) if element_id else None)
+                or element.get("placeholder")
             )
             if not element_id or not question:
+                continue
+            if _is_generic_placeholder(question):
+                # No usable label anywhere: a question we cannot read is one we
+                # must not answer, so it is left for a human rather than fed to
+                # the answerer as literal prompt text.
                 continue
             lowered = question.lower()
             if any(word in lowered for word in _standard):
@@ -315,6 +373,28 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
     # posting page has no crawlable <a> to).
     apply_url = find_apply_url(session) or ats_apply_url(target)
     if apply_url is None:
+        # Distinguish "we could not find the form" from "there is no hosted
+        # form to find". Some ATS customers (Stripe is one) publish through
+        # Greenhouse but redirect every application to their own careers site,
+        # so the posting URL lands somewhere off the ATS host entirely. Saying
+        # "no form found" there reads as a CareerOS bug when it is a fact about
+        # the employer, and it sends a user hunting for a fault that is not
+        # ours to fix.
+        landed = session.current_url or ""
+        # The posting came from an ATS provider, so a hosted form was expected;
+        # landing off every known ATS host means the employer took us to their
+        # own site. Checked against the POSTING's source rather than the URL,
+        # because these employers publish an off-host apply URL in the first
+        # place - the redirect has already happened by the time we see it.
+        from_ats = (posting.source_provider or "").startswith("ats:") or _ATS_HOST_RE.search(
+            target or ""
+        )
+        if from_ats and not _ATS_HOST_RE.search(landed):
+            return (
+                "this employer redirects applications to its own careers site "
+                f"({landed.split('/')[2] if '://' in landed else landed}) — "
+                "there is no hosted ATS form to fill"
+            )
         return "no application form or apply link found on the posting page"
     try:
         session.goto(apply_url)

@@ -12,6 +12,8 @@ Reading the value back is the only way to tell those apart from a real fill.
 
 from __future__ import annotations
 
+import re
+
 from careeros_application_engine import ApplicationPackage
 from careeros_application_runner.fill_report import FieldOutcome, FieldResult, FillReport
 from careeros_application_runner.models import FormFieldMapping
@@ -21,6 +23,32 @@ from careeros_browser import BrowserSession
 #: ``input_value`` is meaningless for a file input, and a contenteditable
 #: rich-text box is not an <input> at all.
 _UNVERIFIABLE_KINDS = frozenset({"file", "richtext"})
+
+
+_DIGITS_RE = re.compile(r"\D+")
+
+
+def _same_number(written: str, actual: str) -> bool:
+    """Whether two strings are the same number under different formatting.
+
+    Phone inputs mask what you type. Workable rewrites "+91 91298 32709" to
+    "091298 32709" — the country code becomes a local trunk prefix. Reading
+    that back and calling it a failed fill blocked otherwise-complete
+    applications on a field that was, in fact, correctly filled.
+
+    Compared on the last nine digits rather than as a suffix of one another,
+    because the country code is often SUBSTITUTED rather than dropped: "+91 …"
+    becomes "0…", so neither string is a suffix of the other while the national
+    number is identical. Nine digits is long enough that two genuinely
+    different numbers cannot collide, and both sides must reach that length —
+    so a short code or an extension never matches by coincidence.
+    """
+    written_digits = _DIGITS_RE.sub("", written)
+    actual_digits = _DIGITS_RE.sub("", actual)
+    core = 9
+    if len(written_digits) < core or len(actual_digits) < core:
+        return False
+    return written_digits[-core:] == actual_digits[-core:]
 
 
 def _verify(session: BrowserSession, selector: str, expected: str) -> tuple[bool, str]:
@@ -37,8 +65,9 @@ def _verify(session: BrowserSession, selector: str, expected: str) -> tuple[bool
         # The dangerous case: no exception, no value. A React-controlled or
         # disabled input does exactly this.
         return False, "the field discarded the value (it is empty after filling)"
-    # A field that normalizes what it stores (phone masks, trimmed selects) is
-    # still filled; report the difference rather than calling it a failure.
+    if _same_number(expected, actual):
+        # Same number, different formatting — the field's own mask. Filled.
+        return True, ""
     return False, f"the field holds {actual[:60]!r} rather than the value written"
 
 

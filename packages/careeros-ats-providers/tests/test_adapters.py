@@ -30,8 +30,22 @@ class TestGreenhouse:
         assert posting.company_name == "Acme"
         assert posting.description == "Own paid acquisition"
         assert posting.remote is True
-        # A Greenhouse posting page IS the form, so apply_url must not be empty.
-        assert posting.apply_url == raw["absolute_url"]
+        # apply_url must be the Greenhouse-HOSTED form, not the board's
+        # configured absolute_url: for large customers that points at their own
+        # careers site, which has no fillable form on it.
+        assert posting.apply_url == "https://job-boards.greenhouse.io/acme/jobs/42"
+
+    def test_apply_url_prefers_the_hosted_form_over_a_company_careers_site(self):
+        raw = {
+            "id": 99,
+            "title": "Analyst",
+            # What Stripe, Airbnb and Databricks actually return.
+            "absolute_url": "https://stripe.com/careers/listing/analyst/99",
+            "location": {"name": "Remote"},
+        }
+        posting = GreenhouseAdapter().to_posting(raw, ENTRY)
+        assert posting.url == "https://stripe.com/careers/listing/analyst/99"
+        assert posting.apply_url == "https://job-boards.greenhouse.io/acme/jobs/99"
 
     def test_skips_a_posting_with_no_url(self):
         # A posting CareerOS cannot open is worse than no posting: it looks
