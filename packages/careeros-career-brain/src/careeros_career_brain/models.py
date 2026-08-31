@@ -87,11 +87,67 @@ class Skill(BaseModel):
     years_experience: float | None = Field(default=None, ge=0)
 
 
+class ClaimStatus(StrEnum):
+    """How well a professional claim is actually supported.
+
+    A Career Brain is the authority the fabrication checker measures drafts
+    against, so an unsupported figure sitting in it is worse than useless: it
+    *launders* the figure. Anything the brain contains is treated as true, and
+    a cover letter repeating it passes review. Recording provenance is what
+    stops that.
+    """
+
+    #: Primary evidence exists (a ledger entry, a dashboard export, a post).
+    VERIFIED = "verified"
+    #: Computed from verified data. ``evidence`` records the derivation, so the
+    #: arithmetic can be re-checked rather than taken on trust.
+    DERIVED = "derived"
+    #: Sources disagree and the source material cannot settle it. NEVER
+    #: published automatically — a disputed number sent to an employer is a
+    #: number you cannot defend in the interview.
+    CONFLICTING = "conflicting"
+    #: No source supports it. Kept for the user's own records, never published.
+    UNSUPPORTED = "unsupported"
+    #: Not audited yet. Publishable — absence of an audit is not evidence of a
+    #: problem, and defaulting to "blocked" would silently empty every résumé
+    #: that predates this field.
+    UNKNOWN = "unknown"
+
+    @property
+    def is_publishable(self) -> bool:
+        """Whether this claim may reach an employer without a human deciding.
+
+        Only the two states we have positively determined to be bad are
+        blocked. Being conservative in the other direction — blocking UNKNOWN —
+        would make adopting this field a silent, breaking change.
+        """
+        return self not in (ClaimStatus.CONFLICTING, ClaimStatus.UNSUPPORTED)
+
+
 class Achievement(BaseModel):
     id: str = Field(default_factory=_new_id)
     description: str
     metric: str | None = None
     skills_demonstrated: list[str] = Field(default_factory=list)
+    #: How well this claim is supported. See ``ClaimStatus``.
+    status: ClaimStatus = ClaimStatus.UNKNOWN
+    #: Where the claim comes from, or how it was derived — a ledger reference,
+    #: a document section, the arithmetic. Kept so a VERIFIED claim can be
+    #: re-checked and a CONFLICTING one can be settled later.
+    evidence: str = ""
+    #: Wording that MUST travel with the figure ("booked, before COD returns").
+    #: Generators append it; without it a qualified number becomes an
+    #: unqualified claim the moment it is copied into a sentence.
+    qualifier: str = ""
+    #: Terms a draft MUST contain if it uses this figure at all. This is the
+    #: enforceable half of ``qualifier``: "$12M booked revenue" is true and
+    #: "$12M in total revenue" is not, yet both contain "$12M", so checking the
+    #: figure alone cannot tell them apart. Empty means no term is required.
+    requires_terms: list[str] = Field(default_factory=list)
+
+    @property
+    def is_publishable(self) -> bool:
+        return self.status.is_publishable
 
 
 class Experience(BaseModel):

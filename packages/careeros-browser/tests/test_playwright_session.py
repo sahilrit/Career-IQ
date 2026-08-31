@@ -141,7 +141,9 @@ class _StubPage:
         self.calls.append(("evaluate", script))
         return "TestAgent/1.0"
 
-    def select_option(self, selector: str, value: str) -> None:
+    def select_option(self, selector: str, value: str, timeout: float | None = None) -> None:
+        # Playwright's real signature takes a timeout; the stub must too, or it
+        # passes while the real call raises TypeError.
         self.calls.append(("select_option", selector, value))
 
     def set_input_files(self, selector: str, path: str) -> None:

@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- Lever renders a question as plain divs: no <fieldset>, no <legend>, no
+     heading. The group label therefore fell back to the first OPTION, and the
+     question came out as literally "no" — unanswerable, and then blocking
+     because the form marks it required. -->
+<title>Apply</title>
+<form>
+  <label for="name">Full name</label><input type="text" id="name" required>
+  <label for="email">Email</label><input type="email" id="email" required>
+
+  <div class="application-question">
+    <div class="application-label">Are you legally authorized to work in the United States?</div>
+    <div class="application-field">
+      <label><input type="radio" name="cards[auth][q1]" value="Yes" required> Yes</label>
+      <label><input type="radio" name="cards[auth][q1]" value="No" required> No</label>
+    </div>
+  </div>
+
+  <div class="application-question">
+    <div class="application-label">Will you require visa sponsorship?</div>
+    <div class="application-field">
+      <label><input type="radio" name="cards[spon][q2]" value="Yes"> Yes</label>
+      <label><input type="radio" name="cards[spon][q2]" value="No"> No</label>
+    </div>
+  </div>
+
+  <button type="submit" id="btn-submit">Submit application</button>
+</form>

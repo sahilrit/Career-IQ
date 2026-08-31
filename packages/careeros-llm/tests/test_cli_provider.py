@@ -124,9 +124,12 @@ class TestHealthCheck:
         assert health.status is ProviderStatus.ABSENT
         assert "not installed" in health.detail
 
-    def test_unavailable_when_not_logged_in(self):
+    def test_not_authenticated_when_not_logged_in(self):
+        # Deliberately NOT the same status as "the CLI did not answer": an
+        # unauthenticated CLI is one command away from working and the user
+        # has to be told which command.
         health = provider(runner_returning(0, "Not logged in · Please run /login")).health_check()
-        assert health.status is ProviderStatus.UNAVAILABLE
+        assert health.status is ProviderStatus.NOT_AUTHENTICATED
         assert "fakecli login" in health.detail
 
     def test_healthy_when_it_answers(self):

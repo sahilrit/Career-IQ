@@ -10,6 +10,7 @@ from careeros_browser.exceptions import (
     SelectorTimeoutError,
 )
 from careeros_browser.fake_session import FakeBrowserSession
+from careeros_browser.frames import FrameHandle
 from careeros_browser.health import check_browser_health
 from careeros_browser.launcher import launch_browser_session, launch_camoufox_session
 from careeros_browser.matching import best_option_index
@@ -34,6 +35,7 @@ __all__ = [
     "CookieJar",
     "DownloadError",
     "FakeBrowserSession",
+    "FrameHandle",
     "PersistentCookieStore",
     "PlaywrightBrowserSession",
     "ResponseTimeoutError",

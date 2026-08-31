@@ -16,12 +16,26 @@ from careeros_llm.cli_provider import (
 from careeros_llm.config import DEFAULT_PRIORITY, LLMConfig
 from careeros_llm.exceptions import (
     LLMGatewayError,
+    MalformedResponseError,
     NoProviderAvailableError,
     ProviderCallError,
 )
-from careeros_llm.gateway import LLMGateway, LLMResponse, build_providers
-from careeros_llm.models import LLMRun, LLMTask, ProviderHealth, ProviderStatus
+from careeros_llm.gateway import (
+    LLMGateway,
+    LLMResponse,
+    StructuredResponse,
+    build_providers,
+)
+from careeros_llm.models import (
+    FailureKind,
+    LLMRun,
+    LLMTask,
+    ProviderHealth,
+    ProviderStatus,
+    classify_failure,
+)
 from careeros_llm.provider import ApiKeyProvider, LLMProvider
+from careeros_llm.structured import extract_json, parse_structured, schema_instruction
 
 __all__ = [
     "CLI_SPECS",
@@ -29,6 +43,7 @@ __all__ = [
     "ApiKeyProvider",
     "CliProvider",
     "CliSpec",
+    "FailureKind",
     "GatewayAIClient",
     "LLMConfig",
     "LLMGateway",
@@ -37,12 +52,18 @@ __all__ = [
     "LLMResponse",
     "LLMRun",
     "LLMTask",
+    "MalformedResponseError",
     "NoProviderAvailableError",
     "ProviderCallError",
     "ProviderHealth",
     "ProviderStatus",
+    "StructuredResponse",
     "available_cli_providers",
     "build_providers",
+    "classify_failure",
     "client_for",
+    "extract_json",
     "looks_like_cli_error",
+    "parse_structured",
+    "schema_instruction",
 ]

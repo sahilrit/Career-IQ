@@ -190,7 +190,10 @@ class TestHealth:
                 raise RuntimeError("probe exploded")
 
         health = gateway([BadProbe("a")]).health()
-        assert health[0].status is ProviderStatus.UNAVAILABLE
+        # ERROR, not UNAVAILABLE: a probe that crashes is a CareerOS bug, and
+        # reporting it as "the provider is unavailable" sends the user off to
+        # fix a login that was never broken.
+        assert health[0].status is ProviderStatus.ERROR
         assert "probe exploded" in health[0].detail
 
     def test_is_configured_reflects_provider_presence(self):

@@ -24,7 +24,12 @@ import subprocess
 
 from careeros_common import get_logger
 from careeros_llm.exceptions import ProviderCallError
-from careeros_llm.models import ProviderHealth, ProviderStatus
+from careeros_llm.models import (
+    FailureKind,
+    ProviderHealth,
+    ProviderStatus,
+    status_for_failure,
+)
 
 logger = get_logger(__name__)
 
@@ -88,6 +93,7 @@ class CliSpec:
         model_flag: str | None = None,
         default_model: str = "",
         login_hint: str = "",
+        install_hint: str = "",
         extra_args: tuple[str, ...] = (),
     ) -> None:
         self.provider_id = provider_id
@@ -96,8 +102,27 @@ class CliSpec:
         self.model_flag = model_flag
         self.default_model = default_model
         self.login_hint = login_hint
+        #: What to run to get the CLI in the first place. Reported when it is
+        #: absent, so "not installed" is a next step rather than a dead end.
+        self.install_hint = install_hint
         self.extra_args = extra_args
 
+
+#: These CLIs are AGENTS. Left at their defaults, a "text completion" can run
+#: shell commands, edit files and fetch URLs on the user's machine — because
+#: that is what they are built to do. CareerOS uses them for one thing only:
+#: turning a prompt into text. So every one is invoked with its tools switched
+#: off, and a prompt-injected job description cannot become an action.
+#:
+#: This is defence in depth, not paranoia: the prompts we send contain job
+#: descriptions fetched from the open internet, which is precisely the input an
+#: attacker controls.
+_CLAUDE_NO_TOOLS = (
+    "--disallowed-tools",
+    "Bash,Edit,Write,Read,WebFetch,WebSearch,Task,NotebookEdit,Glob,Grep",
+)
+#: Codex's own read-only sandbox: no writes, no network, no approvals prompt.
+_CODEX_READ_ONLY = ("--sandbox", "read-only", "--skip-git-repo-check")
 
 #: The CLIs CareerOS knows how to drive. Adding another is one entry here.
 #: CLI provider ids are SUFFIXED with -cli so they can never collide with an
@@ -113,6 +138,8 @@ CLI_SPECS: dict[str, CliSpec] = {
         model_flag="--model",
         default_model="claude-haiku-4-5-20251001",
         login_hint="run `claude` and use /login to authenticate",
+        install_hint="npm install -g @anthropic-ai/claude-code",
+        extra_args=_CLAUDE_NO_TOOLS,
     ),
     "codex-cli": CliSpec(
         "codex-cli",
@@ -121,6 +148,8 @@ CLI_SPECS: dict[str, CliSpec] = {
         model_flag="--model",
         default_model="",
         login_hint="run `codex login` to authenticate",
+        install_hint="npm install -g @openai/codex",
+        extra_args=_CODEX_READ_ONLY,
     ),
     "gemini-cli": CliSpec(
         "gemini-cli",
@@ -129,6 +158,7 @@ CLI_SPECS: dict[str, CliSpec] = {
         model_flag="--model",
         default_model="",
         login_hint=("set GEMINI_API_KEY, or configure an auth method in ~/.gemini/settings.json"),
+        install_hint="npm install -g @google/gemini-cli",
     ),
 }
 
@@ -185,7 +215,9 @@ class CliProvider:
     def complete(self, *, system: str, prompt: str) -> str:
         if self._resolve_executable() is None:
             raise ProviderCallError(
-                self.provider_id, f"`{self._spec.executable}` is not installed on this machine"
+                self.provider_id,
+                f"`{self._spec.executable}` is not installed on this machine",
+                kind=FailureKind.NOT_INSTALLED,
             )
         # These CLIs take one prompt string, not a system/user pair. Prefixing
         # the system instruction is the honest equivalent: the model still sees
@@ -196,10 +228,16 @@ class CliProvider:
             code, out, err = self._runner(argv, "", self._timeout)
         except subprocess.TimeoutExpired as exc:
             raise ProviderCallError(
-                self.provider_id, f"timed out after {self._timeout:g}s"
+                self.provider_id,
+                f"timed out after {self._timeout:g}s",
+                kind=FailureKind.TIMEOUT,
             ) from exc
         except OSError as exc:
-            raise ProviderCallError(self.provider_id, f"could not run the CLI: {exc}") from exc
+            raise ProviderCallError(
+                self.provider_id,
+                f"could not run the CLI: {exc}",
+                kind=FailureKind.NOT_INSTALLED,
+            ) from exc
 
         text = (out or "").strip()
         if code != 0:
@@ -216,24 +254,49 @@ class CliProvider:
         return text
 
     def health_check(self) -> ProviderHealth:
+        """Installed? Authenticated? Usable? — answered separately.
+
+        Collapsing these into one verdict is what made "claude is installed
+        but you never logged in" and "claude was never installed" read
+        identically, which left the user with nothing to do about either.
+        """
         if self._resolve_executable() is None:
             return ProviderHealth(
                 provider_id=self.provider_id,
-                status=ProviderStatus.ABSENT,
-                detail=f"`{self._spec.executable}` is not installed",
+                status=ProviderStatus.NOT_INSTALLED,
+                detail=f"`{self._spec.executable}` is not installed (not on PATH)",
                 model=self._model,
+                installed=False,
+                authenticated=None,
+                remedy=self._spec.install_hint,
             )
         try:
             self.complete(system=_PROBE_SYSTEM, prompt=_PROBE_PROMPT)
         except ProviderCallError as exc:
+            status = status_for_failure(exc.kind)
+            # Only an auth failure proves it is NOT authenticated. A timeout
+            # says nothing either way, and claiming it does would send the
+            # user to re-run a login that was already fine.
+            authenticated = False if exc.kind is FailureKind.NOT_AUTHENTICATED else None
             return ProviderHealth(
                 provider_id=self.provider_id,
-                status=ProviderStatus.UNAVAILABLE,
-                detail=str(exc),
+                status=status,
+                detail=exc.detail,
                 model=self._model,
+                installed=True,
+                authenticated=authenticated,
+                remedy=(
+                    self._spec.login_hint
+                    if exc.kind is FailureKind.NOT_AUTHENTICATED
+                    else ("wait and retry" if status is ProviderStatus.RATE_LIMITED else "")
+                ),
             )
         return ProviderHealth(
-            provider_id=self.provider_id, status=ProviderStatus.HEALTHY, model=self._model
+            provider_id=self.provider_id,
+            status=ProviderStatus.AVAILABLE,
+            model=self._model,
+            installed=True,
+            authenticated=True,
         )
 
 

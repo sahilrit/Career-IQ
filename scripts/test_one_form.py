@@ -73,10 +73,13 @@ def _ai_client() -> Any | None:
     if not key:
         return None
     try:
-        from careeros_ai import build_client
+        # Through the gateway, not a raw vendor client: a key that is expired
+        # or rate-limited then falls back to a locally authenticated CLI
+        # instead of turning AI answers off for the whole run.
+        from careeros_llm import GatewayAIClient, LLMGateway, LLMTask
 
         model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
-        return build_client(key, model)
+        return GatewayAIClient(LLMGateway.from_env(api_key=key, api_model=model), LLMTask.ANSWER)
     except Exception as error:
         print(f"  (AI answers off: {type(error).__name__}: {error})")
         return None

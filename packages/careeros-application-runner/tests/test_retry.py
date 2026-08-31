@@ -65,3 +65,49 @@ def test_does_not_sleep_after_the_final_attempt():
 
     retry(fn, max_attempts=2, backoff_seconds=1.0, sleep=sleeps.append)
     assert sleeps == [1.0]
+
+
+class TestTerminalFailuresAreNotRetried:
+    """Retrying is for TRANSIENT failures.
+
+    A form that is missing a required field will be exactly as incomplete on
+    the third attempt, and each retry re-fills everything — on a real ATS that
+    means re-uploading the résumé twice more for nothing.
+    """
+
+    def test_a_terminal_error_stops_on_the_first_attempt(self):
+        from careeros_application_runner import TerminalError, retry
+
+        calls = []
+
+        def always_terminal():
+            calls.append(1)
+            raise TerminalError("a required field has no truthful value")
+
+        with pytest.raises(TerminalError):
+            retry(always_terminal, max_attempts=3, sleep=lambda _: None)
+        assert len(calls) == 1
+
+    def test_an_incomplete_form_is_terminal(self):
+        from careeros_application_runner import IncompleteFormError, TerminalError
+
+        assert issubclass(IncompleteFormError, TerminalError)
+
+    def test_clicking_the_wrong_control_is_terminal(self):
+        from careeros_application_runner import TerminalError, UnsafeSubmitError
+
+        assert issubclass(UnsafeSubmitError, TerminalError)
+
+    def test_an_ordinary_failure_is_still_retried(self):
+        from careeros_application_runner import retry
+
+        calls = []
+
+        def flaky():
+            calls.append(1)
+            if len(calls) < 3:
+                raise RuntimeError("the click missed")
+            return "ok"
+
+        assert retry(flaky, max_attempts=3, sleep=lambda _: None) == "ok"
+        assert len(calls) == 3

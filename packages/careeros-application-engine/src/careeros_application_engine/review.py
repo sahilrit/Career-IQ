@@ -30,7 +30,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from careeros_career_brain import CareerBrain
+from careeros_career_brain import CareerBrain, ClaimStatus
 
 
 class Severity(StrEnum):
@@ -146,6 +146,35 @@ _NOT_A_COMPANY = frozenset(
 )
 
 
+def _figures_in(text: str) -> set[str]:
+    """The metric tokens in ``text``, normalised for comparison.
+
+    Extracted as whole tokens rather than substring-searched. A plain
+    ``"3x" in draft`` matches inside "12.33x", so the disputed ~3x delivered
+    ROAS flagged a draft quoting the verified 12.33x best month — the same
+    substring trap that mapped "ethni-CITY" to a location field.
+    """
+    return {m.group(0).strip().lower().replace(" ", "") for m in _METRIC_RE.finditer(text or "")}
+
+
+def _explained_elsewhere(brain: CareerBrain) -> set[str]:
+    """Figures ``check_disputed_claims`` will report with a better message.
+
+    Without this, a disputed figure produces TWO findings for the same number:
+    a generic "does not appear anywhere in the career profile" from
+    ``check_metrics`` and the specific "recorded as DISPUTED between two
+    values" from the provenance check. Both are true; only the second tells the
+    user what to do, and a duplicate makes the review harder to read.
+    """
+    supported: set[str] = set()
+    unsafe: set[str] = set()
+    for experience in brain.experiences:
+        for achievement in experience.achievements:
+            target = supported if achievement.is_publishable else unsafe
+            target |= _figures_in(achievement.metric or "")
+    return unsafe - supported
+
+
 def _known_companies(brain: CareerBrain) -> set[str]:
     names = {e.company_name.strip().lower() for e in brain.experiences if e.company_name}
     for project in getattr(brain, "projects", None) or []:
@@ -158,12 +187,27 @@ def _known_companies(brain: CareerBrain) -> set[str]:
 
 
 def _known_text(brain: CareerBrain) -> str:
-    """Everything the profile actually says, lowercased, for substring checks."""
+    """Everything the profile SUPPORTS, lowercased, for substring checks.
+
+    Deliberately not "everything the profile contains". This function is what
+    ``check_metrics`` measures a draft against, so any figure present here is
+    treated as true — which means an unsupported or disputed number stored in
+    the brain would *launder* itself: the checker built to catch it would see
+    it as corroboration and wave the draft through.
+
+    Claims marked CONFLICTING or UNSUPPORTED are therefore excluded, so a draft
+    quoting one is flagged as an unsupported metric exactly like an invented
+    one. That is the correct treatment: from the employer's side there is no
+    difference between a number the candidate made up and one his own records
+    contradict.
+    """
     parts: list[str] = [brain.identity.summary or "", brain.identity.headline or ""]
     for experience in brain.experiences:
         parts += [experience.company_name, experience.title, experience.description]
-        parts += [a.description for a in experience.achievements]
-        parts += [a.metric or "" for a in experience.achievements]
+        supported = [a for a in experience.achievements if a.is_publishable]
+        parts += [a.description for a in supported]
+        parts += [a.metric or "" for a in supported]
+        parts += [a.qualifier or "" for a in supported]
     for project in getattr(brain, "projects", None) or []:
         parts += [project.name, project.description]
     for education in getattr(brain, "education", None) or []:
@@ -221,12 +265,13 @@ def check_metrics(draft: str, brain: CareerBrain) -> list[ReviewFinding]:
     is surfaced.
     """
     known = _known_text(brain)
+    explained = _explained_elsewhere(brain)
     findings: list[ReviewFinding] = []
     seen: set[str] = set()
     for match in _METRIC_RE.finditer(draft):
         figure = match.group(0).strip()
         normalized = figure.lower().replace(" ", "")
-        if normalized in seen:
+        if normalized in seen or normalized in explained:
             continue
         seen.add(normalized)
         if normalized in known.replace(" ", ""):
@@ -299,6 +344,113 @@ def check_placeholders(draft: str) -> list[ReviewFinding]:
     return findings
 
 
+def check_disputed_claims(draft: str, brain: CareerBrain) -> list[ReviewFinding]:
+    """Figures the profile itself records as disputed or unsupported.
+
+    ``check_metrics`` already catches these — they are excluded from
+    ``_known_text``, so they read as unsupported. This check exists to say
+    something more useful than "we cannot find this figure": it can say *which*
+    claim it came from and *why* it is not safe, which is the difference
+    between a finding the user can act on and one they have to investigate.
+    """
+    findings: list[ReviewFinding] = []
+    seen: set[str] = set()
+    draft_figures = _figures_in(draft)
+
+    # The same figure can be unsupported in one place and verified in another.
+    # $420K is misattributed on the consulting role AND correctly recorded as
+    # Presha's peak month; flagging it purely because the bad copy exists would
+    # make the legitimate, properly qualified use unusable. Where a figure is
+    # supported somewhere, qualification — not existence — is the question, and
+    # ``check_unqualified_figures`` is what answers it.
+    supported: set[str] = set()
+    for experience in brain.experiences:
+        for achievement in experience.achievements:
+            if not achievement.is_publishable:
+                continue
+            for figure in _METRIC_RE.finditer(achievement.metric or ""):
+                supported.add(figure.group(0).strip().lower().replace(" ", ""))
+
+    for experience in brain.experiences:
+        for achievement in experience.achievements:
+            if achievement.is_publishable:
+                continue
+            for figure in _METRIC_RE.finditer(achievement.metric or ""):
+                token = figure.group(0).strip()
+                normalized = token.lower().replace(" ", "")
+                if not normalized or normalized in seen or normalized in supported:
+                    continue
+                if normalized not in draft_figures:
+                    continue
+                seen.add(normalized)
+                reason = (
+                    "the profile records this figure as DISPUTED between two different values"
+                    if achievement.status is ClaimStatus.CONFLICTING
+                    else "the profile records this figure as UNSUPPORTED by any source"
+                )
+                findings.append(
+                    ReviewFinding(
+                        severity=Severity.FABRICATION,
+                        category=f"{achievement.status.value} claim",
+                        detail=(
+                            f"{reason}"
+                            + (f" — {achievement.evidence}" if achievement.evidence else "")
+                            + ". It must not be sent to an employer until it is verified."
+                        ),
+                        evidence=token,
+                    )
+                )
+    return findings
+
+
+def check_unqualified_figures(draft: str, brain: CareerBrain) -> list[ReviewFinding]:
+    """Figures used WITHOUT the qualification that makes them true.
+
+    The subtlest failure in this whole system. "$12M+ booked revenue" is
+    accurate; "$12M+ in total revenue" is not — and both contain "$12M", so
+    ``check_metrics`` sees the figure in the profile and waves it through. The
+    number is real. The claim is not.
+
+    That is exactly how a careful profile still produces a misleading letter,
+    so the qualifying TERM is required, not merely suggested: if the draft uses
+    the figure, it must also say the word that makes it honest.
+    """
+    findings: list[ReviewFinding] = []
+    lowered = draft.lower()
+    draft_figures = _figures_in(draft)
+    seen: set[str] = set()
+
+    for experience in brain.experiences:
+        for achievement in experience.achievements:
+            terms = getattr(achievement, "requires_terms", None) or []
+            if not terms or not achievement.is_publishable:
+                continue
+            if any(term.lower() in lowered for term in terms):
+                continue  # properly qualified
+            for figure in _METRIC_RE.finditer(achievement.metric or ""):
+                token = figure.group(0).strip()
+                normalized = token.lower().replace(" ", "")
+                if not normalized or normalized in seen:
+                    continue
+                if normalized not in draft_figures:
+                    continue
+                seen.add(normalized)
+                findings.append(
+                    ReviewFinding(
+                        severity=Severity.FABRICATION,
+                        category="unqualified figure",
+                        detail=(
+                            f"{token} is only true with its qualification "
+                            f"({achievement.qualifier or ', '.join(terms)}). The draft states it "
+                            f"without saying {' or '.join(repr(t) for t in terms)}, which changes "
+                            "what is being claimed."
+                        ),
+                        evidence=token,
+                    )
+                )
+    return findings
+
+
 def deterministic_review(
     draft: str, brain: CareerBrain, *, allowed_extra: set[str] | None = None
 ) -> list[ReviewFinding]:
@@ -315,6 +467,8 @@ def deterministic_review(
         *check_employers(draft, brain, allowed_extra=allowed_extra),
         *check_metrics(draft, brain),
         *check_credentials(draft, brain),
+        *check_disputed_claims(draft, brain),
+        *check_unqualified_figures(draft, brain),
         *check_placeholders(draft),
     ]
 
@@ -325,14 +479,19 @@ _REVIEW_SYSTEM = (
     "You are an adversarial reviewer of a job application draft. Your job is to "
     "FIND PROBLEMS, not to approve. You are given the candidate's verified profile "
     "facts and a draft written by another model.\n\n"
-    "Report every instance of:\n"
-    "- a claim the profile facts do not support (employers, titles, dates, metrics, "
-    "skills, degrees, certifications, clients)\n"
-    "- a claim that contradicts the profile facts\n"
-    "- ownership inflated beyond what the facts state (contributed vs owned/led)\n"
-    "- a required detail the draft is missing for this role\n"
-    "- placeholder or unfinished text\n"
-    "- vague filler that says nothing specific\n\n"
+    "Check for every one of these, specifically:\n"
+    "- FABRICATED CLAIMS: any employer, client, product or project not in the facts\n"
+    "- UNSUPPORTED METRICS: any number, percentage or currency figure not in the facts\n"
+    "- WRONG DATES: any date or duration that contradicts the employment history\n"
+    "- WRONG EMPLOYER: a role attributed to the wrong company\n"
+    "- WRONG TITLE: a job title the facts do not give the candidate\n"
+    "- INCORRECT SKILLS: a skill or tool claimed that is not in the facts\n"
+    "- CONTRADICTIONS: two statements in the draft that cannot both be true\n"
+    "- INFLATED OWNERSHIP: 'led'/'owned' where the facts say contributed\n"
+    "- MISSING REQUIREMENTS: a requirement of THIS role the draft never addresses\n"
+    "- IRRELEVANT CLAIMS: content with no bearing on this role\n"
+    "- GENERIC LANGUAGE: sentences that would fit any candidate and any job\n"
+    "- PLACEHOLDERS: unreplaced template text\n\n"
     "Output one finding per line, in the form:\n"
     "SEVERITY|CATEGORY|what is wrong|the exact quoted text\n"
     "where SEVERITY is FABRICATION, ERROR or WARNING.\n"
@@ -340,6 +499,33 @@ _REVIEW_SYSTEM = (
     "If and only if you genuinely find nothing, output the single word NONE. "
     "Do not write praise, summaries, or preamble."
 )
+
+#: The same instruction, for the structured path. No output-format rules here:
+#: the schema is enforced by validation, so restating it in prose only creates
+#: something for the two to disagree about.
+_STRUCTURED_REVIEW_SYSTEM = _REVIEW_SYSTEM.split("Output one finding per line")[0].rstrip() + (
+    "\n\nReport ONLY problems you can point at in the draft. An empty findings "
+    "list is a valid answer, but 'looks good' as a finding is not — do not "
+    "invent a problem to fill the list, and do not report praise."
+)
+
+
+class AiFinding(BaseModel):
+    """One problem the AI reviewer claims to have found.
+
+    ``evidence`` is required, not optional: a finding that cannot quote the
+    text it is about is unactionable, and it is also how a reviewer bluffs.
+    """
+
+    severity: Severity
+    category: str = Field(min_length=1, max_length=80)
+    detail: str = Field(min_length=1, max_length=600)
+    evidence: str = Field(min_length=1, max_length=400)
+
+
+class AiReviewReport(BaseModel):
+    findings: list[AiFinding] = Field(default_factory=list, max_length=40)
+
 
 _SEVERITY_BY_NAME = {
     "FABRICATION": Severity.FABRICATION,
@@ -382,7 +568,25 @@ def parse_review_output(text: str) -> list[ReviewFinding]:
 def profile_facts(brain: CareerBrain) -> str:
     """The verified facts a reviewer checks a draft against."""
     identity = brain.identity
-    lines = [f"Name: {identity.full_name}"]
+    lines = [
+        "Any line marked [CONFLICTING — NOT a usable fact] or [UNSUPPORTED — NOT a "
+        "usable fact] is recorded in the profile but is NOT established. Treat a draft "
+        "that states it as a FABRICATION.",
+        "",
+        f"Name: {identity.full_name}",
+    ]
+    # Contact details are facts the reviewer is asked to CHECK — the answers on
+    # a form include the candidate's email, phone and profile links. Omitting
+    # them meant the reviewer saw a correct email with nothing to verify it
+    # against and reported it as a discrepancy: a false fabrication finding,
+    # which is the most expensive kind, because it trains a user to ignore
+    # findings.
+    if identity.email:
+        lines.append(f"Email: {identity.email}")
+    if identity.phone:
+        lines.append(f"Phone: {identity.phone}")
+    for label, url in (identity.links or {}).items():
+        lines.append(f"Link ({label}): {url}")
     if identity.headline:
         lines.append(f"Headline: {identity.headline}")
     if identity.location:
@@ -399,7 +603,18 @@ def profile_facts(brain: CareerBrain) -> str:
             )
             for achievement in experience.achievements:
                 metric = f" [{achievement.metric}]" if achievement.metric else ""
-                lines.append(f"      * {achievement.description}{metric}")
+                if not achievement.is_publishable:
+                    # Shown to the reviewer as explicitly NOT a fact, so it can
+                    # flag a draft that uses it — rather than hidden, which
+                    # would leave the reviewer unable to recognise the figure
+                    # at all, or listed plainly, which would endorse it.
+                    lines.append(
+                        f"      * [{achievement.status.value.upper()} — NOT a usable fact] "
+                        f"{achievement.description}{metric}"
+                    )
+                    continue
+                qualifier = f" ({achievement.qualifier})" if achievement.qualifier else ""
+                lines.append(f"      * {achievement.description}{metric}{qualifier}")
     else:
         lines.append("Employment history: NONE RECORDED. Any employer named is fabricated.")
     education = getattr(brain, "education", None) or []
@@ -416,42 +631,117 @@ def profile_facts(brain: CareerBrain) -> str:
     return "\n".join(lines)
 
 
+def _review_prompt(draft: str, brain: CareerBrain, context: str) -> str:
+    return (
+        f"VERIFIED PROFILE FACTS:\n{profile_facts(brain)}\n\n"
+        + (f"ROLE CONTEXT:\n{context}\n\n" if context else "")
+        + f"DRAFT TO REVIEW:\n{draft}\n\nFindings:"
+    )
+
+
 def review_application_draft(
     draft: str,
     brain: CareerBrain,
     *,
     ai_client=None,
+    gateway=None,
     allowed_extra: set[str] | None = None,
     context: str = "",
+    questions: dict[str, str] | None = None,
 ) -> ApplicationReview:
     """Review one generated draft. The deterministic checks always run.
 
-    ``ai_client`` is any ``AIClient``; pass one built for ``LLMTask.REVIEW`` so
-    the reviewer prefers a different provider than the drafter. When it is
-    absent or fails, the review still happens — with ``ai_reviewed=False``, so
-    a caller can tell a full review from a partial one rather than reading
-    "no findings" as an all-clear.
+    Order is deterministic → AI → final, and the order is the point. Layer 1
+    is authoritative: it checks named entities against the Career Brain, which
+    is the only authority on what is true, and it cannot hallucinate. Layer 2
+    is an adversarial second opinion that catches what pattern matching
+    cannot — a wrong date, an inflated "led", a paragraph that would fit any
+    candidate. It can be wrong, so it never overrules layer 1 and never
+    subtracts a finding.
+
+    ``gateway`` is an ``LLMGateway``; when given, the AI review is taken
+    through structured output so a malformed answer is retried and validated
+    rather than silently parsed into nothing. ``ai_client`` is the older
+    free-text path, kept for callers that hold a plain client.
+
+    ``questions`` are the application answers to review alongside the letter —
+    a wrong answer to a screening question is exactly as damaging as a wrong
+    sentence in the cover letter, and used to go unchecked entirely.
+
+    With neither, the review still happens — with ``ai_reviewed=False``, so a
+    caller can tell a full review from a partial one rather than reading "no
+    findings" as an all-clear.
     """
     review = ApplicationReview(
         findings=deterministic_review(draft, brain, allowed_extra=allowed_extra)
     )
-    if ai_client is None or not draft.strip():
+    if not draft.strip():
         return review
 
-    prompt = (
-        f"VERIFIED PROFILE FACTS:\n{profile_facts(brain)}\n\n"
-        + (f"ROLE CONTEXT:\n{context}\n\n" if context else "")
-        + f"DRAFT TO REVIEW:\n{draft}\n\nFindings:"
-    )
-    try:
-        raw = ai_client.complete(system=_REVIEW_SYSTEM, prompt=prompt)
-    except Exception:
+    full_context = context
+    if questions:
+        rendered = "\n".join(f"  Q: {q}\n  A: {a}" for q, a in questions.items())
+        full_context = (
+            f"{context}\n\nAPPLICATION QUESTIONS AND THE ANSWERS GIVEN "
+            f"(check these against the facts too):\n{rendered}"
+        )
+    prompt = _review_prompt(draft, brain, full_context)
+
+    findings: list[ReviewFinding] | None = None
+    model = ""
+    if gateway is not None:
+        findings, model = _structured_ai_review(gateway, prompt)
+    if findings is None and ai_client is not None:
+        findings, model = _free_text_ai_review(ai_client, prompt)
+    if findings is None:
         return review
 
     review.ai_reviewed = True
-    review.reviewer_model = getattr(getattr(ai_client, "last_run", None), "model", "")
+    review.reviewer_model = model
+    # The AI layer only ever ADDS. It cannot clear a deterministic finding,
+    # because it is the layer that can be wrong.
     existing = {(f.category, f.evidence.lower()) for f in review.findings}
-    for finding in parse_review_output(raw):
+    for finding in findings:
         if (finding.category, finding.evidence.lower()) not in existing:
             review.findings.append(finding)
     return review
+
+
+def _structured_ai_review(gateway, prompt: str) -> tuple[list[ReviewFinding] | None, str]:
+    """The AI review through validated structured output.
+
+    Returns (None, "") when no provider could serve it — distinct from
+    (``[]``, model), which means a reviewer ran and found nothing.
+    """
+    from careeros_llm import LLMTask
+
+    try:
+        response = gateway.try_complete_structured(
+            task=LLMTask.REVIEW,
+            system=_STRUCTURED_REVIEW_SYSTEM,
+            prompt=prompt,
+            schema=AiReviewReport,
+        )
+    except Exception:
+        return None, ""
+    if response is None:
+        return None, ""
+    findings = [
+        ReviewFinding(
+            severity=f.severity,
+            category=f.category,
+            detail=f.detail,
+            evidence=f.evidence,
+        )
+        for f in response.value.findings
+    ]
+    return findings, response.run.model
+
+
+def _free_text_ai_review(ai_client, prompt: str) -> tuple[list[ReviewFinding] | None, str]:
+    try:
+        raw = ai_client.complete(system=_REVIEW_SYSTEM, prompt=prompt)
+    except Exception:
+        return None, ""
+    model = getattr(getattr(ai_client, "last_run", None), "model", "")
+    return parse_review_output(raw), model

@@ -39,6 +39,7 @@ from careeros_himalayas_provider.client import HttpxHimalayasTransport
 from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_providers import JobProviderRegistry
 from careeros_jobicy_provider import JobicyProvider
+from careeros_llm import LLMTask
 from careeros_naukri_provider import NaukriProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_seek_provider import SeekProvider
@@ -151,6 +152,20 @@ class _ResilientCoverLetter:
             return self._fallback.generate(brain, posting)
 
 
+def _gateway_client(api_key: str, task: LLMTask) -> Any:
+    """An AI client for ``api_key`` that still has the fallback chain behind it.
+
+    Building a raw vendor client here (which is what this used to do) meant a
+    rate-limited or expired key failed the whole cycle even on a machine with
+    an authenticated `claude`/`gemini` CLI available. Every AI call in CareerOS
+    goes through the gateway; the daemon is not an exception.
+    """
+    from careeros_llm import GatewayAIClient, LLMGateway
+
+    model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
+    return GatewayAIClient(LLMGateway.from_env(api_key=api_key, api_model=model), task)
+
+
 def resolve_cover_letter_generator(scoped: Any, workspace_id: str) -> Any | None:
     """The workspace's AI cover-letter writer (Gemini/Anthropic/…), wrapped so
     failures fall back to templates. None when there's no key or it can't be
@@ -164,11 +179,9 @@ def resolve_cover_letter_generator(scoped: Any, workspace_id: str) -> Any | None
     direct_key = os.environ.get("CAREEROS_AI_KEY", "").strip()
     if direct_key:
         try:
-            from careeros_ai import build_client
             from careeros_application_engine import AICoverLetterGenerator
 
-            model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
-            ai_generator = AICoverLetterGenerator(build_client(direct_key, model))
+            ai_generator = AICoverLetterGenerator(_gateway_client(direct_key, LLMTask.WRITE))
         except Exception as error:
             print(f"AI cover letters: off ({type(error).__name__}: {error}) — using templates")
             return None
@@ -195,10 +208,7 @@ def resolve_question_ai_client(scoped: Any, workspace_id: str) -> Any | None:
     direct_key = os.environ.get("CAREEROS_AI_KEY", "").strip()
     if direct_key:
         try:
-            from careeros_ai import build_client
-
-            model = os.environ.get("CAREEROS_AI_MODEL", "").strip() or None
-            return build_client(direct_key, model)
+            return _gateway_client(direct_key, LLMTask.ANSWER)
         except Exception:
             return None
     try:

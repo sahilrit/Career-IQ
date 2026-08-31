@@ -14,6 +14,10 @@ and reported, so this list degrades quietly rather than breaking a search.
 
 from __future__ import annotations
 
+import json
+import os
+import re
+
 from careeros_ats_providers.adapter import BoardEntry
 
 
@@ -203,10 +207,79 @@ def bamboohr_boards() -> list[BoardEntry]:
     return _entries(BAMBOOHR_BOARDS)
 
 
+#: Every field a Workday tenant needs. Validated up front, because a tenant
+#: with a missing ``site`` fails at crawl time with a 404 that reads like the
+#: company deleted its board.
+WORKDAY_REQUIRED_KEYS = ("slug", "region", "site")
+
+
+class WorkdayConfigError(ValueError):
+    """A Workday tenant entry that cannot possibly work.
+
+    Raised at load time rather than at crawl time: a typo in a region should
+    say "region must look like wd1/wd3/wd5", not produce a 404 four minutes
+    into a search.
+    """
+
+
+_REGION_RE = re.compile(r"^wd\d+$", re.IGNORECASE)
+
+
+def validate_workday_entry(entry: dict) -> dict:
+    """One tenant entry, checked. Returns it unchanged if it is usable."""
+    missing = [key for key in WORKDAY_REQUIRED_KEYS if not str(entry.get(key) or "").strip()]
+    if missing:
+        raise WorkdayConfigError(
+            f"Workday tenant {entry.get('slug') or '(unnamed)'} is missing: "
+            + ", ".join(missing)
+            + ". A Workday board needs tenant (slug), regional host (region, e.g. wd5) "
+            "and site name (site, e.g. External_Career_Site)."
+        )
+    region = str(entry["region"]).strip()
+    if not _REGION_RE.match(region):
+        raise WorkdayConfigError(
+            f"Workday tenant {entry['slug']}: region {region!r} does not look like a "
+            "Workday regional host — expected wd1, wd3, wd5, wd12, …"
+        )
+    return entry
+
+
+def load_workday_config(raw: str) -> list[dict]:
+    """Workday tenants from a JSON array, for adding one without a code change.
+
+    Accepts the same shape as ``WORKDAY_BOARDS``. Every entry is validated, and
+    a bad entry raises rather than being skipped — silently dropping a tenant
+    the user deliberately configured is worse than refusing to start.
+    """
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise WorkdayConfigError(f"CAREEROS_WORKDAY_BOARDS is not valid JSON: {exc}") from exc
+    if not isinstance(parsed, list):
+        raise WorkdayConfigError(
+            "CAREEROS_WORKDAY_BOARDS must be a JSON array of "
+            '{"slug": …, "name": …, "region": …, "site": …} objects'
+        )
+    entries = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            raise WorkdayConfigError(f"CAREEROS_WORKDAY_BOARDS entry is not an object: {item!r}")
+        entries.append(validate_workday_entry(item))
+    return entries
+
+
 def workday_boards() -> list[BoardEntry]:
+    """The configured Workday tenants.
+
+    ``CAREEROS_WORKDAY_BOARDS`` (a JSON array) REPLACES the built-in list when
+    set — replaces rather than extends, so a deployment that wants only its own
+    tenants gets exactly those, and the built-ins are one copy-paste away.
+    """
+    raw = os.environ.get("CAREEROS_WORKDAY_BOARDS", "").strip()
+    entries = load_workday_config(raw) if raw else list(WORKDAY_BOARDS)
     return [
         BoardEntry(
             b["slug"], b.get("name"), **{k: v for k, v in b.items() if k not in ("slug", "name")}
         )
-        for b in WORKDAY_BOARDS
+        for b in entries
     ]

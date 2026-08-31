@@ -84,3 +84,62 @@ actually serve the form. Employers who self-host (Stripe, Airbnb, Databricks)
 redirect away from it, and the runner reports that as
 "redirects to its own careers site" rather than "no form found" — which reads as
 a CareerOS bug when it is a fact about the employer.
+
+### Discovery support and application support are different questions
+
+"Nine hosted ATSes" is technically true and practically misleading: an ATS
+whose jobs CareerOS can read but whose forms it cannot fill is not the same
+product feature as one where an application reaches submission-ready. Both
+axes are reported separately (`careeros_ats_providers.capability_table()`):
+
+```
+PROVIDER         DISCOVERY  APPLICATION
+ashby            SUPPORTED  AUTOMATED
+greenhouse       SUPPORTED  PARTIAL
+smartrecruiters  SUPPORTED  PARTIAL
+workday          SUPPORTED  DISCOVERY_ONLY
+recruitee        SUPPORTED  UNVERIFIED
+```
+
+`UNVERIFIED` never counts as working: an integration nobody has run against a
+live form is a claim, not a capability. Any state other than `AUTOMATED` must
+carry a reason, enforced in `AtsCapability.__post_init__` — a limitation with
+no reason cannot be planned around. `application_ready_count()` is the number
+to quote instead of the adapter count.
+
+### Adding a Workday tenant without a code change
+
+Workday has no global index: every customer is a separate tenant with its own
+regional host and site name, so each board is added deliberately. That is
+architecture, not a gap — but it must not require an edit to a Python file:
+
+```bash
+export CAREEROS_WORKDAY_BOARDS='[
+  {"slug": "acme", "name": "Acme", "region": "wd3", "site": "External_Career_Site"}
+]'
+```
+
+Entries are validated at load time, not at crawl time. A missing `site` or a
+region that is not `wd<N>` raises `WorkdayConfigError` naming the problem —
+rather than surfacing as a 404 four minutes into a search, which reads like the
+company deleted its board. A bad entry raises rather than being skipped:
+silently dropping a tenant the user deliberately configured is worse than
+refusing to start.
+
+### Deduplication
+
+Two different duplicates exist, and only one of them used to be handled:
+
+1. **Within a provider** — the same posting returned twice.
+   `(source_provider, external_id)` catches these exactly.
+2. **Across providers** — the same job reached from an aggregator AND from the
+   ATS hosting it. These share no ids (Himalayas says `h-8891`, Greenhouse says
+   `4001209002`), so the key above never matched them and the user saw the role
+   twice. **This is the duplicate that actually shows up in daily use.**
+
+The cross-provider pass is deliberately conservative, because a wrong merge
+silently HIDES a real job — worse than showing one twice. Identical apply URL
+(ignoring tracking parameters) merges unconditionally; otherwise company, title
+and location must all be present and match, so a partial key never collapses
+unrelated rows. When two merge, the more useful copy survives: the ATS-hosted
+one (it can actually be applied to), then whichever carries a description.

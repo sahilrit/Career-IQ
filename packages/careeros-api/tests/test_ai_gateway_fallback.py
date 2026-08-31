@@ -109,8 +109,22 @@ class TestAWorkspaceKeyWins:
         # An explicit key is faster and is the only thing that works on a
         # hosted server, so it must not be shadowed by a local CLI.
         store_workspace_key(store, "ws1", "sk-ant-test")
-        assert not isinstance(resolve_ai_client(store, "ws1"), GatewayAIClient)
+        client = resolve_ai_client(store, "ws1")
+        chain = client._gateway._chain_for(LLMTask.WRITE)
+        assert chain[0].provider_id == "anthropic"
         assert "your API key" in ai_source(store, "ws1")
+
+    def test_the_key_still_has_the_fallback_chain_behind_it(self, store, with_local_provider):
+        # The key used to be turned into a raw vendor client, so a workspace
+        # WITH a key had no fallback at all: a rate-limited key failed the
+        # feature outright, on a machine with a working CLI sitting right
+        # there. The key wins, but it is no longer a dead end.
+        store_workspace_key(store, "ws1", "sk-ant-test")
+        client = resolve_ai_client(store, "ws1")
+        assert isinstance(client, GatewayAIClient)
+        ids = [p.provider_id for p in client._gateway._chain_for(LLMTask.WRITE)]
+        assert "anthropic" in ids and "stub" in ids
+        assert ids.index("anthropic") < ids.index("stub")
 
 
 class TestFailureIsNeverFabrication:

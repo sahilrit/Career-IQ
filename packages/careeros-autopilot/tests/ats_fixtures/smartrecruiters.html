@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- SmartRecruiters: the posting page. The job description is here; the
+     application form is in an IFRAME, which is why every selector run against
+     this document finds no form and the page looked identical to one with no
+     application on it at all. -->
+<title>Performance Marketing Manager</title>
+<h1>Performance Marketing Manager</h1>
+<p>We are looking for a performance marketer to own paid acquisition.</p>
+
+<!-- A decoy frame first: real posting pages carry analytics/consent frames,
+     and the search must not stop at the first one it finds. -->
+<iframe id="consent" src="about:blank" title="consent"></iframe>
+
+<iframe id="apply-frame" src="smartrecruiters_form.html" title="Application form"
+        width="800" height="900"></iframe>

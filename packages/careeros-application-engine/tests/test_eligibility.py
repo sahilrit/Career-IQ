@@ -173,3 +173,53 @@ def test_experience_reason_states_both_numbers():
     reason = disqualifying_requirement(brain, "Requires 10+ years of experience.")
     assert reason is not None
     assert "10" in reason and "4" in reason
+
+
+class TestTheDisqualificationMessageIsNotSelfContradictory:
+    """Observed on a live Workable posting: "role wants 5+ years of experience;
+    you have about 5" — true (4.6 < 5) but it reads as satisfied, which makes
+    the gate look broken and trains the user to ignore it."""
+
+    def test_a_fractional_shortfall_is_reported_with_a_decimal(self):
+        from datetime import date
+
+        from careeros_application_engine import disqualifying_requirement
+        from careeros_career_brain import CareerBrain, Experience, Identity
+
+        # ~4.6 years: Jan 2022 to a fixed 'today' well inside 2026.
+        brain = CareerBrain(
+            identity=Identity(full_name="A", email="a@b.test"),
+            experiences=[
+                Experience(
+                    company_name="Acme",
+                    title="Marketer",
+                    start_date=date(2022, 1, 1),
+                    end_date=date(2026, 8, 1),
+                )
+            ],
+        )
+        reason = disqualifying_requirement(brain, "Manager", "Requires 5 years of experience.")
+        assert reason is not None
+        # The shortfall must be visible, not rounded away.
+        assert "about 5 " not in reason and not reason.endswith("about 5")
+        assert "4." in reason
+
+    def test_meeting_the_requirement_is_still_not_a_disqualification(self):
+        from datetime import date
+
+        from careeros_application_engine import disqualifying_requirement
+        from careeros_career_brain import CareerBrain, Experience, Identity
+
+        brain = CareerBrain(
+            identity=Identity(full_name="A", email="a@b.test"),
+            experiences=[
+                Experience(
+                    company_name="Acme",
+                    title="Marketer",
+                    start_date=date(2015, 1, 1),
+                    end_date=None,
+                )
+            ],
+        )
+        reason = disqualifying_requirement(brain, "Manager", "Requires 5 years of experience.")
+        assert reason is None

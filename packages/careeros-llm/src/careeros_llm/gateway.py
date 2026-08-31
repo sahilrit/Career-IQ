@@ -20,15 +20,39 @@ Three rules it never breaks:
 from __future__ import annotations
 
 import time
+from typing import TypeVar
+
+from pydantic import BaseModel
 
 from careeros_common import get_logger
 from careeros_llm.cli_provider import CLI_SPECS, CliProvider
 from careeros_llm.config import LLMConfig
-from careeros_llm.exceptions import NoProviderAvailableError, ProviderCallError
+from careeros_llm.exceptions import (
+    MalformedResponseError,
+    NoProviderAvailableError,
+    ProviderCallError,
+)
 from careeros_llm.models import LLMRun, LLMTask, ProviderHealth, ProviderStatus
 from careeros_llm.provider import ApiKeyProvider, LLMProvider
+from careeros_llm.structured import parse_structured, repair_prompt, schema_instruction
 
 logger = get_logger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
+
+#: How many times ONE provider is re-asked after returning output that failed
+#: validation. One repair catches the overwhelmingly common case (a stray
+#: sentence, a missing field) without turning a model that cannot follow the
+#: schema into a long, expensive loop — the fallback chain handles that.
+DEFAULT_MAX_REPAIRS = 1
+
+#: Shown when nothing is configured at all. Names the two ways out rather than
+#: reporting the absence, because "no AI provider" is not something a user can
+#: act on and "run `claude` and log in" is.
+_NO_PROVIDERS_HINT = (
+    "no AI provider is configured — set CAREEROS_AI_API_KEY, or install and "
+    "log in to one of: " + ", ".join(CLI_SPECS)
+)
 
 
 class LLMResponse:
@@ -42,6 +66,16 @@ class LLMResponse:
 
     def __str__(self) -> str:  # so callers can drop it straight into a string
         return self.text
+
+
+class StructuredResponse[V: BaseModel]:
+    """A validated object plus the provenance of the call that produced it."""
+
+    __slots__ = ("run", "value")
+
+    def __init__(self, value: V, run: LLMRun) -> None:
+        self.value = value
+        self.run = run
 
 
 class LLMGateway:
@@ -136,13 +170,7 @@ class LLMGateway:
         """
         chain = self._review_chain(task)
         if not chain:
-            raise NoProviderAvailableError(
-                task.value,
-                [
-                    "no AI provider is configured — set CAREEROS_AI_API_KEY, or install and "
-                    "log in to one of: " + ", ".join(CLI_SPECS)
-                ],
-            )
+            raise NoProviderAvailableError(task.value, [_NO_PROVIDERS_HINT])
 
         reasons: list[str] = []
         for provider in chain:
@@ -170,6 +198,112 @@ class LLMGateway:
             return LLMResponse(text, run)
 
         raise NoProviderAvailableError(task.value, reasons)
+
+    def complete_structured(
+        self,
+        *,
+        task: LLMTask,
+        system: str,
+        prompt: str,
+        schema: type[T],
+        max_repairs: int = DEFAULT_MAX_REPAIRS,
+    ) -> StructuredResponse[T]:
+        """Run ``task`` and return a validated ``schema`` instance.
+
+        The pipeline is parse → validate → repair → fall back, and it never
+        short-circuits: output that does not validate is NEVER handed to a
+        caller, because a half-parsed object poisons everything downstream far
+        more quietly than a raised error does.
+
+        A provider that returns unusable output is re-asked ``max_repairs``
+        times with the validation error quoted back — the one retry that
+        reliably helps — and then abandoned for the next provider in the chain.
+        Non-retryable failures (not logged in, bad config) skip the repair loop
+        entirely: re-asking a CLI that is not authenticated just costs the user
+        another timeout.
+        """
+        chain = self._review_chain(task)
+        if not chain:
+            raise NoProviderAvailableError(task.value, [_NO_PROVIDERS_HINT])
+
+        full_system = f"{system}{schema_instruction(schema)}"
+        reasons: list[str] = []
+        for provider in chain:
+            started = time.monotonic()
+            attempt_prompt = prompt
+            retries = 0
+            while True:
+                try:
+                    text = provider.complete(system=full_system, prompt=attempt_prompt)
+                except ProviderCallError as exc:
+                    reasons.append(str(exc))
+                    logger.warning(
+                        "LLM provider %s failed for %s: %s", provider.provider_id, task, exc
+                    )
+                    break
+                except Exception as exc:
+                    reasons.append(f"{provider.provider_id}: unexpected failure: {exc}")
+                    logger.exception("LLM provider %s raised for %s", provider.provider_id, task)
+                    break
+
+                try:
+                    value = parse_structured(text, schema)
+                except ValueError as exc:
+                    problem = str(exc)
+                    if retries >= max_repairs:
+                        reasons.append(
+                            str(MalformedResponseError(provider.provider_id, problem))
+                            + " (after "
+                            + f"{retries} repair attempt{'s' if retries != 1 else ''})"
+                        )
+                        break
+                    retries += 1
+                    attempt_prompt = repair_prompt(prompt, text, problem)
+                    logger.info(
+                        "LLM provider %s returned unusable output for %s (%s) — repairing",
+                        provider.provider_id,
+                        task,
+                        problem,
+                    )
+                    continue
+
+                return StructuredResponse(
+                    value,
+                    LLMRun(
+                        task=task,
+                        provider_id=provider.provider_id,
+                        model=provider.model,
+                        succeeded=True,
+                        fallbacks=list(reasons),
+                        duration_ms=int((time.monotonic() - started) * 1000),
+                        response_chars=len(text),
+                        retries=retries,
+                    ),
+                )
+
+        raise NoProviderAvailableError(task.value, reasons)
+
+    def try_complete_structured(
+        self,
+        *,
+        task: LLMTask,
+        system: str,
+        prompt: str,
+        schema: type[T],
+        max_repairs: int = DEFAULT_MAX_REPAIRS,
+    ) -> StructuredResponse[T] | None:
+        """``complete_structured`` for callers with a deterministic fallback.
+
+        Returns None rather than raising — and None, never a partially filled
+        object, so no caller can mistake a failure for an answer.
+        """
+        try:
+            return self.complete_structured(
+                task=task, system=system, prompt=prompt, schema=schema, max_repairs=max_repairs
+            )
+        except NoProviderAvailableError as exc:
+            logger.info("No LLM available for structured %s: %s", task, exc)
+            return None
 
     def try_complete(self, *, task: LLMTask, system: str, prompt: str) -> LLMResponse | None:
         """``complete`` for callers with a real deterministic fallback of their
@@ -199,11 +333,68 @@ class LLMGateway:
                 results.append(
                     ProviderHealth(
                         provider_id=provider.provider_id,
-                        status=ProviderStatus.UNAVAILABLE,
+                        # The probe itself broke. That is our bug, and calling
+                        # it "unavailable" would send the user to fix their
+                        # login over a fault that is not theirs.
+                        status=ProviderStatus.ERROR,
                         detail=f"health check raised: {exc}",
                         model=provider.model,
                     )
                 )
+        return results
+
+    def provider_report(self) -> list[ProviderHealth]:
+        """Health for every provider CareerOS knows how to use — including the
+        ones that are not installed or configured here.
+
+        ``health()`` only covers providers that exist on this machine, which
+        answers "what can I use?" but not "why can't I use Codex?". A user
+        cannot act on a provider that is silently missing from the list, so
+        this one reports the absent ones explicitly, with the reason and the
+        command that would change it.
+        """
+        results = self.health()
+        seen = {health.provider_id for health in results}
+
+        import shutil
+
+        for provider_id, spec in CLI_SPECS.items():
+            if provider_id in seen:
+                continue
+            installed = shutil.which(spec.executable) is not None
+            if installed:
+                # Installed but excluded from the live chain — the only way
+                # that happens is CAREEROS_LLM_CLI_ENABLED=0.
+                results.append(
+                    ProviderHealth(
+                        provider_id=provider_id,
+                        status=ProviderStatus.NOT_CONFIGURED,
+                        detail="agent CLIs are disabled by configuration",
+                        installed=True,
+                        remedy="unset CAREEROS_LLM_CLI_ENABLED (or set it to 1)",
+                    )
+                )
+            else:
+                results.append(
+                    ProviderHealth(
+                        provider_id=provider_id,
+                        status=ProviderStatus.NOT_INSTALLED,
+                        detail=f"`{spec.executable}` is not on PATH",
+                        installed=False,
+                        remedy=spec.install_hint,
+                    )
+                )
+
+        if not any(health.provider_id not in CLI_SPECS for health in results):
+            # No API-key provider was built, i.e. no key is set anywhere.
+            results.append(
+                ProviderHealth(
+                    provider_id="api-key",
+                    status=ProviderStatus.NOT_CONFIGURED,
+                    detail="no API key configured",
+                    remedy="set CAREEROS_AI_API_KEY, or add a key in Settings → AI",
+                )
+            )
         return results
 
 

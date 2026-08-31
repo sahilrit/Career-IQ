@@ -224,8 +224,13 @@ def test_eu_lever_and_applytojob_are_recognized_as_ats_hosts():
 
 
 def test_bot_protection_challenge_is_reported_not_bypassed():
+    from careeros_autopilot.page_analysis import _BOT_PROTECTION_SELECTORS
+
     session = FakeBrowserSession()
-    session.set_visible("text=/just a moment/i")
+    # Drive it off the real list rather than a hardcoded copy: the literal
+    # string drifted once already when Cloudflare changed its wording, and a
+    # test pinned to the old copy passes while production misses the wall.
+    session.set_visible(_BOT_PROTECTION_SELECTORS[0])
     session.set_query_all_results("a", [{"href": "https://example.com/jobs/1/apply"}])
     reason = prepare_application_page(session, make_posting())
     assert reason is not None
@@ -405,3 +410,198 @@ class TestFindApplyUrl:
         session = FakeBrowserSession()
         session.set_query_all_results("a", [{"href": "https://example.com/about"}])
         assert find_apply_url(session) is None
+
+
+class TestAntiBotIsNamedRatherThanMistakenForAMissingForm:
+    """SmartRecruiters' oneclick-ui apply pages serve a DataDome challenge and
+    NO form (observed live, 2026-08-31).
+
+    Reported as "no fillable form found on the page or in any frame", that
+    sends the user hunting for a CareerOS bug. The form is not missing — it is
+    behind an anti-bot wall, and CareerOS must not try to get around one.
+    """
+
+    def test_a_datadome_challenge_is_detected_as_a_captcha(self):
+        from careeros_autopilot import CAPTCHA_DETECTORS
+
+        session = FakeBrowserSession()
+        session.set_visible("iframe[src*='captcha-delivery.com']")
+        found = [d.detect(session) for d in CAPTCHA_DETECTORS]
+        problems = [p for p in found if p is not None]
+        assert problems, "a DataDome challenge was not recognised"
+        assert problems[0].kind == "captcha"
+        assert "captcha" in problems[0].description
+
+    def test_a_clean_page_trips_no_captcha_detector(self):
+        from careeros_autopilot import CAPTCHA_DETECTORS
+
+        session = FakeBrowserSession()
+        session.set_visible("#email")
+        assert all(d.detect(session) is None for d in CAPTCHA_DETECTORS)
+
+
+class TestOneQuestionIsAskedOnce:
+    """Observed live on Greenhouse (2026-08-31): "How did you hear about this
+    job?" was answered TWICE — once by opening its react-select dropdown, and
+    once by typing into the inner input, which silently discarded the value and
+    reported a failure on a question that had already been answered correctly.
+
+    The two scans reach the same widget through different elements, so they
+    produce different selectors for it. Deduping on selector alone cannot see
+    that; deduping on the question can.
+    """
+
+    def _session_with_a_react_select(self):
+        session = FakeBrowserSession()
+        session.set_comboboxes(
+            [{"selector": '[id="combo-1"]', "question": "How did you hear about this job?"}]
+        )
+        # The SAME widget, reached through its inner text input.
+        session.set_fields(
+            [
+                {
+                    "selector": '[id="inner-input-1"]',
+                    "type": "text",
+                    "label": "How did you hear about this job?",
+                },
+                {"selector": '[id="q2"]', "type": "text", "label": "Why this company?"},
+            ]
+        )
+        return session
+
+    def test_the_same_question_is_not_asked_twice(self):
+        from careeros_autopilot.page_analysis import detect_question_fields
+
+        questions = detect_question_fields(self._session_with_a_react_select())
+        labels = [q.question.lower() for q in questions]
+        assert labels.count("how did you hear about this job?") == 1
+
+    def test_the_dropdown_interaction_wins_over_typing_into_it(self):
+        # Typing into a closed react-select does nothing; opening it and
+        # picking an option is the interaction that works.
+        from careeros_autopilot.page_analysis import detect_question_fields
+
+        questions = detect_question_fields(self._session_with_a_react_select())
+        hear = next(q for q in questions if "hear about" in q.question.lower())
+        assert hear.kind == "combobox"
+        assert hear.selector == '[id="combo-1"]'
+
+    def test_genuinely_different_questions_are_all_kept(self):
+        from careeros_autopilot.page_analysis import detect_question_fields
+
+        questions = detect_question_fields(self._session_with_a_react_select())
+        assert len(questions) == 2
+        assert any("why this company" in q.question.lower() for q in questions)
+
+
+class TestChoiceGroupsAreNeverProfileFields:
+    """Every profile-mapped field (name, email, phone) is WRITTEN to.
+
+    A radio group never is. "Do you have a phone number?" classifies as PHONE
+    and would then be text-filled, which raises — the same family of bug as
+    text-filling an EEO radio.
+    """
+
+    def test_a_phone_shaped_radio_group_becomes_a_question_not_the_phone_field(self):
+        from careeros_autopilot.page_analysis import detect_form_mapping
+
+        session = FakeBrowserSession()
+        session.set_fields(
+            [
+                {"selector": '[id="e"]', "type": "text", "label": "Email", "autocomplete": "email"},
+                {
+                    "selector": '[id="p1"]',
+                    "type": "radio",
+                    "name": "hasphone",
+                    "label": "Do you have a phone number?",
+                    "option_label": "Yes",
+                },
+                {
+                    "selector": '[id="p2"]',
+                    "type": "radio",
+                    "name": "hasphone",
+                    "label": "Do you have a phone number?",
+                    "option_label": "No",
+                },
+            ]
+        )
+        session.set_buttons([{"selector": '[id="go"]', "accessible_name": "Submit Application"}])
+        mapping = detect_form_mapping(session)
+        assert mapping is not None
+        # NOT wired up as the phone field...
+        assert mapping.phone_selector is None
+        # ...and offered as a choice question instead.
+        question = next(q for q in mapping.question_fields if "phone" in q.question)
+        assert question.kind == "choice"
+        assert set(question.options) == {"yes", "no"}
+
+
+class TestEveryFieldIsClaimedByExactlyOneSide:
+    """A field claimed by BOTH the mapping and the question scan is written
+    twice; a field claimed by NEITHER is silently unfillable. Both have
+    happened, so both are pinned here."""
+
+    def test_a_recognised_purpose_the_mapping_cannot_fill_stays_a_question(self):
+        # "LinkedIn Profile" classifies as LINKEDIN — a purpose FormFieldMapping
+        # has no slot for. Claiming it as a profile field meant it was filled by
+        # nothing at all.
+        from careeros_application_runner import FieldPurpose, map_fields
+        from careeros_autopilot.page_analysis import is_question_field
+
+        rows = [
+            {
+                "selector": '[id="li"]',
+                "tag": "input",
+                "type": "text",
+                "label": "LinkedIn Profile",
+                "name": "",
+                "id_attr": "li",
+                "aria_label": "",
+                "placeholder": "",
+                "autocomplete": "",
+                "heading": "",
+                "required": False,
+                "disabled": False,
+                "readonly": False,
+                "options": [],
+            },
+        ]
+        mapped = map_fields(rows)[0]
+        assert mapped.purpose is FieldPurpose.LINKEDIN
+        assert is_question_field(mapped), "a field the mapping cannot fill must be asked"
+
+    def test_a_profile_field_the_mapping_does_fill_is_not_also_asked(self):
+        from careeros_autopilot.page_analysis import detect_question_fields
+
+        session = FakeBrowserSession()
+        session.set_fields(
+            [
+                {
+                    "selector": '[id="n"]',
+                    "type": "text",
+                    "label": "Full name",
+                    "autocomplete": "name",
+                },
+                {"selector": '[id="e"]', "type": "text", "label": "Email", "autocomplete": "email"},
+            ]
+        )
+        labels = [q.question.lower() for q in detect_question_fields(session)]
+        assert "full name" not in labels
+        assert "email" not in labels
+
+    def test_the_answerer_can_answer_everything_left_as_a_question(self):
+        # The contract behind MAPPED_PURPOSES: whatever the mapping does not
+        # fill, the answerer must know how to answer.
+        from careeros_application_runner import FieldPurpose as FP
+        from careeros_autopilot.page_analysis import MAPPED_PURPOSES
+
+        answerable_elsewhere = {
+            FP.LINKEDIN,
+            FP.GITHUB,
+            FP.PORTFOLIO,
+            FP.LOCATION,
+            FP.CURRENT_EMPLOYER,
+            FP.CURRENT_TITLE,
+            FP.QUESTION,
+        }
+        assert set(FP) == MAPPED_PURPOSES | answerable_elsewhere

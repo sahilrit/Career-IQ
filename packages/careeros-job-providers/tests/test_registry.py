@@ -11,9 +11,26 @@ def test_search_all_aggregates_postings_from_every_healthy_provider(
     posting_factory, fake_provider_cls
 ):
     registry = JobProviderRegistry()
-    registry.register(fake_provider_cls("remoteok", [posting_factory(source_provider="remoteok")]))
+    # Two genuinely DIFFERENT jobs: the factory's defaults would otherwise
+    # produce the same company/title/url twice, which cross-provider dedupe
+    # correctly collapses into one.
     registry.register(
-        fake_provider_cls("wellfound", [posting_factory(source_provider="wellfound")])
+        fake_provider_cls(
+            "remoteok",
+            [posting_factory(source_provider="remoteok", url="https://remoteok.com/jobs/1")],
+        )
+    )
+    registry.register(
+        fake_provider_cls(
+            "wellfound",
+            [
+                posting_factory(
+                    source_provider="wellfound",
+                    title="Product Designer",
+                    url="https://wellfound.com/jobs/9",
+                )
+            ],
+        )
     )
 
     result = registry.search_all(JobSearchQuery())

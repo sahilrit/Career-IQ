@@ -47,7 +47,13 @@ FormMappingResolver = Callable[[Application], FormFieldMapping | None]
 # error reason, or None when the form page is loaded and ready.
 PagePreparer = Callable[[BrowserSession, JobPosting], str | None]
 # Inspects the live page (post-navigation) to build a mapping on the fly.
-LiveFormMappingResolver = Callable[[BrowserSession, Application], FormFieldMapping | None]
+#
+# May return either a bare ``FormFieldMapping`` or an object carrying both a
+# mapping and the session its selectors belong to (``.session``/``.mapping``).
+# The second form exists because a selector only reaches ONE document: when the
+# form is inside an iframe, the mapping is meaningless against the page session
+# and must travel with the frame session it was resolved against.
+LiveFormMappingResolver = Callable[[BrowserSession, Application], object | None]
 
 
 @dataclass
@@ -208,8 +214,18 @@ class AutonomousApplicationExecutor:
                 )
 
         mapping = None
+        # The session the form's selectors actually resolve against. It is the
+        # page for every ATS that renders its form inline, and a FRAME session
+        # for the ones that render it in an iframe — where filling against the
+        # page would silently write nothing.
+        form_session = session
         if self._resolve_form_mapping_live is not None:
-            mapping = self._resolve_form_mapping_live(session, application)
+            located = self._resolve_form_mapping_live(session, application)
+            if located is not None and hasattr(located, "mapping"):
+                mapping = located.mapping
+                form_session = getattr(located, "session", session)
+            else:
+                mapping = located
         if mapping is None:
             mapping = self._resolve_form_mapping(application)
         if mapping is None:
@@ -243,7 +259,7 @@ class AutonomousApplicationExecutor:
             # Fill the form (best-effort) but never submit. A human solves any
             # captcha and clicks submit. Stays QUALIFIED.
             self._runner.prepare(
-                session,
+                form_session,
                 package,
                 mapping,
                 application_id=application.id,
@@ -268,7 +284,7 @@ class AutonomousApplicationExecutor:
             )
 
         result = self._runner.submit(
-            session,
+            form_session,
             package,
             mapping,
             application_id=application.id,

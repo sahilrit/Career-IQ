@@ -18,8 +18,16 @@ class QuestionField(BaseModel):
     selector: str
     question: str
     # "text" fills the value; "select" chooses an option by value/label;
-    # "combobox" opens a custom React/ARIA dropdown and picks an option.
+    # "combobox" opens a custom React/ARIA dropdown and picks an option;
+    # "choice" clicks one control out of a radio/checkbox group.
     kind: str = "text"
+    #: The options a "select"/"choice" question offers, for the answerer to
+    #: choose between rather than free-typing something the form will reject.
+    options: list[str] = []
+    #: For "choice": option label -> the selector that picks THAT option. A
+    #: radio group is chosen by clicking the right control, so the group's own
+    #: selector is not enough to answer it.
+    option_selectors: dict[str, str] = {}
     #: Whether the form marks this question required. A required question left
     #: for a human blocks submission; an optional one does not.
     required: bool = False

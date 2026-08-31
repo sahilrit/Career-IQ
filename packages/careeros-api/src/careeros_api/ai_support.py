@@ -22,12 +22,19 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from careeros_ai import AIClient, build_client
+from careeros_ai import AIClient
 from careeros_api.vault_support import open_vault
 from careeros_application_engine import AICoverLetterGenerator, CoverLetterGenerator
 from careeros_credentials import SecretNotFoundError
 from careeros_job_discovery.llm_scoring import LlmJobScorer
-from careeros_llm import GatewayAIClient, LLMGateway, LLMTask
+from careeros_llm import (
+    DEFAULT_PRIORITY,
+    ApiKeyProvider,
+    GatewayAIClient,
+    LLMConfig,
+    LLMGateway,
+    LLMTask,
+)
 
 _KEY_SERVICE = "anthropic_api_key"  # kept for back-compat with stored keys
 _MODEL_SERVICE = "ai_model"
@@ -122,20 +129,61 @@ def _local_gateway() -> LLMGateway | None:
 
 
 def reset_gateway_cache() -> None:
-    """Drop the cached gateway (tests, and after a config change)."""
+    """Drop the cached gateways (tests, and after a config change)."""
     global _gateway
     _gateway = None
+    _keyed_gateways.clear()
+
+
+#: Gateways built around a workspace's own key, keyed by (key, model). Building
+#: one only inspects config and PATH — never the network — but a request-scoped
+#: rebuild is still waste.
+_keyed_gateways: dict[tuple[str, str], LLMGateway] = {}
+
+
+def _gateway_for_key(api_key: str, model: str | None) -> LLMGateway:
+    """A gateway that prefers this workspace's key and can still fall back.
+
+    The workspace key used to be turned straight into a raw ``AIClient``,
+    which meant the one path most users are on had NO fallback, NO task
+    routing and NO record of which model answered — a rate-limited key simply
+    failed the feature, even on a machine with an authenticated CLI sitting
+    right there. Routing it through the gateway keeps the key first (it is
+    explicit and fast) and makes everything behind it a fallback rather than
+    a dead end.
+    """
+    cache_key = (api_key, model or "")
+    gateway = _keyed_gateways.get(cache_key)
+    if gateway is not None:
+        return gateway
+
+    keyed = ApiKeyProvider(api_key, model=model)
+    providers = [keyed]
+    local = _local_gateway()
+    if local is not None:
+        # Reuse what the machine already offers rather than re-scanning PATH.
+        # Same-id providers are dropped: the workspace's own key is the more
+        # specific one and must not be shadowed by an env-level key.
+        providers += [p for p in local.providers() if p.provider_id != keyed.provider_id]
+    config = LLMConfig.from_env(
+        api_key=api_key,
+        api_model=model,
+        priority=[keyed.provider_id, *DEFAULT_PRIORITY],
+    )
+    gateway = LLMGateway(providers, config=config)
+    _keyed_gateways[cache_key] = gateway
+    return gateway
 
 
 def _client_for_task(store: Any, workspace_id: str, task: LLMTask) -> AIClient | None:
     """The best AI client available to this workspace for ``task``, or None.
 
-    A workspace key wins: it is explicit, fast, and works on a hosted server.
-    Otherwise fall back to whatever this machine can reach locally.
+    Always a gateway client: business logic must never hold a vendor client
+    directly, or it silently loses fallback and provenance.
     """
     key = _get_key(store, workspace_id)
     if key:
-        return build_client(key, _model_for(store, workspace_id))
+        return GatewayAIClient(_gateway_for_key(key, _model_for(store, workspace_id)), task)
     gateway = _local_gateway()
     return GatewayAIClient(gateway, task) if gateway is not None else None
 

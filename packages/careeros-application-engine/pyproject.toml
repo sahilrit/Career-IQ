@@ -9,6 +9,7 @@ dependencies = [
     "careeros-career-brain-engine",
     "careeros-common",
     "careeros-job-providers",
+    "careeros-llm",
 ]
 
 [tool.uv.sources]
@@ -17,6 +18,7 @@ careeros-career-brain = { workspace = true }
 careeros-career-brain-engine = { workspace = true }
 careeros-common = { workspace = true }
 careeros-job-providers = { workspace = true }
+careeros-llm = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

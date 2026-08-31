@@ -8,15 +8,26 @@ the application engine can realistically fill end to end.
 from careeros_ats_providers.adapter import AtsAdapter, BoardEntry
 from careeros_ats_providers.adapters import ADAPTER_CLASSES
 from careeros_ats_providers.boards import (
+    WorkdayConfigError,
     ashby_boards,
     bamboohr_boards,
     greenhouse_boards,
     lever_boards,
+    load_workday_config,
     personio_boards,
     recruitee_boards,
     smartrecruiters_boards,
+    validate_workday_entry,
     workable_boards,
     workday_boards,
+)
+from careeros_ats_providers.capability import (
+    CAPABILITIES,
+    ApplicationSupport,
+    AtsCapability,
+    application_ready_count,
+    capability_for,
+    capability_table,
 )
 from careeros_ats_providers.http import AtsHttp, BoardFetchError, assert_allowed
 from careeros_ats_providers.normalize import (
@@ -64,25 +75,34 @@ def build_ats_providers(
 
 __all__ = [
     "ADAPTER_CLASSES",
+    "CAPABILITIES",
+    "ApplicationSupport",
     "AtsAdapter",
     "AtsBoardProvider",
+    "AtsCapability",
     "AtsHttp",
     "BoardEntry",
     "BoardFetchError",
+    "WorkdayConfigError",
     "annualized_salary",
+    "application_ready_count",
     "ashby_boards",
     "assert_allowed",
     "bamboohr_boards",
     "build_ats_providers",
+    "capability_for",
+    "capability_table",
     "greenhouse_boards",
     "html_to_text",
     "lever_boards",
+    "load_workday_config",
     "looks_remote",
     "merge_locations",
     "personio_boards",
     "recruitee_boards",
     "smartrecruiters_boards",
     "to_datetime",
+    "validate_workday_entry",
     "workable_boards",
     "workday_boards",
 ]

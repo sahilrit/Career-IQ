@@ -11,13 +11,18 @@ from careeros_application_engine import ApplicationPackage
 from careeros_application_runner.fill import fill_application_form, submit_application_form
 from careeros_application_runner.fill_report import FillReport
 from careeros_application_runner.models import FormFieldMapping
-from careeros_application_runner.retry import retry
+from careeros_application_runner.retry import TerminalError, retry
 from careeros_application_runner.validator import validate_submission
 from careeros_browser import BrowserHealth, BrowserSession, check_browser_health
 
 
-class IncompleteFormError(Exception):
-    """A required field did not take, so the form was never submitted."""
+class IncompleteFormError(TerminalError):
+    """A required field did not take, so the form was never submitted.
+
+    Terminal on purpose: the form will be exactly as incomplete on the third
+    attempt, and each retry re-fills everything — which on a real ATS means
+    re-uploading the résumé twice more for nothing.
+    """
 
 
 @dataclass

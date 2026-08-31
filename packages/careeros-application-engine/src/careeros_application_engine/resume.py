@@ -59,10 +59,31 @@ def _build_summary(brain: CareerBrain, match: ProfileMatch) -> str:
 
 
 def _achievement_bullet(achievement: Achievement) -> str:
+    """One résumé bullet, with any required qualifier attached.
+
+    The qualifier is not decoration. "$12M+ revenue" and "$12M+ booked revenue,
+    before COD returns" are different claims, and the second is the true one —
+    so the wording that makes it true travels with the figure rather than
+    living in a note somebody has to remember.
+    """
     bullet = achievement.description
     if achievement.metric:
         bullet += f" ({achievement.metric})"
+    if achievement.qualifier:
+        bullet += f" — {achievement.qualifier}"
     return bullet
+
+
+def publishable_achievements(experience) -> list[Achievement]:
+    """The achievements that may be sent to an employer.
+
+    Claims we have positively determined to be CONFLICTING or UNSUPPORTED are
+    withheld — not deleted from the profile, which is the user's own record,
+    but never auto-published. A disputed number is one the candidate cannot
+    defend in the interview, and an unsupported one is a fabrication with extra
+    steps.
+    """
+    return [a for a in experience.achievements if a.is_publishable]
 
 
 def render_resume_text(content: ResumeContent) -> str:
@@ -85,7 +106,7 @@ def render_resume_text(content: ResumeContent) -> str:
         lines.append(f"{exp.title} — {exp.company_name} ({exp.start_date.isoformat()} - {end})")
         if exp.description:
             lines.append(exp.description)
-        for achievement in exp.achievements:
+        for achievement in publishable_achievements(exp):
             lines.append(f"  - {_achievement_bullet(achievement)}")
         lines.append("")
 
@@ -112,7 +133,7 @@ def render_resume_markdown(content: ResumeContent) -> str:
         lines.append(f"_{exp.start_date.isoformat()} - {end}_")
         if exp.description:
             lines.append(exp.description)
-        for achievement in exp.achievements:
+        for achievement in publishable_achievements(exp):
             lines.append(f"- {_achievement_bullet(achievement)}")
 
     return "\n".join(lines).strip() + "\n"
@@ -141,8 +162,9 @@ def render_resume_html(content: ResumeContent) -> str:
         parts.append(f"<p><em>{esc(exp.start_date.isoformat())} - {esc(end)}</em></p>")
         if exp.description:
             parts.append(f"<p>{esc(exp.description)}</p>")
-        if exp.achievements:
-            items = "".join(f"<li>{esc(_achievement_bullet(a))}</li>" for a in exp.achievements)
+        publishable = publishable_achievements(exp)
+        if publishable:
+            items = "".join(f"<li>{esc(_achievement_bullet(a))}</li>" for a in publishable)
             parts.append(f"<ul>{items}</ul>")
 
     return "\n".join(parts)

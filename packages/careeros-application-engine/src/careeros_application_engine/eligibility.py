@@ -101,7 +101,11 @@ def _insufficient_experience(brain: CareerBrain, combined: str) -> str | None:
     actual_years = _total_years_experience(brain)
     if actual_years is None or actual_years >= required_years:
         return None
-    return f"role wants {required_years}+ years of experience; you have about {actual_years:.0f}"
+    # One decimal, not zero. Rounding 4.6 to "5" produced "role wants 5+ years
+    # of experience; you have about 5" — a message that reads as satisfied
+    # while disqualifying the candidate, which makes the gate look broken and
+    # trains the user to ignore it.
+    return f"role wants {required_years}+ years of experience; you have about {actual_years:.1f}"
 
 
 def disqualifying_requirement(brain: CareerBrain, *texts: str | None) -> str | None:

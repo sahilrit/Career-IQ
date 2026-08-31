@@ -55,7 +55,9 @@ def build_application_package(
     *,
     cover_letter_generator: CoverLetterGenerator | None = None,
     reviewer_client=None,
+    reviewer_gateway=None,
     review: bool = True,
+    question_answers: dict[str, str] | None = None,
 ) -> ApplicationPackage:
     """Build the package and review the draft before handing it back.
 
@@ -76,10 +78,15 @@ def build_application_package(
             cover_letter,
             brain,
             ai_client=reviewer_client,
+            gateway=reviewer_gateway,
             # The employer being applied to, and the candidate's own name, are
             # legitimately in the letter and must not read as fabrications.
             allowed_extra={posting.company_name, brain.identity.full_name},
             context=f"{posting.title} at {posting.company_name}",
+            # Screening answers get reviewed too: a wrong answer to "are you
+            # authorized to work in the US?" is at least as damaging as a wrong
+            # sentence in the letter, and used to go unchecked entirely.
+            questions=question_answers,
         )
 
     return ApplicationPackage(

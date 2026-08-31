@@ -27,7 +27,12 @@ from careeros_ai import (
 )
 from careeros_common import get_logger
 from careeros_llm.exceptions import ProviderCallError
-from careeros_llm.models import ProviderHealth, ProviderStatus
+from careeros_llm.models import (
+    FailureKind,
+    ProviderHealth,
+    ProviderStatus,
+    status_for_failure,
+)
 
 logger = get_logger(__name__)
 
@@ -91,7 +96,13 @@ class ApiKeyProvider:
     def complete(self, *, system: str, prompt: str) -> str:
         try:
             return self._get_client().complete(system=system, prompt=prompt)
-        except (AIAuthError, AIUnavailableError) as exc:
+        except AIAuthError as exc:
+            raise ProviderCallError(
+                self.provider_id, str(exc), kind=FailureKind.NOT_AUTHENTICATED
+            ) from exc
+        except AIUnavailableError as exc:
+            # The AI layer raises this for both transient outages and rate
+            # limits, so let the message decide rather than assuming either.
             raise ProviderCallError(self.provider_id, str(exc)) from exc
         except Exception as exc:  # a transport we did not anticipate
             raise ProviderCallError(self.provider_id, f"unexpected failure: {exc}") from exc
@@ -100,18 +111,35 @@ class ApiKeyProvider:
         if not self._api_key:
             return ProviderHealth(
                 provider_id=self.provider_id,
-                status=ProviderStatus.ABSENT,
+                status=ProviderStatus.NOT_CONFIGURED,
                 detail="no API key configured",
                 model=self._model,
+                # A hosted API is never "installed"; saying False would read as
+                # a missing package the user could go and install.
+                installed=None,
+                authenticated=None,
+                remedy="set CAREEROS_AI_API_KEY, or add a key in Settings → AI",
             )
         try:
-            self._get_client().complete(system=_PROBE_SYSTEM, prompt=_PROBE_PROMPT)
-        except AIAuthError as exc:
+            # Through our own ``complete`` so the probe classifies failures
+            # exactly the way a real call would — one code path, one verdict.
+            self.complete(system=_PROBE_SYSTEM, prompt=_PROBE_PROMPT)
+        except ProviderCallError as exc:
+            if exc.kind is FailureKind.NOT_AUTHENTICATED:
+                return ProviderHealth(
+                    provider_id=self.provider_id,
+                    status=ProviderStatus.NOT_AUTHENTICATED,
+                    detail=f"the API key was rejected ({exc.detail})",
+                    model=self._model,
+                    authenticated=False,
+                    remedy="check CAREEROS_AI_API_KEY, or replace the key in Settings → AI",
+                )
             return ProviderHealth(
                 provider_id=self.provider_id,
-                status=ProviderStatus.UNAVAILABLE,
-                detail=f"the API key was rejected ({exc}) — check CAREEROS_AI_API_KEY",
+                status=status_for_failure(exc.kind),
+                detail=exc.detail,
                 model=self._model,
+                authenticated=None,
             )
         except Exception as exc:
             return ProviderHealth(
@@ -119,7 +147,11 @@ class ApiKeyProvider:
                 status=ProviderStatus.UNAVAILABLE,
                 detail=f"probe failed: {exc}",
                 model=self._model,
+                authenticated=None,
             )
         return ProviderHealth(
-            provider_id=self.provider_id, status=ProviderStatus.HEALTHY, model=self._model
+            provider_id=self.provider_id,
+            status=ProviderStatus.AVAILABLE,
+            model=self._model,
+            authenticated=True,
         )

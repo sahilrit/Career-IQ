@@ -33,7 +33,7 @@ from careeros_autonomy import (
 )
 from careeros_autopilot.page_analysis import (
     DEFAULT_PROBLEM_DETECTORS,
-    detect_form_mapping,
+    locate_form,
     prepare_application_page,
 )
 from careeros_autopilot.resume_file import write_resume_pdf
@@ -156,7 +156,10 @@ def run_autopilot_cycle(
             resolve_posting=resolve_posting,
             resolve_form_mapping=lambda application: None,
             prepare_page=paced_prepare,
-            resolve_form_mapping_live=lambda session, application: detect_form_mapping(
+            # locate_form, not detect_form_mapping: it finds the form wherever
+            # it is, including inside an iframe, and hands back the session its
+            # selectors belong to so the fill targets the right document.
+            resolve_form_mapping_live=lambda session, application: locate_form(
                 session, require_submit=not (prepare_only or assist_captcha)
             ),
             cover_letter_generator=cover_letter_generator,

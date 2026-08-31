@@ -1,16 +1,18 @@
-from careeros_ai import AnthropicClient
 from careeros_api.ai_support import (
     delete_workspace_key,
     has_workspace_key,
+    reset_gateway_cache,
     resolve_cover_letter_generator,
     store_workspace_key,
 )
 from careeros_application_engine import AICoverLetterGenerator
 from careeros_common import open_store
+from careeros_llm import ApiKeyProvider, GatewayAIClient, LLMTask
 
 
 def test_key_round_trip_and_generator_selection(tmp_path, monkeypatch):
     monkeypatch.setenv("CAREEROS_DATA_DIR", str(tmp_path))
+    reset_gateway_cache()  # gateways are cached per key; start from nothing
     store = open_store()
 
     assert has_workspace_key(store, "ws1") is False
@@ -21,7 +23,13 @@ def test_key_round_trip_and_generator_selection(tmp_path, monkeypatch):
 
     generator = resolve_cover_letter_generator(store, "ws1")
     assert isinstance(generator, AICoverLetterGenerator)
-    assert isinstance(generator._client, AnthropicClient)
+    # The client is the gateway, not a raw vendor client — every AI call in
+    # CareerOS goes through one seam so it gets fallback and provenance. The
+    # workspace's own key is still what it reaches for first.
+    assert isinstance(generator._client, GatewayAIClient)
+    chain = generator._client._gateway._chain_for(LLMTask.WRITE)
+    assert chain[0].provider_id == "anthropic"
+    assert isinstance(chain[0], ApiKeyProvider)
 
     delete_workspace_key(store, "ws1")
     assert has_workspace_key(store, "ws1") is False

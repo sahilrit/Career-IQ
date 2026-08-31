@@ -11,8 +11,18 @@ guesses blindly.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
+from enum import StrEnum
 
-from careeros_application_runner import FormFieldMapping, QuestionField
+from careeros_application_runner import (
+    FieldPurpose,
+    FormFieldMapping,
+    MappedField,
+    QuestionField,
+    find_submit_control,
+    map_fields,
+    normalize_label,
+)
 from careeros_browser import BrowserSession
 from careeros_human_in_the_loop import SelectorAppearsDetector
 from careeros_job_providers import JobPosting
@@ -45,6 +55,14 @@ CAPTCHA_DETECTORS = [
         "iframe[src*='challenges.cloudflare.com']", kind="captcha", description=_CAPTCHA
     ),
     SelectorAppearsDetector(".h-captcha iframe", kind="captcha", description=_CAPTCHA),
+    # DataDome. Observed live on SmartRecruiters' oneclick-ui apply pages
+    # (2026-08-31): the apply URL serves a challenge and NO form. Without this
+    # the run reported "no fillable form found on the page or in any frame",
+    # which sends the user looking for a CareerOS bug — the form is not missing,
+    # it is behind an anti-bot wall we must not try to get around.
+    SelectorAppearsDetector(
+        "iframe[src*='captcha-delivery.com']", kind="captcha", description=_CAPTCHA
+    ),
 ]
 LOGIN_WALL_DETECTORS = [
     SelectorAppearsDetector(
@@ -122,10 +140,25 @@ _SUBMIT_SELECTORS = [
 
 # Bot-protection interstitials (e.g. Cloudflare). The autopilot never
 # tries to get past these — it reports them so a human can take over.
+#
+# Matched on the CURRENT copy, not the copy these vendors used when this list
+# was written. Observed live on apply.workable.com (2026-08-31) after repeated
+# automated visits: Cloudflare Turnstile now says "Just a sec!" and "Verifying
+# you are human", so "just a moment" and "verify you are human" both missed and
+# the run reported "no application form or apply link found on the posting
+# page" — sending the user to look for a CareerOS bug when the form was simply
+# behind a wall we must not try to get around.
+#
+# The challenge IFRAMES are the durable signal: vendor marketing copy changes,
+# the challenge host does not.
 _BOT_PROTECTION_SELECTORS = [
-    "text=/just a moment/i",
+    "iframe[src*='challenges.cloudflare.com']",
+    "iframe[src*='captcha-delivery.com']",
+    "iframe[src*='hcaptcha.com']",
     "#challenge-form",
-    "text=/verify you are human/i",
+    "text=/just a (moment|sec)/i",
+    "text=/verif(y|ying) you are human/i",
+    "text=/checking your browser/i",
 ]
 
 # Playwright text-engine selector: matches common confirmation copy.
@@ -211,6 +244,10 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
     """
     fields: list[QuestionField] = []
     seen: set[str] = set()
+    #: Question LABELS already claimed. A selector set is not enough: two scans
+    #: can reach the same widget through different elements, and then the same
+    #: question is answered twice — once correctly and once destructively.
+    asked: set[str] = set()
 
     # Standard fields the mapping already fills — never re-ask them as questions.
     _standard = ("first name", "last name", "email", "phone", "resume", "cv", "cover letter")
@@ -249,7 +286,61 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
         if not selector or not question or selector in seen:
             continue
         seen.add(selector)
+        # Claim the QUESTION too, not just the selector. The two scans below
+        # reach the same react-select through a different element and so
+        # produce a different selector for it — observed live on Greenhouse
+        # (2026-08-31): "How did you hear about this job?" was answered twice,
+        # once by opening the dropdown and once by typing into its inner input,
+        # and the typed one silently discarded the value.
+        asked.add(normalize_label(question))
         fields.append(QuestionField(selector=selector, question=question, kind="combobox"))
+
+    # The semantic scan: every field the DOM exposes that is NOT one of the
+    # standard identity fields is a question. It runs after comboboxes (which
+    # have already claimed their selectors) and before the legacy scan, and it
+    # is the only path that carries the form's own `required` flag through —
+    # which is what separates "a question a human should answer" from "a
+    # question that blocks submission".
+    try:
+        descriptors = session.detect_fields()
+    except Exception:
+        descriptors = []
+    for mapped in map_fields(descriptors):
+        # is_question_field, not a bare purpose check: the mapping uses the
+        # same rule, so a field cannot be claimed by both (written twice) or
+        # by neither (silently unfillable).
+        if not is_question_field(mapped):
+            # A PROFILE field (name, email, phone). Claim it so the legacy
+            # scan below cannot also offer it as a question: its own exclusion
+            # list never covered "full name", so a Lever form's single name
+            # input was both mapped as the name field AND asked as a question,
+            # and then written twice.
+            if mapped.selector:
+                seen.add(mapped.selector)
+            if mapped.label:
+                asked.add(normalize_label(mapped.label))
+            continue
+        if not mapped.label:
+            continue
+        if mapped.selector in seen or _is_generic_placeholder(mapped.label):
+            continue
+        if normalize_label(mapped.label) in asked:
+            continue
+        seen.add(mapped.selector)
+        asked.add(normalize_label(mapped.label))
+        fields.append(
+            QuestionField(
+                selector=mapped.selector,
+                question=mapped.label,
+                # "choice" carries through as itself: a radio group is answered
+                # by clicking an option, and calling it "text" is what made
+                # fill() raise "Input of type radio cannot be filled".
+                kind=(mapped.kind if mapped.kind in ("text", "select", "choice") else "text"),
+                required=mapped.required,
+                options=list(mapped.options),
+                option_selectors=dict(mapped.option_selectors),
+            )
+        )
 
     # NOTE: "@attr" extracts the element's OWN attribute; a bare "textarea@id"
     # would look for a *nested* textarea and always miss — which is why live
@@ -301,6 +392,127 @@ def detect_question_fields(session: BrowserSession) -> list[QuestionField]:
     return fields
 
 
+def detect_submit_selector(session: BrowserSession) -> tuple[str | None, str]:
+    """The control that submits the application, and why it was chosen.
+
+    Semantic classification first (see ``form_semantics``): it reads the
+    control's accessible name, role, disabled state and whether it belongs to
+    a file-upload widget, which is the only way to tell "Upload file" from
+    "Submit Application" on a form where both render as ``button[type=submit]``.
+
+    The old selector list survives as a fallback for pages whose DOM we cannot
+    evaluate — but it is the fallback now, not the primary, because on a real
+    Ashby form it picked an upload button.
+    """
+    try:
+        buttons = session.detect_buttons()
+    except Exception:
+        buttons = []
+    if buttons:
+        found = find_submit_control(buttons)
+        if found is not None and not found.disabled:
+            return found.selector, found.reason
+        if found is not None:
+            return found.selector, found.reason
+        # Buttons were readable and NONE of them submits. That is a real
+        # answer ("this step does not submit"), not a reason to fall through
+        # to a selector list that would match one of the upload buttons.
+        return None, "no control on this page has submit semantics"
+
+    selector = _first_visible(session, _SUBMIT_SELECTORS)
+    if selector is None:
+        return None, "no submit control matched"
+    return selector, "matched a known submit selector (DOM not inspectable)"
+
+
+def _semantic_mapping(session: BrowserSession) -> dict | None:
+    """Field selectors by purpose, classified from every DOM label signal.
+
+    Returns None when the page exposes no fields to classify, so the caller
+    falls back to selector probing rather than reporting an empty form.
+    """
+    try:
+        descriptors = session.detect_fields()
+    except Exception:
+        return None
+    if not descriptors:
+        return None
+
+    by_purpose: dict[FieldPurpose, str] = {}
+    questions: list[MappedField] = []
+    for mapped in map_fields(descriptors):
+        if is_question_field(mapped):
+            questions.append(mapped)
+        elif _kind_matches_purpose(mapped) and mapped.purpose not in by_purpose:
+            # First wins: forms repeat a field (a hidden duplicate, a second
+            # "email" for confirmation) and the first is the real one.
+            by_purpose[mapped.purpose] = mapped.selector
+    return {"by_purpose": by_purpose, "questions": questions}
+
+
+def _kind_matches_purpose(mapped: MappedField) -> bool:
+    """Whether this field can actually be written the way its purpose needs.
+
+    Only the two purposes where the distinction is dangerous are constrained:
+    a résumé must go to a file input (uploading to a text box is impossible),
+    and a cover letter must go to a text box (typing into a file input raises
+    and fails the whole fill).
+    """
+    if mapped.purpose is FieldPurpose.RESUME:
+        return mapped.kind == "file"
+    if mapped.purpose is FieldPurpose.COVER_LETTER:
+        return mapped.kind == "text"
+    # Every profile-mapped field (name, email, phone) is written to. A radio or
+    # checkbox group never is — "Do you have a phone number?" classifies as
+    # PHONE and would then be text-filled, which raises. Choice groups are
+    # always answered as questions instead.
+    if mapped.kind == "choice":
+        return False
+    return mapped.kind != "file"
+
+
+#: The only purposes ``FormFieldMapping`` actually fills. Everything else the
+#: classifier can recognise — LinkedIn, GitHub, portfolio, location, current
+#: employer/title — has no slot on the mapping, so it must stay a QUESTION and
+#: be answered by the answerer, which knows all of them.
+#:
+#: Getting this wrong is silent: "LinkedIn Profile" classified as LINKEDIN, was
+#: claimed as a profile field, and was then filled by nothing at all.
+MAPPED_PURPOSES = frozenset(
+    {
+        FieldPurpose.FIRST_NAME,
+        FieldPurpose.LAST_NAME,
+        FieldPurpose.FULL_NAME,
+        FieldPurpose.EMAIL,
+        FieldPurpose.PHONE,
+        FieldPurpose.RESUME,
+        FieldPurpose.COVER_LETTER,
+    }
+)
+
+
+def is_question_field(mapped: MappedField) -> bool:
+    """Whether this field should be answered rather than filled from the profile.
+
+    Shared by the mapping and the question scan so the two cannot disagree
+    about the same field — a field claimed by neither is silently unfillable,
+    and a field claimed by both gets written twice.
+
+    Knowing WHAT a field is for is not enough; how it must be WRITTEN matters
+    just as much. A text field whose purpose we cannot serve directly ("Resume
+    URL") is still a real field, so it becomes a question. A file input we
+    cannot classify is neither: there is no safe way to guess what belongs in
+    it, and uploading the wrong document is worse than leaving it for a human.
+    """
+    if mapped.purpose is FieldPurpose.QUESTION:
+        return True
+    if mapped.purpose not in MAPPED_PURPOSES:
+        return True
+    if _kind_matches_purpose(mapped):
+        return False
+    return mapped.kind != "file" and bool(mapped.label)
+
+
 def detect_form_mapping(
     session: BrowserSession, *, require_submit: bool = True
 ) -> FormFieldMapping | None:
@@ -310,32 +522,132 @@ def detect_form_mapping(
     has a fillable email field, even if no submit button is exposed — a human
     reviews and submits, so we only need somewhere to put the candidate's data.
     """
-    email = _first_visible(session, _EMAIL_SELECTORS)
-    submit = _first_visible(session, _SUBMIT_SELECTORS)
+    semantic = _semantic_mapping(session)
+    by_purpose = semantic["by_purpose"] if semantic else {}
+
+    # Semantic classification first, selector probing as the fallback for each
+    # field independently: a page can expose some fields to the DOM scan and
+    # not others, and losing a phone number because the scan was partial is a
+    # worse outcome than probing twice.
+    email = by_purpose.get(FieldPurpose.EMAIL) or _first_visible(session, _EMAIL_SELECTORS)
     if email is None:
         return None
+
+    submit, _why = detect_submit_selector(session)
     if submit is None:
         if require_submit:
             return None
         # Placeholder — never clicked in prepare mode; the human submits.
         submit = "button[type='submit']"
 
-    first_name = _first_visible(session, _FIRST_NAME_SELECTORS)
-    last_name = _first_visible(session, _LAST_NAME_SELECTORS)
-    full_name = None if first_name else _first_visible(session, _FULL_NAME_SELECTORS)
+    first_name = by_purpose.get(FieldPurpose.FIRST_NAME) or _first_visible(
+        session, _FIRST_NAME_SELECTORS
+    )
+    last_name = by_purpose.get(FieldPurpose.LAST_NAME) or _first_visible(
+        session, _LAST_NAME_SELECTORS
+    )
+    full_name = None
+    if not first_name:
+        full_name = by_purpose.get(FieldPurpose.FULL_NAME) or _first_visible(
+            session, _FULL_NAME_SELECTORS
+        )
 
     return FormFieldMapping(
         email_selector=email,
         first_name_selector=first_name,
         last_name_selector=last_name,
         full_name_selector=full_name,
-        phone_selector=_first_visible(session, _PHONE_SELECTORS),
-        resume_upload_selector=_first_visible(session, _RESUME_SELECTORS),
-        cover_letter_selector=_first_visible(session, _COVER_LETTER_SELECTORS),
+        phone_selector=by_purpose.get(FieldPurpose.PHONE)
+        or _first_visible(session, _PHONE_SELECTORS),
+        resume_upload_selector=by_purpose.get(FieldPurpose.RESUME)
+        or _first_visible(session, _RESUME_SELECTORS),
+        cover_letter_selector=by_purpose.get(FieldPurpose.COVER_LETTER)
+        or _first_visible(session, _COVER_LETTER_SELECTORS),
         question_fields=detect_question_fields(session),
         submit_selector=submit,
         success_selector=GENERIC_SUCCESS_SELECTOR,
     )
+
+
+@dataclass
+class FormLocation:
+    """Where the application form actually is, and how to fill it.
+
+    ``session`` is the document the form lives in — the page for most ATSes,
+    a frame for the ones (SmartRecruiters) that render the form in an iframe.
+    Every selector in ``mapping`` is resolved against THAT session and is
+    meaningless against any other, which is exactly why the two travel
+    together rather than the mapping being returned alone.
+    """
+
+    session: BrowserSession
+    mapping: FormFieldMapping
+    #: How the frame was reached, empty for the main document. Kept so a
+    #: failed fill can say WHICH document it failed in.
+    frame_path: tuple[str, ...] = ()
+
+    @property
+    def in_frame(self) -> bool:
+        return bool(self.frame_path)
+
+    def describe(self) -> str:
+        if not self.frame_path:
+            return "the page itself"
+        return "an iframe (" + " → ".join(self.frame_path) + ")"
+
+
+#: How deep to search for a form. Two levels covers every real case seen
+#: (SmartRecruiters nests its upload widget inside the application frame) and
+#: bounds the cost on ad-heavy pages, which can carry a dozen frames.
+MAX_FRAME_DEPTH = 2
+
+
+def locate_form(
+    session: BrowserSession,
+    *,
+    require_submit: bool = True,
+    max_depth: int = MAX_FRAME_DEPTH,
+) -> FormLocation | None:
+    """The form on this page, wherever it lives — including inside an iframe.
+
+    A CSS selector reaches one document, so a form rendered in an iframe is
+    not merely harder to find: it is unreachable, and looks identical to a
+    page with no form at all. That is what made SmartRecruiters report "no
+    fillable form found" on pages whose form was right there.
+
+    The page is always checked first, so nothing about the existing ATSes
+    changes and no frame is even enumerated on a form that is already
+    reachable.
+    """
+    mapping = detect_form_mapping(session, require_submit=require_submit)
+    if mapping is not None:
+        return FormLocation(session=session, mapping=mapping, frame_path=())
+
+    if max_depth <= 0:
+        return None
+
+    try:
+        handles = session.frames()
+    except Exception:
+        return None
+
+    for handle in handles:
+        if handle.depth > max_depth:
+            continue
+        try:
+            scoped = session.frame(index=handle.index)
+        except Exception:
+            continue
+        if scoped is None:
+            continue
+        found = detect_form_mapping(scoped, require_submit=require_submit)
+        if found is not None:
+            return FormLocation(
+                session=scoped,
+                mapping=found,
+                frame_path=tuple(getattr(scoped, "frame_path", ()) or (handle.describe(),)),
+            )
+    return None
 
 
 def _settle_for_form(session: BrowserSession, url: str) -> None:
@@ -345,20 +657,115 @@ def _settle_for_form(session: BrowserSession, url: str) -> None:
     """
     if not _ATS_HOST_RE.search(url or ""):
         return
+    # Waiting specifically for input[type='email'] contradicted our own
+    # detection: modern Greenhouse renders email as <input type="text"
+    # autocomplete="email">, which is documented ten lines above _EMAIL_SELECTORS
+    # and was still the thing this waited for. On a form that renders slowly and
+    # uses no type=email, the wait expired, the scan ran against an empty page,
+    # and the result was "no application form found" on a page that had one.
+    #
+    # ONE wait on a combined selector rather than several in sequence: any
+    # visible field means the form has rendered, and four six-second waits on a
+    # page that will never render is nearly half a minute per posting. The fake
+    # test session raises immediately when absent, so this only waits for real.
     try:
-        # Any core field appearing means the form has rendered. The fake test
-        # session raises immediately when absent, so this only waits for real.
-        session.wait_for_selector("input[type='email']", timeout_ms=6000)
+        session.wait_for_selector("input:not([type='hidden']), textarea, select", timeout_ms=6000)
     except Exception:
         return
 
 
-def prepare_application_page(session: BrowserSession, posting: JobPosting) -> str | None:
+class ApplicationRoute(StrEnum):
+    """Where a posting's application actually lives.
+
+    The distinction that matters: an employer whose Greenhouse posting sends
+    applicants to its own careers site is not a CareerOS failure and not a
+    Greenhouse failure. Reporting it as "no form found" reads as a bug, and
+    sends the user hunting for a fault that is not ours to fix. Three of the
+    four sampled Greenhouse employers were exactly this case.
+    """
+
+    #: The form is on the ATS's own host and we can fill it.
+    ATS_HOSTED = "ats_hosted"
+    #: The employer routes applications to its own site, which we reached and
+    #: found a fillable form on.
+    EXTERNAL = "external"
+    #: The employer routes applications off-ATS to somewhere we cannot drive
+    #: (a login wall, a bespoke multi-step portal, a page with no form).
+    #: A fact about the employer, NOT a failure of the integration.
+    EXTERNAL_UNSUPPORTED = "external_unsupported"
+    #: We could not tell. Kept separate so it is never quietly counted as
+    #: either a success or an employer's fault.
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class PreparationResult:
+    """What happened trying to reach a posting's application form.
+
+    Carries enough to write the message the user should actually see: what was
+    reached, why it stopped, and whether anyone can do anything about it.
+    """
+
+    route: ApplicationRoute
+    #: None when a page that may hold the form is loaded.
+    error: str | None = None
+    #: Where the browser ended up. The single most useful piece of evidence.
+    landed_url: str = ""
+    #: Whether a human could complete this application by hand.
+    human_can_continue: bool = True
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None
+
+    @property
+    def is_our_problem(self) -> bool:
+        """Whether this counts against CareerOS's ATS coverage.
+
+        An external redirect does not: the integration worked, the employer
+        simply does not host its application there.
+        """
+        return self.route not in (
+            ApplicationRoute.EXTERNAL,
+            ApplicationRoute.EXTERNAL_UNSUPPORTED,
+        )
+
+
+def classify_route(posting: JobPosting, landed_url: str, *, form_found: bool) -> ApplicationRoute:
+    """Which route this posting's application took.
+
+    ``landed_url`` is where the browser actually ended up, which is the only
+    thing that reflects a redirect — the posting's own URL was already
+    off-host in these cases, so it cannot tell us.
+    """
+    on_ats_host = bool(_ATS_HOST_RE.search(landed_url or ""))
+    if on_ats_host:
+        return ApplicationRoute.ATS_HOSTED if form_found else ApplicationRoute.UNKNOWN
+
+    # Off the ATS hosts. A form we found here is a real, fillable application
+    # on the employer's own site — that is a supported external route, not a
+    # second-class one.
+    if form_found:
+        return ApplicationRoute.EXTERNAL
+
+    # No form, off-host. This is only an EMPLOYER's redirect if the posting
+    # came from an ATS in the first place: that is the Greenhouse-customer
+    # case where the integration worked and the company simply hosts its
+    # applications elsewhere. Everything else is us failing to find a form,
+    # which must not be dressed up as the employer's doing.
+    came_from_ats = bool(
+        (posting.source_provider or "").startswith("ats:")
+        or _ATS_HOST_RE.search(posting.url or "")
+        or _ATS_HOST_RE.search(posting.apply_url or "")
+    )
+    return ApplicationRoute.EXTERNAL_UNSUPPORTED if came_from_ats else ApplicationRoute.UNKNOWN
+
+
+def prepare_application(session: BrowserSession, posting: JobPosting) -> PreparationResult:
     """Navigate to the posting and onward to its application form.
 
-    Returns an error reason, or None once a page that may hold the form
-    is loaded. Never creates accounts or works around access walls —
-    those are reported via the problem detectors afterwards.
+    Never creates accounts or works around access walls — those are reported
+    via the problem detectors afterwards.
     """
     # Go straight to the employer's real apply form when the provider gave us
     # one (RemoteOK/WorkingNomads), instead of the aggregator listing page.
@@ -366,46 +773,78 @@ def prepare_application_page(session: BrowserSession, posting: JobPosting) -> st
     try:
         session.goto(target)
     except Exception as exc:
-        return f"could not open {target}: {exc}"
+        return PreparationResult(
+            route=ApplicationRoute.UNKNOWN,
+            error=f"could not open {target}: {exc}",
+            landed_url=target,
+            # We never reached the page, so we cannot say a human would fare
+            # better — but they should try, because a transport failure here
+            # is usually ours (a timeout), not the site refusing.
+            human_can_continue=True,
+        )
 
+    landed = session.current_url or target
     if _first_visible(session, _BOT_PROTECTION_SELECTORS) is not None:
-        return "the site is showing a bot-protection challenge — a human must apply here"
+        return PreparationResult(
+            route=classify_route(posting, landed, form_found=False),
+            error="the site is showing a bot-protection challenge — a human must apply here",
+            landed_url=landed,
+        )
 
     _settle_for_form(session, target)
-    if detect_form_mapping(session) is not None:
-        return None  # the posting page itself is the form
+    if locate_form(session, require_submit=False) is not None:
+        # The posting page itself is (or contains) the form.
+        landed = session.current_url or target
+        return PreparationResult(
+            route=classify_route(posting, landed, form_found=True), landed_url=landed
+        )
 
     # Prefer a real apply link on the page; otherwise derive the conventional
     # form URL for known ATS hosts (Ashby/Lever route the form to a subpath the
     # posting page has no crawlable <a> to).
     apply_url = find_apply_url(session) or ats_apply_url(target)
     if apply_url is None:
-        # Distinguish "we could not find the form" from "there is no hosted
-        # form to find". Some ATS customers (Stripe is one) publish through
-        # Greenhouse but redirect every application to their own careers site,
-        # so the posting URL lands somewhere off the ATS host entirely. Saying
-        # "no form found" there reads as a CareerOS bug when it is a fact about
-        # the employer, and it sends a user hunting for a fault that is not
-        # ours to fix.
-        landed = session.current_url or ""
-        # The posting came from an ATS provider, so a hosted form was expected;
-        # landing off every known ATS host means the employer took us to their
-        # own site. Checked against the POSTING's source rather than the URL,
-        # because these employers publish an off-host apply URL in the first
-        # place - the redirect has already happened by the time we see it.
-        from_ats = (posting.source_provider or "").startswith("ats:") or _ATS_HOST_RE.search(
-            target or ""
-        )
-        if from_ats and not _ATS_HOST_RE.search(landed):
-            return (
-                "this employer redirects applications to its own careers site "
-                f"({landed.split('/')[2] if '://' in landed else landed}) — "
-                "there is no hosted ATS form to fill"
+        landed = session.current_url or target
+        route = classify_route(posting, landed, form_found=False)
+        if route is ApplicationRoute.EXTERNAL_UNSUPPORTED:
+            host = landed.split("/")[2] if "://" in landed else landed
+            return PreparationResult(
+                route=route,
+                error=(
+                    f"this employer routes applications to its own careers site ({host}) — "
+                    "there is no hosted ATS form to fill, so this one has to be done by hand"
+                ),
+                landed_url=landed,
+                human_can_continue=True,
             )
-        return "no application form or apply link found on the posting page"
+        return PreparationResult(
+            route=route,
+            error="no application form or apply link found on the posting page",
+            landed_url=landed,
+        )
+
     try:
         session.goto(apply_url)
     except Exception as exc:
-        return f"could not open apply link {apply_url}: {exc}"
+        return PreparationResult(
+            route=ApplicationRoute.UNKNOWN,
+            error=f"could not open apply link {apply_url}: {exc}",
+            landed_url=apply_url,
+        )
     _settle_for_form(session, apply_url)
-    return None
+    landed = session.current_url or apply_url
+    return PreparationResult(
+        route=classify_route(
+            posting, landed, form_found=locate_form(session, require_submit=False) is not None
+        ),
+        landed_url=landed,
+    )
+
+
+def prepare_application_page(session: BrowserSession, posting: JobPosting) -> str | None:
+    """``prepare_application`` for callers that only need the error string.
+
+    Kept because the executor's ``PagePreparer`` contract is "an error reason,
+    or None". New code should use ``prepare_application`` and read the route.
+    """
+    return prepare_application(session, posting).error

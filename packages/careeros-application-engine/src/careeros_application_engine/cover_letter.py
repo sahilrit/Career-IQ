@@ -61,9 +61,16 @@ class TemplateCoverLetterGenerator:
             skills = ", ".join(match.skill_match.matched_skills)
             sentences.append(f"My skills include {skills}.")
         for ranked in match.top_achievements:
+            # CONFLICTING/UNSUPPORTED claims never reach an employer, however
+            # well they rank against the posting — relevance does not make a
+            # disputed figure defensible.
+            if not ranked.achievement.is_publishable:
+                continue
             sentence = ranked.achievement.description
             if ranked.achievement.metric:
                 sentence += f" ({ranked.achievement.metric})"
+            if ranked.achievement.qualifier:
+                sentence += f", {ranked.achievement.qualifier}"
             sentences.append(sentence + ".")
         if not sentences:
             return "I'm eager to bring my experience to your team."

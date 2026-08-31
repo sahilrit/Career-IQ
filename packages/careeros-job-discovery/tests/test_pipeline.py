@@ -109,6 +109,9 @@ def test_run_aggregates_across_multiple_providers(
 ):
     brain = brain_factory()
     repository.save(brain)
+    # Two genuinely different jobs. The factory's defaults are the same remote
+    # role at the same company, which cross-provider dedupe now correctly
+    # collapses into one — that is the duplicate a user actually sees.
     a = fake_provider_cls(
         "remoteok", [posting_factory(source_provider="remoteok", external_id="1")]
     )
@@ -118,6 +121,8 @@ def test_run_aggregates_across_multiple_providers(
             posting_factory(
                 source_provider="wellfound",
                 external_id="2",
+                title="Staff Data Engineer",
+                company_name="Globex",
                 url="https://example.com/jobs/2",
             )
         ],

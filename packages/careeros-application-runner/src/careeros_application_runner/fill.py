@@ -16,8 +16,10 @@ import re
 
 from careeros_application_engine import ApplicationPackage
 from careeros_application_runner.fill_report import FieldOutcome, FieldResult, FillReport
+from careeros_application_runner.form_semantics import ControlKind, classify_control
 from careeros_application_runner.models import FormFieldMapping
-from careeros_browser import BrowserSession
+from careeros_application_runner.retry import TerminalError
+from careeros_browser import BrowserSession, best_option_index
 
 #: Some fields cannot be read back by design, and that is not a failure:
 #: ``input_value`` is meaningless for a file input, and a contenteditable
@@ -71,6 +73,71 @@ def _verify(session: BrowserSession, selector: str, expected: str) -> tuple[bool
     return False, f"the field holds {actual[:60]!r} rather than the value written"
 
 
+def _choose_one(
+    session: BrowserSession,
+    *,
+    field: str,
+    value: str,
+    required: bool,
+    option_selectors: dict[str, str],
+) -> FieldResult:
+    """Tick the option in a radio/checkbox group that matches ``value``.
+
+    A choice group is answered by clicking the right control, not by writing
+    to one — ``fill`` on a radio raises. And the option must actually exist:
+    if the answer does not match any of them we leave the group alone rather
+    than tick the nearest thing, because a wrong EEO or work-authorization
+    answer is worse than an unanswered one.
+    """
+    options = list(option_selectors)
+    index = best_option_index(options, value)
+    if index is None:
+        return FieldResult(
+            field=field,
+            selector=next(iter(option_selectors.values()), ""),
+            outcome=FieldOutcome.NEEDS_HUMAN,
+            detail=(
+                f"the answer {value[:40]!r} matches none of this question's options "
+                f"({', '.join(options[:5])})"
+            ),
+            required=required,
+        )
+    selector = option_selectors[options[index]]
+    try:
+        session.choose(selector)
+    except Exception as exc:
+        return FieldResult(
+            field=field,
+            selector=selector,
+            outcome=FieldOutcome.FAILED,
+            detail=str(exc)[:200],
+            required=required,
+        )
+    try:
+        ticked = session.is_checked(selector)
+    except Exception as exc:
+        return FieldResult(
+            field=field,
+            selector=selector,
+            outcome=FieldOutcome.UNVERIFIED,
+            detail=f"could not confirm the option was selected: {exc}"[:200],
+            required=required,
+        )
+    if not ticked:
+        # Clicked, nothing ticked. A custom widget intercepted it — which
+        # looks identical to success without this check.
+        return FieldResult(
+            field=field,
+            selector=selector,
+            outcome=FieldOutcome.FAILED,
+            detail="the option did not become selected after clicking it",
+            required=required,
+        )
+    return FieldResult(
+        field=field, selector=selector, outcome=FieldOutcome.FILLED, required=required
+    )
+
+
 def _fill_one(
     session: BrowserSession,
     *,
@@ -79,6 +146,7 @@ def _fill_one(
     value: str | None,
     required: bool = False,
     kind: str = "text",
+    option_selectors: dict[str, str] | None = None,
 ) -> FieldResult:
     if not selector:
         return FieldResult(
@@ -95,6 +163,15 @@ def _fill_one(
             outcome=FieldOutcome.NEEDS_HUMAN,
             detail="no truthful value available from the profile",
             required=required,
+        )
+
+    if kind == "choice":
+        return _choose_one(
+            session,
+            field=field,
+            value=value,
+            required=required,
+            option_selectors=option_selectors or {},
         )
 
     try:
@@ -230,11 +307,77 @@ def fill_application_form(
                 value=answers.get(question_field.selector),
                 required=getattr(question_field, "required", False),
                 kind=question_field.kind,
+                option_selectors=getattr(question_field, "option_selectors", None),
             )
         )
 
     return report
 
 
-def submit_application_form(session: BrowserSession, mapping: FormFieldMapping) -> None:
-    session.click(mapping.submit_selector)
+class UnsafeSubmitError(TerminalError):
+    """The control we were about to click is not the one that submits.
+
+    Raised instead of clicking. Clicking the wrong control is not a failed
+    attempt that can be retried — by then a file dialog is open, a draft is
+    saved, or a half-filled application has been sent to the employer.
+    """
+
+
+def submit_application_form(
+    session: BrowserSession,
+    mapping: FormFieldMapping,
+    *,
+    verify: bool = True,
+) -> None:
+    """Click the submit control, after confirming it IS the submit control.
+
+    The final click is the one irreversible action in the whole pipeline, so
+    it gets re-verified at the moment it happens rather than trusting a
+    selector resolved earlier: a multi-step form re-renders between detection
+    and submission, and the element that selector now points at may be a
+    different button entirely.
+
+    ``verify=False`` exists only for callers that have already classified the
+    control themselves. It is not a way to skip the check.
+    """
+    selector = mapping.submit_selector
+    if verify:
+        problem = _why_unsafe_to_submit(session, selector)
+        if problem is not None:
+            raise UnsafeSubmitError(problem)
+    session.click(selector)
+
+
+def _why_unsafe_to_submit(session: BrowserSession, selector: str) -> str | None:
+    """Why clicking ``selector`` would not be a submission, or None if it is.
+
+    Silent on pages whose DOM cannot be inspected: an unverifiable control is
+    the situation we were always in before, and refusing to submit at all
+    there would break every form that works today.
+    """
+    try:
+        buttons = session.detect_buttons()
+    except Exception:
+        return None
+    if not buttons:
+        return None
+
+    match = next((b for b in buttons if (b.get("selector") or "") == selector), None)
+    if match is None:
+        return (
+            f"the submit control {selector!r} is no longer on the page — the form has "
+            "changed since it was detected"
+        )
+    if match.get("disabled"):
+        return (
+            f"the submit control {selector!r} is disabled — the form still considers "
+            "itself incomplete"
+        )
+    kind = classify_control(match)
+    if kind is not ControlKind.SUBMIT_APPLICATION:
+        label = (match.get("accessible_name") or match.get("text") or "").strip()
+        return (
+            f"{selector!r} is a {kind.value} control ({label!r}), not the button that "
+            "submits the application"
+        )
+    return None
