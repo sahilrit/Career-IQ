@@ -96,10 +96,14 @@ class SmartRecruitersAdapter(AtsAdapter):
         if not posting_id:
             return None
         company = raw.get("company") or {}
-        slug = entry.slug
-        url = (
-            raw.get("ref") if isinstance(raw.get("ref"), str) else None
-        ) or f"https://jobs.smartrecruiters.com/{slug}/{posting_id}"
+        # `identifier` is the tenant slug the careers site is served under and
+        # can differ from the slug we crawled with, so prefer it.
+        slug = company.get("identifier") or entry.slug
+        # Deliberately NOT `ref`: that field is the API's own self-link
+        # (api.smartrecruiters.com/v1/...), so using it pointed every posting URL
+        # at raw JSON - a page with no form on it, and nothing a human could
+        # read either. The careers page is always at this address.
+        url = f"https://jobs.smartrecruiters.com/{slug}/{posting_id}"
         location_block = raw.get("location") or {}
         location = merge_locations(
             location_block.get("city"),
@@ -112,6 +116,11 @@ class SmartRecruitersAdapter(AtsAdapter):
             title=(raw.get("name") or "").strip(),
             company_name=(company.get("name") or entry.name),
             url=url,
+            # The posting page, not a guessed subpath. SmartRecruiters routes
+            # applications through a `oneclick-ui/company/{slug}/publication/
+            # {uuid}` flow whose uuid is not in the postings payload, and whose
+            # link text is localised ("Jetzt bewerben"), so it can only be
+            # reached by following the link off the posting page.
             apply_url=url,
             location=location or None,
             remote=bool(location_block.get("remote")) or looks_remote(location),

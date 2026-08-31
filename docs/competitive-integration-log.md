@@ -147,3 +147,8 @@ and ai-job-search both bind to a specific AI CLI.
   turns them off there.
 - The AI reviewer needs a working provider. Without one, the deterministic
   checks still run and the review is marked `ai_reviewed=False`.
+- **SmartRecruiters forms cannot be filled yet.** Its postings are now reachable
+  (their URLs used to point at raw JSON) and the apply link is followed
+  correctly, but the form itself renders inside an **iframe**, and
+  `BrowserSession` has no frame support. Discovery and the posting link work;
+  filling stops at the iframe boundary. Adding frame support is the fix.

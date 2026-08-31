@@ -22,7 +22,8 @@ from careeros_job_providers import JobPosting
 _ATS_HOST_RE = re.compile(
     r"(boards\.greenhouse\.io|job-boards\.greenhouse\.io|jobs\.(eu\.)?lever\.co|"
     r"jobs\.ashbyhq\.com|apply\.workable\.com|jobs\.smartrecruiters\.com|"
-    r"\.recruitee\.com|jobs\.jobvite\.com|\.bamboohr\.com|\.applytojob\.com)",
+    r"\.recruitee\.com|jobs\.jobvite\.com|\.bamboohr\.com|\.applytojob\.com|"
+    r"smartrecruiters\.com/oneclick-ui)",
     re.IGNORECASE,
 )
 
@@ -163,7 +164,13 @@ def _first_visible(session: BrowserSession, selectors: list[str]) -> str | None:
 def find_apply_url(session: BrowserSession) -> str | None:
     """From a job posting page, the most likely link to the real form."""
     try:
-        links = session.query_all("a", extract={"href": "a@href"})
+        # "@href" reads the attribute off the MATCHED element. The previous
+        # "a@href" asked for a nested <a> inside each <a>, which never exists —
+        # so this function silently found no links at all, on every site, and
+        # every ATS whose form lives behind an apply link (SmartRecruiters'
+        # localised "Jetzt bewerben", Workday, Recruitee) was unreachable. The
+        # same trap is documented on detect_question_fields below.
+        links = session.query_all("a", extract={"href": "@href"})
     except Exception:
         return None
     hrefs = [link.get("href") or "" for link in links]

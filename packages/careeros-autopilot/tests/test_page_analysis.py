@@ -359,3 +359,49 @@ def test_numeric_field_ids_produce_valid_selectors():
     )
     fields = detect_question_fields(session)
     assert fields[0].selector == '[id="4001209002"]'
+
+
+class TestFindApplyUrl:
+    """The extract-spec bug that made apply-link discovery a no-op everywhere."""
+
+    def test_finds_an_ats_hosted_apply_link(self):
+        from careeros_browser import FakeBrowserSession
+
+        session = FakeBrowserSession()
+        # "@href" reads the attribute off the matched <a>. The old spec was
+        # "a@href", which looks for a nested <a> INSIDE each <a> — never
+        # present — so this returned None on every page ever visited.
+        session.set_query_all_results(
+            "a",
+            [
+                {"href": "https://example.com/about"},
+                {"href": "https://jobs.lever.co/acme/123/apply"},
+            ],
+        )
+        assert find_apply_url(session) == "https://jobs.lever.co/acme/123/apply"
+
+    def test_finds_a_smartrecruiters_oneclick_link(self):
+        from careeros_browser import FakeBrowserSession
+
+        session = FakeBrowserSession()
+        # The link text is localised ("Jetzt bewerben"), so only the href is
+        # usable for identification.
+        session.set_query_all_results(
+            "a",
+            [{"href": "https://jobs.smartrecruiters.com/oneclick-ui/company/Acme/publication/x"}],
+        )
+        assert "oneclick-ui" in (find_apply_url(session) or "")
+
+    def test_falls_back_to_a_path_ending_in_apply(self):
+        from careeros_browser import FakeBrowserSession
+
+        session = FakeBrowserSession()
+        session.set_query_all_results("a", [{"href": "https://careers.acme.com/jobs/7/apply"}])
+        assert find_apply_url(session) == "https://careers.acme.com/jobs/7/apply"
+
+    def test_returns_none_when_there_is_no_apply_link(self):
+        from careeros_browser import FakeBrowserSession
+
+        session = FakeBrowserSession()
+        session.set_query_all_results("a", [{"href": "https://example.com/about"}])
+        assert find_apply_url(session) is None
