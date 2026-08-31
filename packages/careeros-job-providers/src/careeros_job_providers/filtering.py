@@ -25,6 +25,33 @@ def _keyword_in_text(keyword: str, text: str) -> bool:
     return re.search(rf"\b{re.escape(keyword.lower())}\b", text) is not None
 
 
+def keyword_matches_posting(keyword: str, posting: JobPosting) -> bool:
+    """Whether ``keyword`` is a real signal for this posting.
+
+    The title (plus tags) is the primary signal. Matching a keyword anywhere in
+    a full job description is far too loose to be useful: measured against
+    2,170 live Lever postings, "any hit in title or description" for a set of
+    marketing keywords kept 987 of them — including "Liquor Store Associate",
+    which mentions "performance" once in a boilerplate paragraph. Title-only
+    matching kept 79, essentially all genuinely relevant.
+
+    A description hit is therefore only trusted for MULTI-WORD keywords. A
+    phrase like "performance marketing" or "demand generation" appearing in a
+    body really is about the role; a bare "marketing" is not. That single
+    distinction recovers the handful of real matches whose title is vague
+    ("Senior Manager, Digital") without readmitting the noise.
+    """
+    lowered = keyword.strip().lower()
+    if not lowered:
+        return False
+    headline = f"{posting.title} {' '.join(posting.tags)}".lower()
+    if _keyword_in_text(lowered, headline):
+        return True
+    if " " in lowered and posting.description:
+        return _keyword_in_text(lowered, posting.description.lower())
+    return False
+
+
 def _validated(applied_server_side: Iterable[str]) -> frozenset[str]:
     applied = frozenset(applied_server_side)
     unknown = applied - SERVER_SIDE_FILTERABLE
@@ -55,10 +82,12 @@ def matches_query(
     if query.employment_types and posting.employment_type not in query.employment_types:
         return False
 
-    if query.keywords and "keywords" not in applied:
-        haystack = f"{posting.title} {posting.description} {' '.join(posting.tags)}".lower()
-        if not any(_keyword_in_text(keyword, haystack) for keyword in query.keywords):
-            return False
+    if (
+        query.keywords
+        and "keywords" not in applied
+        and not any(keyword_matches_posting(keyword, posting) for keyword in query.keywords)
+    ):
+        return False
 
     if query.locations and "locations" not in applied:
         if posting.location is None:

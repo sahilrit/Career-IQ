@@ -44,11 +44,45 @@ def test_employment_type_filter(posting_factory):
     assert not matches_query(contract, JobSearchQuery(employment_types=[EmploymentType.FULL_TIME]))
 
 
-def test_keyword_filter_matches_title_or_description(posting_factory):
+def test_keyword_filter_matches_the_title(posting_factory):
     posting = posting_factory(title="Senior Python Engineer", description="Django experience")
     assert matches_query(posting, JobSearchQuery(keywords=["python"]))
-    assert matches_query(posting, JobSearchQuery(keywords=["django"]))
     assert not matches_query(posting, JobSearchQuery(keywords=["rust"]))
+
+
+def test_keyword_filter_matches_tags(posting_factory):
+    posting = posting_factory(title="Senior Engineer", tags=["golang", "backend"])
+    assert matches_query(posting, JobSearchQuery(keywords=["golang"]))
+
+
+def test_a_single_word_in_the_body_alone_is_not_a_match(posting_factory):
+    """The noise rule, measured against 2,170 live Lever postings.
+
+    Matching any keyword anywhere in a description kept 987 of them, including
+    retail roles whose body mentions "performance" once in boilerplate. A bare
+    word in a long body is not evidence the role is about that word.
+    """
+    posting = posting_factory(
+        title="Liquor Store Associate",
+        description="You will be evaluated on performance during quarterly reviews.",
+    )
+    assert not matches_query(posting, JobSearchQuery(keywords=["performance"]))
+
+
+def test_a_multi_word_phrase_in_the_body_is_a_match(posting_factory):
+    """A phrase in the body really is about the role, so it is trusted where a
+    single generic word is not — this recovers genuine matches whose title is
+    vague without readmitting the noise above."""
+    posting = posting_factory(
+        title="Senior Manager, Digital",
+        description="You will own the performance marketing programme end to end.",
+    )
+    assert matches_query(posting, JobSearchQuery(keywords=["performance marketing"]))
+
+
+def test_keyword_matching_stays_whole_word(posting_factory):
+    posting = posting_factory(title="Across the board Engineer", description="")
+    assert not matches_query(posting, JobSearchQuery(keywords=["cro"]))
 
 
 def test_location_filter_requires_a_substring_match(posting_factory):

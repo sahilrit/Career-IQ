@@ -13,12 +13,11 @@ from careeros_application_engine import (
     build_application_package,
 )
 from careeros_arbeitnow_provider import ArbeitnowProvider
-from careeros_ashby_provider import AshbyProvider
+from careeros_ats_providers import build_ats_providers
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore
 from careeros_event_bus import EventBus
 from careeros_golangjobs_provider import GolangJobsProvider
-from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_agent import CycleSummary, JobAgent
@@ -27,7 +26,6 @@ from careeros_job_discovery.llm_scoring import LlmJobScorer
 from careeros_job_providers import JobProviderRegistry, JobSearchQuery
 from careeros_job_search.optional_providers import linkedin_enabled
 from careeros_jobicy_provider import JobicyProvider
-from careeros_lever_provider import LeverProvider
 from careeros_linkedin_provider import LinkedInProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_seek_provider import SeekProvider
@@ -60,11 +58,12 @@ def default_provider_registry() -> JobProviderRegistry:
     # verified live (2026-08-26) — so it needs no key and no browser, unlike
     # the local-daemon-only browser-gated sources.
     registry.register(SeekProvider())
-    # Open-form ATS boards last: their postings link to application forms
-    # with no login/captcha — the ones the autopilot can actually submit.
-    registry.register(GreenhouseProvider())
-    registry.register(AshbyProvider())
-    registry.register(LeverProvider())
+    # Open-form ATS boards last: their postings link to application forms with
+    # no login wall and no captcha, which makes them the only sources the
+    # application engine can realistically fill end to end. One provider per
+    # ATS, each crawling its own verified set of company boards.
+    for ats_provider in build_ats_providers():
+        registry.register(ats_provider)
     # LinkedIn reads the site rather than an API, so unlike the others it can
     # be switched off with CAREEROS_ENABLE_LINKEDIN=0 — see optional_providers.
     if linkedin_enabled():

@@ -51,6 +51,8 @@ dev = [
     "careeros-browser[camoufox]",
     # The LLM gateway: every AI-backed feature routes through it.
     "careeros-llm",
+    # Hosted-ATS discovery: the boards whose forms can actually be filled.
+    "careeros-ats-providers",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -75,6 +77,9 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-llm]
+workspace = true
+
+[tool.uv.sources.careeros-ats-providers]
 workspace = true
 
 # ---------------------------------------------------------------------------

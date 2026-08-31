@@ -4,12 +4,12 @@ version = "0.1.0"
 description = "Dashboard / SaaS Control Center: the product UI over the platform — main dashboard, opportunity page, and Career Brain management."
 requires-python = ">=3.12"
 dependencies = [
+    "careeros-ats-providers",
     "careeros-application-engine",
     "careeros-analytics",
     "careeros-interview-intelligence",
     "careeros-audit-proposal-engine",
     "careeros-arbeitnow-provider",
-    "careeros-ashby-provider",
     "careeros-auth",
     "careeros-autopilot",
     "careeros-billing",
@@ -31,8 +31,6 @@ dependencies = [
     "careeros-jobicy-provider",
     "careeros-weworkremotely-provider",
     "careeros-themuse-provider",
-    "careeros-lever-provider",
-    "careeros-greenhouse-provider",
     "careeros-job-agent",
     "careeros-job-search",
     "careeros-job-discovery",
@@ -49,12 +47,12 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+careeros-ats-providers = { workspace = true }
 careeros-application-engine = { workspace = true }
 careeros-analytics = { workspace = true }
 careeros-interview-intelligence = { workspace = true }
 careeros-audit-proposal-engine = { workspace = true }
 careeros-arbeitnow-provider = { workspace = true }
-careeros-ashby-provider = { workspace = true }
 careeros-auth = { workspace = true }
 careeros-autopilot = { workspace = true }
 careeros-billing = { workspace = true }
@@ -76,8 +74,6 @@ careeros-workingnomads-provider = { workspace = true }
 careeros-jobicy-provider = { workspace = true }
 careeros-weworkremotely-provider = { workspace = true }
 careeros-themuse-provider = { workspace = true }
-careeros-lever-provider = { workspace = true }
-careeros-greenhouse-provider = { workspace = true }
 careeros-job-agent = { workspace = true }
 careeros-job-search = { workspace = true }
 careeros-job-discovery = { workspace = true }

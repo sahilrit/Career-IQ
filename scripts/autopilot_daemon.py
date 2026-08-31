@@ -28,19 +28,17 @@ from typing import Any
 from careeros_adzuna_provider import AdzunaProvider
 from careeros_application_engine import TemplateCoverLetterGenerator
 from careeros_arbeitnow_provider import ArbeitnowProvider
-from careeros_ashby_provider import AshbyProvider
+from careeros_ats_providers import build_ats_providers
 from careeros_autopilot import run_autopilot_cycle
 from careeros_common import DocumentStore, open_store
 from careeros_glassdoor_provider import GlassdoorProvider
 from careeros_golangjobs_provider import GolangJobsProvider
 from careeros_gradcracker_provider import GradcrackerProvider
-from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_himalayas_provider import HimalayasProvider
 from careeros_himalayas_provider.client import HttpxHimalayasTransport
 from careeros_hiringcafe_provider import HiringCafeProvider
 from careeros_job_providers import JobProviderRegistry
 from careeros_jobicy_provider import JobicyProvider
-from careeros_lever_provider import LeverProvider
 from careeros_naukri_provider import NaukriProvider
 from careeros_remoteok_provider import RemoteOKProvider
 from careeros_seek_provider import SeekProvider
@@ -99,10 +97,10 @@ def build_registry(scoped: Any, workspace_id: str) -> JobProviderRegistry:
     registry.register(WorkingNomadsProvider())
     registry.register(WeWorkRemotelyProvider())
     registry.register(TheMuseProvider())
-    # Open-form ATS boards: forms the autopilot can actually submit to.
-    registry.register(GreenhouseProvider())
-    registry.register(AshbyProvider())
-    registry.register(LeverProvider())
+    # Open-form ATS boards: forms the autopilot can actually submit to. Nine
+    # hosted ATSes, each crawling its own verified set of company boards.
+    for ats_provider in build_ats_providers():
+        registry.register(ats_provider)
     # HiringCafe: keyless; each posting's url is the employer's direct apply
     # link. Adzuna: needs ADZUNA_APP_ID / ADZUNA_APP_KEY in the environment —
     # without them it reports unavailable and is skipped, so it's safe to add.

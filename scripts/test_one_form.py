@@ -28,12 +28,12 @@ from typing import Any
 
 from careeros_application_engine import QuestionAnswerer, build_application_package
 from careeros_application_runner import fill_application_form
+from careeros_ats_providers import ADAPTER_CLASSES, AtsBoardProvider, greenhouse_boards
 from careeros_autopilot.page_analysis import detect_form_mapping, prepare_application_page
 from careeros_autopilot.resume_file import write_resume_pdf
 from careeros_browser import launch_browser_session
 from careeros_career_brain import CareerBrainRepository
 from careeros_common import DocumentStore, open_store
-from careeros_greenhouse_provider import GreenhouseProvider
 from careeros_job_providers import JobPosting, JobSearchQuery
 from careeros_tenancy import TenantScopedDocumentStore
 
@@ -57,7 +57,7 @@ def _load_brain(store: Any, workspace_id: str) -> Any:
 
 def _pick_greenhouse_posting(keywords: list[str]) -> JobPosting | None:
     print("Searching Greenhouse for a job to test on…")
-    result = GreenhouseProvider().search(
+    result = AtsBoardProvider(ADAPTER_CLASSES["greenhouse"](), greenhouse_boards()).search(
         JobSearchQuery(keywords=keywords, remote_only=False, limit=200)
     )
     greenhouse = [posting for posting in result.postings if "greenhouse.io" in (posting.url or "")]

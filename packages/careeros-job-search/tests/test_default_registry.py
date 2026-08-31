@@ -22,7 +22,7 @@ def _ids(registry) -> set[str]:
     return {provider.provider_id for provider in registry.list_all()}
 
 
-def test_the_original_api_backed_providers_are_all_registered():
+def test_the_aggregator_providers_are_all_registered():
     ids = _ids(default_provider_registry())
     assert {
         "remoteok",
@@ -32,14 +32,40 @@ def test_the_original_api_backed_providers_are_all_registered():
         "workingnomads",
         "weworkremotely",
         "themuse",
-        "greenhouse",
-        "ashby",
-        "lever",
         "hiringcafe",
         "adzuna",
         "golangjobs",
         "seek",
     } <= ids
+
+
+def test_every_hosted_ats_is_registered():
+    """The ATS sources are what the application engine can actually fill, so
+    losing one silently is a much bigger regression than losing an aggregator.
+    Ids are namespaced ``ats:<name>`` so an ATS can never collide with an
+    aggregator of the same name."""
+    ids = _ids(default_provider_registry())
+    assert {
+        "ats:greenhouse",
+        "ats:lever",
+        "ats:ashby",
+        "ats:smartrecruiters",
+        "ats:workable",
+        "ats:recruitee",
+        "ats:personio",
+        "ats:bamboohr",
+        "ats:workday",
+    } <= ids
+
+
+def test_every_registered_ats_provider_has_boards_to_crawl():
+    # An ATS provider with no boards can never return anything; registering one
+    # would put a permanently-silent source in every search.
+    from careeros_ats_providers import AtsBoardProvider
+
+    for provider in default_provider_registry().list_all():
+        if isinstance(provider, AtsBoardProvider):
+            assert provider.boards, f"{provider.provider_id} has no boards"
 
 
 def test_linkedin_is_registered_by_default():

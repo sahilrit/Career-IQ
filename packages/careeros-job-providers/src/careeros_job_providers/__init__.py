@@ -6,7 +6,7 @@ never on a specific source like RemoteOK or LinkedIn directly.
 
 from careeros_job_providers.dedupe import deduplicate
 from careeros_job_providers.exceptions import JobProviderError
-from careeros_job_providers.filtering import filter_postings, matches_query
+from careeros_job_providers.filtering import filter_postings, keyword_matches_posting, matches_query
 from careeros_job_providers.models import EmploymentType, JobPosting, JobSearchQuery, Salary
 from careeros_job_providers.provider import (
     CAPABILITY_FIND_JOBS,
@@ -31,5 +31,6 @@ __all__ = [
     "Salary",
     "deduplicate",
     "filter_postings",
+    "keyword_matches_posting",
     "matches_query",
 ]
