@@ -53,6 +53,11 @@ dev = [
     "careeros-llm",
     # Hosted-ATS discovery: the boards whose forms can actually be filled.
     "careeros-ats-providers",
+    # The `careeros` console entry point, and the one freelance gig source -
+    # both were workspace members that plain `uv sync` never installed, so
+    # their tests silently did not run.
+    "careeros-cli",
+    "careeros-fiverr-provider",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -80,6 +85,12 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-ats-providers]
+workspace = true
+
+[tool.uv.sources.careeros-cli]
+workspace = true
+
+[tool.uv.sources.careeros-fiverr-provider]
 workspace = true
 
 # ---------------------------------------------------------------------------
