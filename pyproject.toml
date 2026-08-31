@@ -49,6 +49,8 @@ dev = [
     # still opt-in for the hosted API image, which syncs with
     # --package careeros-api and never touches this dev group.
     "careeros-browser[camoufox]",
+    # The LLM gateway: every AI-backed feature routes through it.
+    "careeros-llm",
 ]
 
 [tool.uv.sources.careeros-api]
@@ -70,6 +72,9 @@ workspace = true
 workspace = true
 
 [tool.uv.sources.careeros-browser]
+workspace = true
+
+[tool.uv.sources.careeros-llm]
 workspace = true
 
 # ---------------------------------------------------------------------------

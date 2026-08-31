@@ -71,6 +71,7 @@ members = [
     "careeros-learning-lab",
     "careeros-lever-provider",
     "careeros-linkedin-provider",
+    "careeros-llm",
     "careeros-marketplace-governance",
     "careeros-memory",
     "careeros-naukri-provider",
@@ -377,6 +378,7 @@ dev = [
     { name = "careeros-browser", extra = ["camoufox"] },
     { name = "careeros-glassdoor-provider" },
     { name = "careeros-gradcracker-provider" },
+    { name = "careeros-llm" },
     { name = "careeros-naukri-provider" },
     { name = "careeros-ukvisajobs-provider" },
     { name = "careeros-ziprecruiter-provider" },
@@ -396,6 +398,7 @@ dev = [
     { name = "careeros-browser", extras = ["camoufox"], editable = "packages/careeros-browser" },
     { name = "careeros-glassdoor-provider", editable = "packages/careeros-glassdoor-provider" },
     { name = "careeros-gradcracker-provider", editable = "packages/careeros-gradcracker-provider" },
+    { name = "careeros-llm", editable = "packages/careeros-llm" },
     { name = "careeros-naukri-provider", editable = "packages/careeros-naukri-provider" },
     { name = "careeros-ukvisajobs-provider", editable = "packages/careeros-ukvisajobs-provider" },
     { name = "careeros-ziprecruiter-provider", editable = "packages/careeros-ziprecruiter-provider" },
@@ -1599,6 +1602,23 @@ requires-dist = [
     { name = "careeros-common", editable = "packages/careeros-common" },
     { name = "careeros-job-providers", editable = "packages/careeros-job-providers" },
     { name = "httpx", specifier = ">=0.27" },
+]
+
+[[package]]
+name = "careeros-llm"
+version = "0.1.0"
+source = { editable = "packages/careeros-llm" }
+dependencies = [
+    { name = "careeros-ai" },
+    { name = "careeros-common" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "careeros-ai", editable = "packages/careeros-ai" },
+    { name = "careeros-common", editable = "packages/careeros-common" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]
