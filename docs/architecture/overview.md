@@ -1,60 +1,57 @@
 # Architecture Overview
 
-CareerOS is a general-purpose, multi-tenant AI Career Operating System.
-The full target architecture (post Phase 60) looks like this:
+CareerOS is a multi-tenant AI career operating system covering employment and
+freelance work in one product.
+
+This document describes what **exists today**. Where an earlier version of it
+described a target architecture (a capability marketplace, a plugin manager, a
+CEO agent orchestrating divisions), that layer has been removed: it was never
+wired to anything, and seventeen packages implementing it were deleted in the
+2026-08-31 rebuild. Documentation that describes intent as if it were
+implementation is worse than none.
+
+## The workflow that matters
+
+Everything below exists to serve one path:
 
 ```
-                         CAREEROS
-                   AI CAREER PLATFORM
-                            │
-                     ┌──────▼──────┐
-                     │  CEO AGENT  │
-                     └──────┬──────┘
-                            │
-              ┌─────────────┼─────────────┐
-              │             │             │
-         EMPLOYMENT      FREELANCE     PERSONAL BRAND
-              │             │             │
-              └─────────────┼─────────────┘
-                            │
-                      OPPORTUNITY
-                       INTELLIGENCE
-                            │
-             ┌──────────────┼──────────────┐
-             │              │              │
-        CAREER BRAIN      MEMORY       ANALYTICS
-             │              │              │
-             └──────────────┼──────────────┘
-                            │
-                       EVENT BUS
-                            │
-                     WORKFLOW ENGINE
-                            │
-                   CAPABILITY REGISTRY
-                            │
-                    PLUGIN MANAGER
-                            │
-       ┌────────────────────┼────────────────────┐
-       │                    │                    │
-   JOB PLUGINS         FREELANCE PLUGINS    AI SKILLS
-       │                    │                    │
-       └────────────────────┼────────────────────┘
-                            │
-                    EXECUTION ENGINE
-                            │
-                    BROWSER AUTOMATION
-                            │
-                    LOCAL / FREE AI
-                            │
-                    SaaS INFRASTRUCTURE
+discover  →  score  →  generate  →  review  →  open the form
+                                                    │
+                                    detect → map → fill → verify
+                                                    │
+                                   submission-ready (a human submits)
 ```
 
-See [`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for how the platform
-gets there phase by phase. This document describes only what exists
-**today**; update it as each phase lands instead of describing the target
-state as if it were current.
+`scripts/e2e_smoke.py` runs exactly this against live boards and real forms and
+reports where it stops. That report, not the test suite, is the definition of
+whether CareerOS works.
 
-## Current state (post Phase 60 — all 60 phases complete)
+## Subsystem documentation
+
+| Area | Document |
+|---|---|
+| Provider-agnostic AI, routing, fallback, health | [llm-providers.md](../llm-providers.md) |
+| Aggregators and the nine hosted ATSes | [job-providers.md](../job-providers.md) |
+| Package generation, filling, verification | [application-engine.md](../application-engine.md) |
+| The source of truth, and the zero-fabrication rule | [career-profile.md](../career-profile.md) |
+| How this is tested, at five levels | [testing.md](../testing.md) |
+| When something does not work | [troubleshooting.md](../troubleshooting.md) |
+| What was taken from ai-job-search, career-ops and AIHawk | [competitive-integration-log.md](../competitive-integration-log.md) |
+
+## Principles
+
+1. **Working functionality over architectural completeness.** A simple thing
+   that applies to real ATS forms beats an abstraction that theoretically
+   supports a hundred.
+2. **Never fabricate.** Not a fact about the user, not an AI response, not a
+   test result. Where a truthful value is unavailable, the field is left for a
+   human and said so.
+3. **Never fail silently.** A swallowed exception is how filling became
+   unreliable while every test passed.
+4. **A human before Submit.** Reliability is worth more than the claim of full
+   autonomy.
+
+## Package map
 
 ```
 careeros/                                  workspace root — virtual, not installed
@@ -64,14 +61,25 @@ careeros/                                  workspace root — virtual, not insta
     ├── careeros-career-brain/               authoritative domain models (Identity,
     │                                       Experience, Skills, Applications, ...) +
     │                                       CareerBrainRepository + status state machine
-    ├── careeros-plugin-sdk/                 Plugin interface, manifest, versioning,
-    │                                       PluginRegistry lifecycle
     ├── careeros-event-bus/                  in-process pub/sub EventBus
     ├── careeros-memory/                     working memory, HistoryLog (subscribes to
     │                                       the event bus), analytics, local TF-IDF
     │                                       semantic search
     ├── careeros-job-providers/              FIND_JOBS provider SDK: JobPosting model,
     │                                       filtering, dedup, JobProviderRegistry
+    ├── careeros-ats-providers/              hosted-ATS discovery: one engine, nine
+    │                                       adapters (greenhouse, lever, ashby,
+    │                                       smartrecruiters, workable, recruitee,
+    │                                       personio, bamboohr, workday) over 120
+    │                                       live-verified company boards. The only
+    │                                       sources whose forms can be filled
+    │                                       end to end — see docs/job-providers.md
+    ├── careeros-llm/                        the LLM gateway: task routing, provider
+    │                                       fallback, health, and CLI providers
+    │                                       (claude/codex/gemini) so an existing
+    │                                       subscription is a working provider and
+    │                                       no API key is ever required —
+    │                                       see docs/llm-providers.md
     ├── careeros-remoteok-provider/          the reference FIND_JOBS provider, backed
     │                                       by RemoteOK's free public API
     ├── careeros-job-discovery/              end-to-end pipeline: discover -> score
@@ -94,8 +102,11 @@ careeros/                                  workspace root — virtual, not insta
     │                                       FakeBrowserSession test double
     │                                       used across the platform
     ├── careeros-application-runner/         turns an application package into a
-    │                                       real browser form submission, with
-    │                                       validation/retries/screenshots
+    │                                       real browser form submission. Every
+    │                                       field is written then READ BACK, and
+    │                                       the FillReport says what landed, what
+    │                                       was left for a human, and what failed
+    │                                       — see docs/application-engine.md
     ├── careeros-cli/                        the `careeros` command-line interface
     ├── careeros-application-intelligence/   production apply decisions (score +
     │                                       rate limits + cooldowns) and outcome
@@ -120,12 +131,6 @@ careeros/                                  workspace root — virtual, not insta
     │                                       package -> submit via real browser
     │                                       -> verify -> record outcome, with
     │                                       human handoff on any failure
-    ├── careeros-core/                       platform-wide contracts: capability
-    │                                       registry interface, platform health,
-    │                                       execution context, event contracts
-    ├── careeros-capability-marketplace/     ranked provider registration with
-    │                                       automatic fallback and parallel
-    │                                       execution across any capability
     ├── careeros-tenancy/                    multi-tenant identity (User /
     │                                       Organization / Workspace /
     │                                       Membership / Role), and
@@ -200,12 +205,6 @@ careeros/                                  workspace root — virtual, not insta
     │                                       income trends, and full-time
     │                                       vs. freelance vs. combined
     │                                       strategy comparison
-    ├── careeros-opportunity-prediction/     predicts demand from real
-    │                                       company signals (funding,
-    │                                       hiring velocity computed
-    │                                       from real job posting dates,
-    │                                       executive hires, ...) before
-    │                                       an opportunity is posted
     ├── careeros-learning-lab/               A/B experiments across
     │                                       content generated elsewhere
     │                                       (resume, email, LinkedIn,
@@ -225,11 +224,6 @@ careeros/                                  workspace root — virtual, not insta
     │                                       a transparent, evidence-
     │                                       weighted blend of a baseline
     │                                       split and real performance
-    ├── careeros-workflow-builder/            no-code WHEN/THEN rules
-    │                                       over platform events,
-    │                                       dispatching named action
-    │                                       chains through a pluggable
-    │                                       executor
     ├── careeros-dashboard/                  the product UI (Streamlit):
     │                                       main dashboard, opportunity
     │                                       page, full Career Brain
@@ -247,59 +241,12 @@ careeros/                                  workspace root — virtual, not insta
     │                                       with recovery, and an
     │                                       extensible data export/
     │                                       deletion registry
-    ├── careeros-zero-cost-mode/              makes "no mandatory paid
-    │                                       API" explicit and tested: a
-    │                                       provider cost registry
-    │                                       (pre-seeded with the
-    │                                       platform's own real
-    │                                       providers) and a workspace
-    │                                       dependency audit
-    ├── careeros-self-hosted/                real platform health
-    │                                       checks and a canonical
-    │                                       local data directory — the
-    │                                       code half of "runnable on
-    │                                       Mac/Windows/Linux/Docker"
-    ├── careeros-plugin-marketplace/         a browsable catalog on top
-    │                                       of Phase 3's PluginRegistry
-    │                                       — RemoteOK/Fiverr
-    │                                       installable, everything
-    │                                       else honestly catalog-only
-    ├── careeros-skill-marketplace/           the second marketplace
-    │                                       section (AI Skills):
-    │                                       intelligence CareerOS's own
-    │                                       packages already provide,
-    │                                       plus a unified search over
-    │                                       both marketplace sections
-    ├── careeros-developer-sdk/              a fluent PluginBuilder,
-    │                                       manifest validation, and a
-    │                                       package scaffold generator
-    │                                       — build a plugin without
-    │                                       touching CareerOS Core
-    ├── careeros-marketplace-governance/     the checks a plugin must
-    │                                       pass before distribution
-    │                                       (manifest/version/
-    │                                       permission/dependency/
-    │                                       security/compatibility),
-    │                                       plus version rollback
     ├── careeros-billing/                    the Free/Pro/Agency plan
     │                                       model, feature gating, and
     │                                       subscription state tracking
     │                                       — a monetization layer, not
     │                                       a core dependency; no real
     │                                       payment processor integrated
-    ├── careeros-onboarding/                 tracks each user's real
-    │                                       progress through Signup ->
-    │                                       Career Brain setup ->
-    │                                       Connect accounts -> Choose
-    │                                       capabilities -> Configure
-    │                                       autonomy -> Start CareerOS
-    ├── careeros-observability/              metrics (counters/gauges/
-    │                                       timers), clock-injectable
-    │                                       nested tracing spans,
-    │                                       threshold alerting, and
-    │                                       plain-language failure
-    │                                       explanation over Phase 45's
-    │                                       failure queue
     ├── careeros-compliance/                 retention policies,
     │                                       configurable security
     │                                       policies, whole-account
@@ -308,76 +255,9 @@ careeros/                                  workspace root — virtual, not insta
     │                                       tenancy records (Phase 25),
     │                                       and a compliance readiness
     │                                       report
-    ├── careeros-beta/                       real readiness check
-    │                                       across the MVP's required
-    │                                       subsystems (real
-    │                                       importlib presence, not a
-    │                                       promise) plus a capacity-
-    │                                       limited invite cohort
-    ├── careeros-launch/                     production-launch
-    │                                       readiness gate over the
-    │                                       platform's architectural
-    │                                       properties, plus Phase 46's
-    │                                       own dependency audit run
-    │                                       live for the zero-paid-API
-    │                                       claim, and a launch record
     ├── careeros-arbeitnow-provider/         a second FIND_JOBS
     │                                       provider, backed by
     │                                       Arbeitnow's free public
     │                                       job board API, proving the
     │                                       SDK generalizes beyond
     │                                       RemoteOK
-    ├── careeros-intelligence-network/       aggregates anonymous,
-    │                                       consented, non-personal
-    │                                       signals across tenants —
-    │                                       SignalContribution has no
-    │                                       identity field in its
-    │                                       schema at all, so one
-    │                                       customer's Career Brain
-    │                                       structurally cannot leak
-    │                                       into another's view
-    └── careeros-autonomous-agency/          the final capstone: tracks
-                                            one continuous loop per
-                                            user (Employment/Freelance/
-                                            Personal Brand -> Networking
-                                            -> Client Success ->
-                                            Financial Intelligence ->
-                                            Career Intelligence -> CEO
-                                            Agent -> Learning -> loop
-                                            back), updated from real
-                                            events where they exist and
-                                            by explicit confirmation
-                                            where they don't — no new
-                                            domain logic, just the
-                                            loop view across every
-                                            division already built
-```
-
-Every package depends on `careeros-common` for config, logging, and its
-base exception type rather than duplicating them. Career Brain
-(`careeros-career-brain`) is the only authoritative store of a user's
-professional identity — every other package reads or appends to it, none
-invents data about the user.
-
-All 60 roadmap phases are now built. Nothing on the original roadmap
-is missing; ecosystem expansion (more providers, more plugins, more AI
-skills, more marketplace developers) continues indefinitely on top of
-the same stable core rather than as a bounded phase. See
-[`docs/phases/ROADMAP.md`](../phases/ROADMAP.md) for the full sequence
-and status of every phase.
-
-## Core principle
-
-Build the platform once. Job boards, freelance platforms, AI capabilities,
-workflows, agents, and integrations are all replaceable — implemented as
-plugins/providers behind stable capability contracts (from Phase 24
-onward), never hard-coded into the core.
-
-## Critical constraint
-
-No mandatory paid API keys. Every core capability must have a free/local
-path: open-source or local models, free-tier or public-data providers,
-browser automation, and user-supplied OAuth/credentials. Paid providers are
-optional plugins layered on top, never a dependency of the core platform
-(Phase 46, "Zero-Cost Infrastructure Mode", makes this an explicit,
-tested requirement).
