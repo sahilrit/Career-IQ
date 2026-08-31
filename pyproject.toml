@@ -126,6 +126,14 @@ indent-style = "space"
 testpaths = ["packages"]
 python_files = ["test_*.py"]
 addopts = "--strict-markers --strict-config --import-mode=importlib"
+markers = [
+    # Drives a real headless Chromium against local ATS-shaped form fixtures.
+    # Slower than the rest of the suite (a browser launch, not a fake session)
+    # and the only place DOM-level failures - disabled inputs, React-controlled
+    # fields, invalid-CSS numeric ids - can actually be reproduced.
+    # Skip with: -m "not browser"
+    "browser: drives a real headless browser against local form fixtures",
+]
 
 [tool.coverage.run]
 source = ["packages"]

@@ -36,6 +36,12 @@ class FakeBrowserSession:
         # call, so a page that must be fetched twice needs two queued entries.
         self._queued_responses: dict[str, deque[str]] = {}
         self._failing_click_selectors: set[str] = set()
+        #: Fields that silently DISCARD whatever is written to them - the
+        #: React-controlled / disabled inputs that make a fill look successful
+        #: while submitting nothing. Set via ``set_field_rejects``.
+        self._rejecting_selectors: set[str] = set()
+        #: Fields whose value cannot be read back at all.
+        self._unreadable_selectors: set[str] = set()
         self._comboboxes: list[dict[str, str]] = []
         self._combobox_options: dict[str, list[str]] = {}
         self.combobox_selections: list[tuple[str, str]] = []
@@ -71,7 +77,25 @@ class FakeBrowserSession:
         self._cookies.clear()
 
     def fill(self, selector: str, value: str) -> None:
+        if selector in self._rejecting_selectors:
+            # No exception: this is precisely the failure mode that read-back
+            # verification exists to catch. A field that throws is easy; a
+            # field that quietly keeps its old value is the dangerous one.
+            return
         self._field_values[selector] = value
+
+    def input_value(self, selector: str) -> str:
+        if selector in self._unreadable_selectors:
+            raise BrowserError(f"Could not read the value of {selector!r} (simulated)")
+        return self._field_values.get(selector, "")
+
+    def set_field_rejects(self, selector: str) -> None:
+        """Make ``selector`` silently discard writes, like a React-controlled
+        or disabled input does."""
+        self._rejecting_selectors.add(selector)
+
+    def set_field_unreadable(self, selector: str) -> None:
+        self._unreadable_selectors.add(selector)
 
     def click(self, selector: str) -> None:
         if selector in self._failing_click_selectors:

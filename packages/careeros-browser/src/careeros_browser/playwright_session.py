@@ -115,6 +115,12 @@ class PlaywrightBrowserSession:
     def select_option(self, selector: str, value: str) -> None:
         self._page.select_option(selector, value)
 
+    def input_value(self, selector: str) -> str:
+        try:
+            return self._page.input_value(selector)
+        except Exception as exc:
+            raise BrowserError(f"Could not read the value of {selector!r}: {exc}") from exc
+
     def detect_comboboxes(self) -> list[dict[str, str]]:
         try:
             found = self._page.evaluate(_DETECT_COMBOBOXES_JS)

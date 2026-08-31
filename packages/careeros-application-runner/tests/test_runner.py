@@ -31,13 +31,17 @@ def test_prepare_fills_the_form_but_never_submits(session, package):
         success_selector="#success",
     )
     runner = ApplicationRunner(screenshot_dir="/tmp/careeros-screenshots")
-    shot = runner.prepare(session, package, mapping, application_id="job-1")
+    prepared = runner.prepare(session, package, mapping, application_id="job-1")
 
     assert session.field_value("#email") == "ada@example.com"
     assert session.field_value("#name") == "Ada Lovelace"
     # Never clicked submit — a human finishes the captcha and submits.
     assert session.clicked_selectors == []
-    assert str(shot).endswith("job-1-prepared.png")
+    assert str(prepared.screenshot).endswith("job-1-prepared.png")
+    # The report is the point: a human should not have to compare a screenshot
+    # against their own CV to find out what actually landed.
+    assert prepared.is_ready
+    assert {r.field for r in prepared.fill_report.filled} == {"full_name", "email"}
 
 
 def test_validation_failure_short_circuits_before_any_attempt(session, package):

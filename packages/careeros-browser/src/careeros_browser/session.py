@@ -42,6 +42,21 @@ class BrowserSession(Protocol):
 
     def select_option(self, selector: str, value: str) -> None: ...
 
+    def input_value(self, selector: str) -> str:
+        """The value currently IN the field — what the page would submit.
+
+        Filling a form is not the same as having filled it. A React-controlled
+        input can reject or rewrite a programmatic value, a disabled field
+        silently ignores one, and a field that scrolled out of an accordion may
+        never have received it. Reading the value back is the only way to tell
+        a fill that worked from one that looked like it did, which is the
+        difference between an application that submits and one that bounces.
+
+        Returns "" when the field has no value; raises when the selector does
+        not resolve.
+        """
+        ...
+
     def detect_comboboxes(self) -> list[dict[str, str]]:
         """Custom (React/ARIA) dropdowns on the page — the ``Select…`` widgets
         that are NOT native ``<select>`` elements and so can't be filled with

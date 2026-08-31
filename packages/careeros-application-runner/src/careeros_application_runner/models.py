@@ -17,8 +17,12 @@ class QuestionField(BaseModel):
 
     selector: str
     question: str
-    # "text" fills the value; "select" chooses an option by value/label.
+    # "text" fills the value; "select" chooses an option by value/label;
+    # "combobox" opens a custom React/ARIA dropdown and picks an option.
     kind: str = "text"
+    #: Whether the form marks this question required. A required question left
+    #: for a human blocks submission; an optional one does not.
+    required: bool = False
 
 
 class FormFieldMapping(BaseModel):

@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- The forms that break naive fillers, all on one page:
+     * #email is DISABLED, so fill() succeeds and the value never lands.
+     * #phone is readonly.
+     * #locked is React-controlled: an input listener rewrites whatever is typed.
+     Each must be reported as a failure, not silently accepted. -->
+<html><head><meta charset="utf-8"><title>Hostile form</title></head>
+<body>
+<form>
+  <label for="first_name">First Name</label><input type="text" id="first_name">
+  <label for="email">Email</label><input type="email" id="email" disabled>
+  <label for="phone">Phone</label><input type="tel" id="phone" readonly>
+  <label for="locked">Controlled field</label><input type="text" id="locked">
+  <button type="submit" id="submit_app">Submit</button>
+</form>
+<script>
+  // A controlled component that discards programmatic writes.
+  const locked = document.getElementById('locked');
+  locked.addEventListener('input', () => { locked.value = ''; });
+</script>
+</body></html>
